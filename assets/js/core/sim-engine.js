@@ -1,0 +1,435 @@
+/* =====================================================================
+   sim-engine.js — motore dell'intervento.
+
+   Logica pura: nessun DOM, nessuna dipendenza. Si collauda con
+   `node --test tests/`.
+
+   Idee portanti
+   -------------
+   · L'orologio avanza SOLO quando il giocatore agisce (a turni).
+   · Il paziente ha un decorso: senza le azioni giuste peggiora da solo.
+   · Fare costa tempo, e il tempo è l'unica risorsa che non torna.
+   · La squadra è di tre: tu, l'autista e l'infermiere. Le azioni
+     delegate corrono in parallelo mentre tu fai altro.
+   · Le rilevazioni invecchiano: quello che vedi è il valore di quando
+     l'hai misurato, non quello di adesso.
+
+   I valori che derivano nel tempo non vengono accumulati secondo per
+   secondo (l'errore in virgola mobile si sommerebbe): si tiene un
+   ANCORA — l'ultimo stato certo — e si proietta linearmente da lì.
+   ===================================================================== */
+
+/* Chiavi che derivano nel tempo secondo `decorso`. */
+const DERIVATE = ['pas', 'pad', 'fc', 'spo2', 'temp', 'glicemia', 'fr'];
+
+/* Quanto resta valida una rilevazione singola prima di essere rifatta. */
+const VALIDITA_LETTURA = 120;
+
+/* Grandezze che il monitor tiene sotto controllo di continuo. */
+const CONTINUE = ['fc', 'spo2', 'ritmo'];
+
+const COSCIENZA_PESO = { A: 0, V: 1, P: 2, U: 3 };
+
+const arrotonda = (v, cifre = 4) => {
+  const k = 10 ** cifre;
+  return Math.round(v * k) / k;
+};
+
+/** Quanto è grave il quadro, in astratto. Serve solo a confrontare due
+    momenti dello stesso paziente, non a classificare i pazienti fra loro. */
+export function gravita(stato) {
+  if (!stato) return 0;
+  if (stato.esito === 'morto') return 100;
+  let g = 0;
+  if (stato.pas < 90) g += 2; else if (stato.pas < 100) g += 1;
+  if (stato.spo2 < 90) g += 2; else if (stato.spo2 < 94) g += 1;
+  g += COSCIENZA_PESO[stato.coscienza] ?? 0;
+  if (stato.fc > 120 || stato.fc < 50) g += 1;
+  if (stato.polsoRadiale === false) g += 3;
+  return g;
+}
+
+/**
+ * @param {object} caso        definizione dello scenario (formato motore 2)
+ * @param {object} opzioni     { azioni: catalogo }
+ */
+export function creaIntervento(caso, opzioni = {}) {
+  const catalogo = opzioni.azioni || {};
+  const membri = opzioni.membri || ['tu', 'autista', 'infermiere'];
+  const COSTO_DELEGA = opzioni.costoDelega ?? 5;
+
+  /* ------------------------------ stato ---------------------------- */
+  let ancora = normalizza(caso.iniziale);
+  let ancoraT = 0;
+  let t = 0;
+
+  let diario = [];
+  let letture = {};                 // { chiave: { t, val } }
+  let fatte = [];                   // { id, chi, t }
+  let pendenti = [];                // { fineA, id, chi }
+  let squadra = Object.fromEntries(membri.map((m) => [m, { liberoA: 0, azione: null }]));
+  let eventiScattati = [];
+  let sogliePassate = [];
+  let decisionePendente = null;
+  let arrestoA = null;
+  let storico = [];                 // { t, pas, fc, spo2 } per il grafico finale
+  const ascoltatori = new Set();
+
+  function normalizza(src) {
+    const s = { ...src, tag: [...(src.tag || [])], esito: src.esito || 'in-corso' };
+    s.respiro = { ...(src.respiro || { tipo: 'normale', fr: 16 }) };
+    s.fr = s.respiro.fr;
+    return s;
+  }
+
+  /* ------------------------- decorso nel tempo --------------------- */
+  function ritmiAttivi() {
+    const base = caso.decorso?.base || {};
+    const freni = caso.decorso?.freni || {};
+    const somma = { ...base };
+    ancora.tag.forEach((tag) => {
+      const f = freni[tag];
+      if (!f) return;
+      Object.entries(f).forEach(([k, v]) => { somma[k] = (somma[k] || 0) + v; });
+    });
+    return somma;
+  }
+
+  function limita(chiave, valore) {
+    const l = caso.decorso?.limiti?.[chiave];
+    if (!l) return valore;
+    return Math.min(l[1], Math.max(l[0], valore));
+  }
+
+  /** Stato proiettato all'istante corrente, senza toccare l'ancora. */
+  function proietta() {
+    const minuti = (t - ancoraT) / 60;
+    const ritmi = ritmiAttivi();
+    const s = { ...ancora, tag: [...ancora.tag], respiro: { ...ancora.respiro } };
+    if (minuti > 0) {
+      DERIVATE.forEach((k) => {
+        const r = ritmi[k];
+        if (!r || typeof ancora[k] !== 'number') return;
+        s[k] = limita(k, arrotonda(ancora[k] + r * minuti));
+      });
+      s.respiro.fr = s.fr;
+    }
+    return s;
+  }
+
+  /** Fissa l'ancora al valore proiettato adesso: da qui riparte il calcolo. */
+  function ancoraOra() {
+    ancora = proietta();
+    ancoraT = t;
+  }
+
+  /* ------------------------------ diario --------------------------- */
+  function scrivi(tipo, testo, id) {
+    if (!testo) return;
+    diario = [...diario, { t, tipo, testo, id }];
+  }
+
+  function notifica() {
+    ascoltatori.forEach((fn) => {
+      try { fn(api); } catch (err) { console.error('[sim] ascoltatore in errore', err); }
+    });
+  }
+
+  /* --------------------------- effetti ----------------------------- */
+  /** Applica un oggetto-effetto: delta numerici, campi diretti, tag, arresto. */
+  function applicaEffetto(eff) {
+    if (!eff) return;
+    ancoraOra();
+    const s = { ...ancora, tag: [...ancora.tag], respiro: { ...ancora.respiro } };
+
+    Object.entries(eff).forEach(([k, v]) => {
+      if (k === 'tag') { if (!s.tag.includes(v)) s.tag = [...s.tag, v]; return; }
+      if (k === 'togliTag') { s.tag = s.tag.filter((x) => x !== v); return; }
+      if (k === 'arresto') return;                     // gestito sotto
+      if (k === 'respiro') { s.respiro = { ...s.respiro, ...v }; s.fr = s.respiro.fr; return; }
+      if (typeof v === 'number' && typeof s[k] === 'number') {
+        s[k] = limita(k, arrotonda(s[k] + v));         // delta
+      } else {
+        s[k] = v;                                       // valore assoluto
+      }
+    });
+    ancora = s;
+
+    if (eff.arresto) entraInArresto();
+  }
+
+  function entraInArresto() {
+    const conf = caso.arresto || {};
+    ancoraOra();
+    ancora = {
+      ...ancora,
+      coscienza: 'U',
+      polsoRadiale: false,
+      fc: 0, pas: 0, pad: 0,
+      ritmo: conf.ritmo || 'fv',
+      respiro: { tipo: 'gasping', fr: 4 },
+      fr: 4,
+      tag: ancora.tag.includes('arresto') ? ancora.tag : [...ancora.tag, 'arresto'],
+    };
+    arrestoA = t;
+    scrivi('allarme', 'Il paziente non risponde e non ha polso: arresto cardiocircolatorio.', 'arresto');
+  }
+
+  /* ---------------------- eventi, soglie, arresto ------------------- */
+  function scattaEventi() {
+    (caso.eventi || []).forEach((ev) => {
+      if (eventiScattati.includes(ev.id)) return;
+      if (t < (ev.t ?? 0)) return;
+      const s = proietta();
+      if (ev.se && !ev.se(s)) return;
+
+      eventiScattati = [...eventiScattati, ev.id];
+      scrivi('evento', ev.testo, ev.id);
+      if (ev.effetto) applicaEffetto(ev.effetto);
+      if (ev.decisione) decisionePendente = { evento: ev, ...ev.decisione };
+    });
+  }
+
+  function verificaSoglie() {
+    const s = proietta();
+    (caso.soglie || []).forEach((sg, idx) => {
+      const chiave = sg.id || `soglia-${idx}`;
+      if (sg.unaVolta !== false && sogliePassate.includes(chiave)) return;
+      if (!sg.se(s)) return;
+      sogliePassate = [...sogliePassate, chiave];
+      scrivi('osservazione', sg.testo, chiave);
+    });
+  }
+
+  function verificaArresto() {
+    if (arrestoA === null || ancora.esito !== 'in-corso') return;
+    const finestra = caso.arresto?.finestraRcp ?? 60;
+    if (ancora.tag.includes('rcp')) return;
+    if (t - arrestoA >= finestra) {
+      ancoraOra();
+      ancora = { ...ancora, esito: 'morto' };
+      scrivi('allarme', 'Nessuna compressione toracica: il paziente muore.', 'morte');
+    }
+  }
+
+  /* ------------------------- orologio a turni ---------------------- */
+  function completaPendenti() {
+    const dovute = pendenti.filter((p) => p.fineA <= t).sort((a, b) => a.fineA - b.fineA);
+    if (!dovute.length) return;
+    pendenti = pendenti.filter((p) => p.fineA > t);
+    dovute.forEach((p) => completa(p));
+  }
+
+  function completa({ id, chi }) {
+    const az = catalogo[id];
+    if (!az) return;
+    squadra = { ...squadra, [chi]: { ...squadra[chi], azione: null } };
+    fatte = [...fatte, { id, chi, t }];
+
+    if (az.applica) applicaEffetto(az.applica(proietta()));
+
+    if (az.rileva) {
+      const s = proietta();
+      letture = { ...letture, [az.rileva]: { t, val: valoreGrezzo(az.rileva, s) } };
+    }
+
+    const testo = typeof az.diario === 'function' ? az.diario(proietta()) : (az.diario || az.label);
+    scrivi(chi === 'tu' ? 'azione' : 'squadra', chi === 'tu' ? testo : `${etichettaMembro(chi)}: ${testo}`, id);
+  }
+
+  const etichettaMembro = (chi) => ({ tu: 'Tu', autista: 'Autista', infermiere: 'Infermiere' }[chi] || chi);
+
+  function valoreGrezzo(chiave, s) {
+    if (chiave === 'pa') return `${Math.round(s.pas)}/${Math.round(s.pad)}`;
+    if (chiave === 'avpu') return s.coscienza;
+    if (chiave === 'ritmo') return s.ritmo;
+    const v = s[chiave];
+    return typeof v === 'number' ? Math.round(v * 10) / 10 : v;
+  }
+
+  /** Fa scorrere il tempo di `dt` secondi, un secondo per volta. */
+  function avanza(dt) {
+    let restanti = Math.max(0, Math.round(dt));
+    while (restanti > 0) {
+      if (decisionePendente || ancora.esito !== 'in-corso') break;
+      t += 1;
+      restanti -= 1;
+      completaPendenti();
+      verificaArresto();
+      verificaSoglie();
+      scattaEventi();
+      if (t % 15 === 0) campiona();
+    }
+    return t;
+  }
+
+  function campiona() {
+    const s = proietta();
+    storico = [...storico, { t, pas: s.pas, fc: s.fc, spo2: s.spo2 }];
+  }
+
+  /* ------------------------------ azioni --------------------------- */
+  function azioniDisponibili() {
+    const s = proietta();
+    return Object.values(catalogo).filter((az) => {
+      if (az.unaVolta && fatte.some((f) => f.id === az.id)) return false;
+      if (az.richiede && !az.richiede(s)) return false;
+      return true;
+    });
+  }
+
+  function membriLiberi(az) {
+    return (az.chi || []).filter((m) => squadra[m] && squadra[m].liberoA <= t);
+  }
+
+  function esegui(id, chi = 'tu') {
+    const az = catalogo[id];
+    if (!az) return { ok: false, motivo: 'Azione sconosciuta.' };
+    if (decisionePendente) return { ok: false, motivo: 'Prima rispondi a quello che sta succedendo.' };
+    if (ancora.esito !== 'in-corso') return { ok: false, motivo: 'L\'intervento è chiuso.' };
+    if (!az.chi?.includes(chi)) return { ok: false, motivo: `${etichettaMembro(chi)} non può eseguire questa azione.` };
+    if (!squadra[chi] || squadra[chi].liberoA > t) return { ok: false, motivo: `${etichettaMembro(chi)} è occupato.` };
+    if (az.unaVolta && fatte.some((f) => f.id === az.id)) return { ok: false, motivo: 'Già fatto.' };
+    if (az.richiede && !az.richiede(proietta())) return { ok: false, motivo: az.motivoBloccato || 'Non è possibile adesso.' };
+
+    const fineA = t + az.durata;
+    squadra = { ...squadra, [chi]: { liberoA: fineA, azione: az.id } };
+    pendenti = [...pendenti, { fineA, id, chi }];
+
+    if (chi === 'tu') {
+      avanza(az.durata);
+    } else {
+      scrivi('azione', `Chiedi a ${etichettaMembro(chi).toLowerCase()}: ${az.label.toLowerCase()}.`);
+      avanza(COSTO_DELEGA);
+    }
+    notifica();
+    return { ok: true };
+  }
+
+  function rispondiDecisione(indice) {
+    if (!decisionePendente) return { ok: false, motivo: 'Nessuna decisione in sospeso.' };
+    const opzione = decisionePendente.opzioni[indice];
+    if (!opzione) return { ok: false, motivo: 'Opzione inesistente.' };
+    const evento = decisionePendente.evento;
+    decisionePendente = null;
+    scrivi('azione', opzione.t);
+    if (opzione.effetto) applicaEffetto(opzione.effetto);
+    fatte = [...fatte, { id: `decisione:${evento.id}`, chi: 'tu', t, ok: opzione.ok, opzione }];
+    notifica();
+    return { ok: true, opzione };
+  }
+
+  /* ------------------------------ letture -------------------------- */
+  const haMonitor = () => proietta().tag.includes('monitor');
+
+  function letturaScaduta(chiave) {
+    if (CONTINUE.includes(chiave) && haMonitor()) return false;
+    const l = letture[chiave];
+    if (!l) return true;
+    return (t - l.t) > VALIDITA_LETTURA;
+  }
+
+  function valore(chiave) {
+    const s = proietta();
+    if (CONTINUE.includes(chiave) && haMonitor()) return valoreGrezzo(chiave, s);
+    return letture[chiave]?.val;
+  }
+
+  function etaLettura(chiave) {
+    if (CONTINUE.includes(chiave) && haMonitor()) return 0;
+    const l = letture[chiave];
+    return l ? t - l.t : null;
+  }
+
+  /* ------------------------------ pagella -------------------------- */
+  function pagella() {
+    const s = proietta();
+    const conf = caso.azioni || {};
+
+    const necessarie = (conf.necessarie || []).map((n) => {
+      const fatto = fatte.find((f) => f.id === n.id);
+      const entro = n.entro ?? Infinity;
+      const inTempo = fatto && fatto.t <= entro;
+      const peso = n.peso ?? 1;
+      return {
+        id: n.id,
+        label: catalogo[n.id]?.label || n.id,
+        fatta: Boolean(fatto),
+        t: fatto?.t ?? null,
+        entro: n.entro ?? null,
+        peso,
+        punti: !fatto ? 0 : (inTempo ? peso : peso / 2),
+        ritardo: Boolean(fatto && !inTempo),
+      };
+    });
+
+    const dannose = (conf.dannose || [])
+      .filter((d) => fatte.some((f) => f.id === d.id))
+      .map((d) => ({
+        id: d.id,
+        label: catalogo[d.id]?.label || d.id,
+        perche: d.perche,
+        penalita: d.penalita ?? 1,
+      }));
+
+    const gIniziale = gravita(normalizza(caso.iniziale));
+    const gFinale = gravita(s);
+    let esitoPaziente = 'stabile';
+    if (s.esito === 'morto') esitoPaziente = 'morto';
+    else if (gFinale > gIniziale + 0.5) esitoPaziente = 'peggiorato';
+    else if (gFinale < gIniziale - 0.5) esitoPaziente = 'migliorato';
+
+    const puntiAzioni = necessarie.reduce((a, r) => a + r.punti, 0);
+    const penalita = dannose.reduce((a, r) => a + r.penalita, 0);
+    const max = necessarie.reduce((a, r) => a + r.peso, 0) || 1;
+
+    return {
+      necessarie,
+      dannose,
+      esitoPaziente,
+      gravitaIniziale: gIniziale,
+      gravitaFinale: gFinale,
+      secondi: t,
+      punti: Math.max(0, puntiAzioni - penalita),
+      max,
+      percentuale: Math.round((Math.max(0, puntiAzioni - penalita) / max) * 100),
+      storico: [...storico, { t, pas: s.pas, fc: s.fc, spo2: s.spo2 }],
+    };
+  }
+
+  function chiudi() {
+    if (ancora.esito === 'in-corso') {
+      ancoraOra();
+      ancora = { ...ancora, esito: 'consegnato' };
+    }
+    return pagella();
+  }
+
+  /* ------------------------------- API ----------------------------- */
+  const api = {
+    caso,
+    get t() { return t; },
+    get stato() { return proietta(); },
+    get diario() { return diario; },
+    get letture() { return letture; },
+    get fatte() { return fatte; },
+    get squadra() { return squadra; },
+    get decisionePendente() { return decisionePendente; },
+    get storico() { return storico; },
+    avanza,
+    esegui,
+    azioniDisponibili,
+    membriLiberi,
+    rispondiDecisione,
+    letturaScaduta,
+    etaLettura,
+    valore,
+    pagella,
+    chiudi,
+    on(fn) { ascoltatori.add(fn); return () => ascoltatori.delete(fn); },
+  };
+
+  scrivi('osservazione', caso.colpoOcchio?.testo);
+  campiona();
+  return api;
+}
