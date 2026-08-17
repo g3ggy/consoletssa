@@ -20,7 +20,7 @@
    ===================================================================== */
 
 /* Chiavi che derivano nel tempo secondo `decorso`. */
-const DERIVATE = ['pas', 'pad', 'fc', 'spo2', 'temp', 'glicemia', 'fr'];
+const DERIVATE = ['pas', 'pad', 'fc', 'spo2', 'temp', 'glicemia', 'fr', 'dolore'];
 
 /* Quanto resta valida una rilevazione singola prima di essere rifatta. */
 const VALIDITA_LETTURA = 120;
@@ -227,6 +227,10 @@ export function creaIntervento(caso, opzioni = {}) {
     fatte = [...fatte, { id, chi, t }];
 
     if (az.applica) applicaEffetto(az.applica(proietta(), contesto()));
+    // un caso può dare a un'azione generica un effetto tutto suo:
+    // la posizione seduta fa bene al dispnoico e male allo shockato
+    const extra = caso.effettiAzioni?.[id];
+    if (extra) applicaEffetto(typeof extra === 'function' ? extra(proietta()) : extra);
 
     if (az.rileva) {
       const s = proietta();
@@ -334,6 +338,13 @@ export function creaIntervento(caso, opzioni = {}) {
     scrivi('azione', opzione.t);
     if (opzione.effetto) applicaEffetto(opzione.effetto);
     fatte = [...fatte, { id: `decisione:${evento.id}`, chi: 'tu', t, ok: opzione.ok, opzione }];
+
+    // Se l'evento ti aveva interrotto mentre facevi qualcosa, quel
+    // qualcosa va portato a termine: l'orologio riprende da dove si era
+    // fermato fino a quando sei di nuovo libero.
+    const restaDaFare = (squadra.tu?.liberoA ?? 0) - t;
+    if (restaDaFare > 0) avanza(restaDaFare);
+
     notifica();
     return { ok: true, opzione };
   }
@@ -365,14 +376,22 @@ export function creaIntervento(caso, opzioni = {}) {
     const s = proietta();
     const conf = caso.azioni || {};
 
+    /** Una voce può accettare più azioni equivalenti: `id: ['o2-maschera', 'o2-reservoir']`. */
+    const combacia = (voce, idAzione) => (Array.isArray(voce.id)
+      ? voce.id.includes(idAzione)
+      : voce.id === idAzione);
+    const etichetta = (voce) => (Array.isArray(voce.id)
+      ? voce.id.map((x) => catalogo[x]?.label || x).join(' oppure ')
+      : catalogo[voce.id]?.label || voce.id);
+
     const necessarie = (conf.necessarie || []).map((n) => {
-      const fatto = fatte.find((f) => f.id === n.id);
+      const fatto = fatte.find((f) => combacia(n, f.id));
       const entro = n.entro ?? Infinity;
       const inTempo = fatto && fatto.t <= entro;
       const peso = n.peso ?? 1;
       return {
-        id: n.id,
-        label: catalogo[n.id]?.label || n.id,
+        id: Array.isArray(n.id) ? n.id[0] : n.id,
+        label: n.label || etichetta(n),
         fatta: Boolean(fatto),
         t: fatto?.t ?? null,
         entro: n.entro ?? null,
@@ -383,10 +402,10 @@ export function creaIntervento(caso, opzioni = {}) {
     });
 
     const dannose = (conf.dannose || [])
-      .filter((d) => fatte.some((f) => f.id === d.id))
+      .filter((d) => fatte.some((f) => combacia(d, f.id)))
       .map((d) => ({
-        id: d.id,
-        label: catalogo[d.id]?.label || d.id,
+        id: Array.isArray(d.id) ? d.id[0] : d.id,
+        label: d.label || etichetta(d),
         perche: d.perche,
         penalita: d.penalita ?? 1,
       }));
