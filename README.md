@@ -106,8 +106,11 @@ versione online nel giro di un minuto. Il file `.nojekyll` impedisce a Jekyll di
 cartelle che iniziano per underscore.
 
 Dopo un aggiornamento conviene alzare il numero di versione della cache in `sw.js`
-(`const CACHE = 'consoletssa-v3'`), altrimenti i visitatori abituali continuano a vedere la
-versione precedente finché non chiudono tutte le schede.
+(`const CACHE = 'consoletssa-v5'`), così la copia vecchia viene buttata.
+
+Codice, fogli di stile e testi vengono chiesti prima alla rete e solo in mancanza di
+connessione alla cache: chi ha già visitato il sito vede subito la versione nuova. Il modello 3D
+e le librerie, che pesano e non cambiano, restano serviti dalla cache.
 
 ---
 

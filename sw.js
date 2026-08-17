@@ -5,7 +5,7 @@
    Per pubblicare una nuova versione basta cambiare CACHE.
    ===================================================================== */
 
-const CACHE = 'consoletssa-v4';
+const CACHE = 'consoletssa-v5';
 
 const PRECACHE = [
   './',
@@ -72,7 +72,15 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return; // font e CDN esterni: al browser
 
-  const isManual = url.pathname.endsWith('manuale.md');
+  /* Il codice dell'applicazione e i contenuti si chiedono prima alla rete:
+     altrimenti chi ha già visitato il sito vede la versione precedente
+     fino al secondo caricamento, che durante una raccolta di pareri è
+     esattamente il modo per ricevere pareri su una versione vecchia.
+     Le risorse pesanti che non cambiano (modello 3D, librerie, icone)
+     restano servite dalla cache: sono quelle che costano banda. */
+  const fresco = request.mode === 'navigate'
+    || /\.(?:js|css|md|webmanifest)$/.test(url.pathname)
+    || url.pathname.endsWith('/');
 
   event.respondWith((async () => {
     const cache = await caches.open(CACHE);
@@ -85,7 +93,7 @@ self.addEventListener('fetch', (event) => {
       })
       .catch(() => null);
 
-    if (isManual) return (await network) || cached || Response.error();
+    if (fresco) return (await network) || cached || Response.error();
     if (cached) { network.catch(() => {}); return cached; }
 
     const res = await network;
