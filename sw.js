@@ -1,7 +1,10 @@
 /* =====================================================================
    sw.js — service worker: il sito resta consultabile anche senza rete.
-   Strategia: "stale while revalidate" per le risorse dell'app, rete
-   prima per il manuale (così un aggiornamento degli appunti si vede).
+
+   Strategia: rete prima per ciò che cambia (pagina, codice, stili,
+   testi), cache prima per ciò che pesa e non cambia (modello 3D,
+   librerie, icone). Chi ha già visitato il sito vede la versione nuova
+   al primo caricamento, non al secondo.
    Per pubblicare una nuova versione basta cambiare CACHE.
    ===================================================================== */
 
