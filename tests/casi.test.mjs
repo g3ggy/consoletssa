@@ -60,6 +60,10 @@ test('facendo le azioni necessarie il paziente non peggiora e il punteggio è pi
       const id = [].concat(n.id)[0];
       const az = AZIONI[id];
       const chi = az.chi.includes('tu') ? 'tu' : az.chi[0];
+      // aspetta che chi deve eseguire sia libero: le azioni delegate
+      // corrono in parallelo, ma una alla volta per persona
+      const attesa = i.squadra[chi].liberoA - i.t;
+      if (attesa > 0) { i.avanza(attesa); rispondiSeServe(i); }
       const esito = i.esegui(id, chi);
       assert.ok(esito.ok, `${c.id}: ${id} rifiutata (${esito.motivo})`);
       rispondiSeServe(i);

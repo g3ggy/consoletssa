@@ -13,6 +13,7 @@ import { createScope } from '../core/waveform.js';
 import { setRibbonRhythm } from '../core/ribbon.js';
 import { saveRun } from '../core/store.js';
 import { SCENARI, OPZIONI, VITAL_META, DIFFICOLTA } from '../data/scenari.js';
+import { CASI } from '../data/casi.js';
 
 const PASSI = [
   { key: 'scena', label: 'Sicurezza della scena' },
@@ -613,11 +614,35 @@ export function render() {
   host.title = title;
   host.meta = meta;
 
+  /* I casi del motore nuovo stanno in cima: sono interventi veri, con il
+     paziente che evolve. Gli altri restano nel formato a domande finché
+     non vengono convertiti. */
+  const nuovi = el('div.card', { style: { marginBottom: '16px' } }, [
+    el('div.row', {}, [
+      el('p.lbl', { style: { margin: '0' }, text: 'Interventi in tempo simulato' }),
+      el('span.badge.b-ok', { text: 'nuovo' }),
+    ]),
+    el('p', { style: { color: 'var(--ink-3)', fontSize: '14px', margin: '8px 0 12px' },
+      text: 'Il paziente peggiora se non intervieni, ogni azione costa tempo e puoi dividerti il lavoro con autista e infermiere.' }),
+    el('div.pickgrid', {}, CASI.map((c) => el('button.pickcard', {
+      type: 'button', onclick: () => navigate('intervento', c.id),
+    }, [
+      el('b', { text: c.titolo }),
+      el('span', { text: c.dispatch.testo }),
+      el('div.row', { style: { marginTop: '8px' } }, [
+        el('span.badge.b-no', { text: c.tipo }),
+        el('span.badge.b-no', { text: DIFFICOLTA[c.difficolta].label }),
+      ]),
+    ]))),
+  ]);
+
   const view = el('div.view', {}, [
     el('div.view-head', {}, [
       el('h2', { text: 'Simulazioni' }),
       el('p', { text: 'Un intervento per volta, dalla chiamata al ragguaglio. Il monitor a lato resta sempre visibile: parametri, cronometro della primaria e diario delle azioni. Alla fine il debriefing ti dice dove hai sbagliato e perché.' }),
     ]),
+    nuovi,
+    el('p.lbl', { text: 'Scenari a domande' }),
     barraFiltri,
     el('div.sim', {}, [
       el('div.card', {}, [

@@ -10,6 +10,7 @@ import { getState, setTheme, subscribe, touchStreak, dueCards } from './core/sto
 import { loadManual, manualCache } from './core/manual.js';
 import { CARTE, CARTE_IDS } from './data/carte.js';
 import { SCENARI } from './data/scenari.js';
+import { CASI } from './data/casi.js';
 import { RHYTHMS } from './core/waveform.js';
 import { snippet } from './core/markdown.js';
 
@@ -27,6 +28,7 @@ defineRoute('studio', () => import('./modules/studio.js'));
 defineRoute('corpo', () => import('./modules/corpo.js'));
 defineRoute('monitor', () => import('./modules/monitor.js'));
 defineRoute('simulazioni', () => import('./modules/simulazioni.js'));
+defineRoute('intervento', () => import('./modules/intervento.js'));
 defineRoute('ripasso', () => import('./modules/ripasso.js'));
 defineRoute('progressi', () => import('./modules/progressi.js'));
 
@@ -138,6 +140,12 @@ function searchProvider(term) {
     }
   });
 
+  CASI.forEach((c) => {
+    if (fold(`${c.titolo} ${c.dispatch.testo} ${c.chiave}`).includes(t)) {
+      out.push({ group: 'intervento', title: c.titolo, subtitle: c.dispatch.testo, run: () => navigate('intervento', c.id) });
+    }
+  });
+
   SCENARI.forEach((c) => {
     if (fold(`${c.titolo} ${c.dispatch.testo} ${c.chiave}`).includes(t)) {
       out.push({ group: 'scenario', title: c.titolo, subtitle: c.dispatch.testo, run: () => navigate('simulazioni') });
@@ -177,11 +185,14 @@ function boot() {
   );
 
   startRouter(outlet, (name) => {
+    const attiva = name === 'intervento' ? 'simulazioni' : name;
     $$('[data-nav]').forEach((b) => {
-      if (b.dataset.nav === name) b.setAttribute('aria-current', 'page');
+      if (b.dataset.nav === attiva) b.setAttribute('aria-current', 'page');
       else b.removeAttribute('aria-current');
     });
-    document.title = `${MODULI.find((m) => m.key === name)?.label || 'Console'} · Console TSSA`;
+    const titolo = MODULI.find((m) => m.key === name)?.label
+      || (name === 'intervento' ? 'Intervento' : 'Console');
+    document.title = `${titolo} · Console TSSA`;
   });
 
   // il manuale serve alla ricerca globale: lo carichiamo comunque, senza bloccare

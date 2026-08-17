@@ -243,12 +243,18 @@ export function creaIntervento(caso, opzioni = {}) {
 
   const etichettaMembro = (chi) => ({ tu: 'Tu', autista: 'Autista', infermiere: 'Infermiere' }[chi] || chi);
 
+  /* Le grandezze si leggono come le legge un soccorritore: la frequenza
+     è un numero intero, la temperatura ha un decimale. */
+  const DECIMALI = { temp: 1 };
   function valoreGrezzo(chiave, s) {
     if (chiave === 'pa') return `${Math.round(s.pas)}/${Math.round(s.pad)}`;
     if (chiave === 'avpu') return s.coscienza;
     if (chiave === 'ritmo') return s.ritmo;
+    if (chiave === 'polso') return s.polsoRadiale ? 'presente' : 'assente';
     const v = s[chiave];
-    return typeof v === 'number' ? Math.round(v * 10) / 10 : v;
+    if (typeof v !== 'number') return v;
+    const d = DECIMALI[chiave] ?? 0;
+    return d ? Number(v.toFixed(d)) : Math.round(v);
   }
 
   /** Fa scorrere il tempo di `dt` secondi, un secondo per volta. */

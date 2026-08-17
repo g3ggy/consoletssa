@@ -5,7 +5,7 @@
    Per pubblicare una nuova versione basta cambiare CACHE.
    ===================================================================== */
 
-const CACHE = 'consoletssa-v3';
+const CACHE = 'consoletssa-v4';
 
 const PRECACHE = [
   './',
@@ -15,6 +15,7 @@ const PRECACHE = [
   './assets/css/base.css',
   './assets/css/app.css',
   './assets/css/modules.css',
+  './assets/css/intervento.css',
   './assets/css/mobile.css',
   './assets/js/main.js',
   './assets/js/core/dom.js',
@@ -25,13 +26,17 @@ const PRECACHE = [
   './assets/js/core/manual.js',
   './assets/js/core/waveform.js',
   './assets/js/core/ribbon.js',
+  './assets/js/core/sim-engine.js',
   './assets/js/data/anatomy.js',
   './assets/js/data/scenari.js',
+  './assets/js/data/azioni.js',
+  './assets/js/data/casi.js',
   './assets/js/data/carte.js',
   './assets/js/modules/studio.js',
   './assets/js/modules/corpo.js',
   './assets/js/modules/monitor.js',
   './assets/js/modules/simulazioni.js',
+  './assets/js/modules/intervento.js',
   './assets/js/modules/ripasso.js',
   './assets/js/modules/progressi.js',
   './content/manuale.md',

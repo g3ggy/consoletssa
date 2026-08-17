@@ -53,7 +53,7 @@ export const CASI = [
     decorso: {
       base: { pas: -2.5, pad: -1.5, fc: +1.6, spo2: -0.1 },
       freni: {
-        antishock: { pas: +1.2, fc: -0.8 },
+        antishock: { pas: +1.6, fc: -0.9 },
         liquidi: { pas: +3.5, fc: -2 },
         coperta: { temp: +0.1 },
         'in-viaggio': { pas: +0.5 },
@@ -131,9 +131,12 @@ export const CASI = [
         { id: 'coperta', entro: 420, peso: 1 },
         { id: 'riferisci-infermiere', entro: 360, peso: 2 },
         { id: 'allerta-co', entro: 420, peso: 1 },
-        { id: 'carica', entro: 720, peso: 2 },
+        { id: 'accesso-prepara', entro: 420, peso: 1 },
+        { id: 'inf-accesso', entro: 480, peso: 1 },
+        { id: 'inf-liquidi', entro: 540, peso: 2 },
+        { id: 'carica', entro: 780, peso: 2 },
       ],
-      utili: ['misura-glicemia', 'rassicura', 'accesso-prepara', 'polso-radiale', 'conta-fr'],
+      utili: ['misura-glicemia', 'rassicura', 'polso-radiale', 'conta-fr', 'coperta'],
       dannose: [
         { id: 'posizione-seduta', perche: 'In un paziente ipoteso la posizione seduta toglie ritorno venoso: la pressione scende ancora.' },
         { id: 'spinale', perche: 'Nessun trauma: sono tre minuti persi e un paziente scomodo.' },
