@@ -17,7 +17,7 @@ Tutto gira nel browser, senza account e senza server: i progressi restano sul di
 | **Studio** | Il manuale completo, capitolo per capitolo, con indice, ricerca e avanzamento di lettura. |
 | **Corpo** | Modello umano 3D reale: organi in trasparenza, irradiazione del dolore cardiaco, segni della scarica adrenergica, posizioni di trasporto. |
 | **Monitor** | Otto ritmi cardiaci che scorrono come su un monitor vero, quiz di riconoscimento, curva di efficacia della defibrillazione, pattern respiratori. |
-| **Simulazioni** | Dodici interventi da condurre dalla chiamata al ragguaglio: scena, colpo d'occhio, azione immediata, parametri a tempo, SAMPLE, codice, sospetto, debriefing. |
+| **Simulazioni** | Due **interventi in tempo simulato** (il paziente peggiora se non agisci, ogni azione costa secondi, e ti dividi il lavoro con autista e infermiere) più dodici scenari a domande, dalla chiamata al ragguaglio. |
 | **Ripasso** | Quaranta carte con sistema di Leitner a cinque scatole (0 · 1 · 3 · 7 · 21 giorni). |
 | **Progressi** | Capitoli letti, carte in scadenza, storico delle simulazioni e — soprattutto — i passi che sbagli più spesso. |
 
@@ -46,9 +46,14 @@ Non serve toccare il codice per cambiare quello che si studia.
 - **Il manuale** è un normale file markdown: [`content/manuale.md`](content/manuale.md).
   I capitoli vengono riconosciuti dai titoli nella forma `## 12. Titolo del capitolo`, e le parti
   dai titoli `# PARTE 2`. Aggiungi un capitolo e comparirà nell'indice, nella ricerca e nei link.
-- **Gli scenari** stanno in [`assets/js/data/scenari.js`](assets/js/data/scenari.js): ogni caso porta
-  con sé dispatch, scena, parametri, SAMPLE, codice corretto, chiave di lettura, trappola e modello
-  di ragguaglio.
+- **Gli interventi in tempo simulato** stanno in [`assets/js/data/casi.js`](assets/js/data/casi.js).
+  Un caso è tutto dichiarativo: parametri di partenza, quanto peggiora al minuto, cosa lo frena,
+  eventi con condizione, azioni necessarie e dannose. Nessuna riga di codice per scenario.
+  Le azioni disponibili sono in [`assets/js/data/azioni.js`](assets/js/data/azioni.js), condivise
+  fra tutti i casi.
+- **Gli scenari a domande** stanno in [`assets/js/data/scenari.js`](assets/js/data/scenari.js): ogni
+  caso porta con sé dispatch, scena, parametri, SAMPLE, codice corretto, chiave di lettura, trappola
+  e modello di ragguaglio.
 - **Le carte di ripasso** stanno in [`assets/js/data/carte.js`](assets/js/data/carte.js).
 - **I contenuti del modello 3D** stanno in [`assets/js/data/anatomy.js`](assets/js/data/anatomy.js):
   ogni punto è ancorato a un osso dello scheletro, quindi resta al suo posto anche cambiando modello.
@@ -67,6 +72,12 @@ python3 -m http.server 8000
 
 Nessuna dipendenza da installare, nessun passaggio di build: le librerie sono già in `vendor/`.
 
+Il motore dell'intervento è logica pura e si collauda senza browser:
+
+```bash
+node --test tests/
+```
+
 ---
 
 ## Struttura
@@ -76,7 +87,7 @@ index.html               guscio dell'applicazione (import map + fogli di stile)
 sw.js                    service worker: il sito resta consultabile offline
 content/manuale.md       il testo degli appunti
 assets/css/              tokens · base · guscio · moduli · telefono
-assets/js/core/          dom, store, router, markdown, tracciati, ricerca
+assets/js/core/          dom, store, router, markdown, tracciati, motore dell'intervento
 assets/js/data/          anatomia, scenari, carte
 assets/js/modules/       studio, corpo, monitor, simulazioni, ripasso, progressi
 assets/models/           modello 3D del paziente (glTF binario)

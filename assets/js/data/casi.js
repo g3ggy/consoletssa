@@ -138,7 +138,7 @@ export const CASI = [
       ],
       utili: ['misura-glicemia', 'rassicura', 'polso-radiale', 'conta-fr', 'coperta'],
       dannose: [
-        { id: 'posizione-seduta', perche: 'In un paziente ipoteso la posizione seduta toglie ritorno venoso: la pressione scende ancora.' },
+        { id: 'posizione-seduta', penalita: 3, perche: 'In un paziente ipoteso la posizione seduta toglie ritorno venoso: la pressione scende ancora.' },
         { id: 'spinale', perche: 'Nessun trauma: sono tre minuti persi e un paziente scomodo.' },
         { id: 'zucchero-os', perche: 'La glicemia è normale: non è quello il problema.' },
       ],
@@ -260,7 +260,7 @@ export const CASI = [
       ],
       utili: ['rassicura', 'accesso-prepara', 'allerta-co', 'conta-fr', 'misura-glicemia'],
       dannose: [
-        { id: 'antishock', perche: 'Sdraiarlo aumenta il ritorno venoso al cuore e peggiora il respiro: nel dolore toracico si trasporta seduto, salvo che sia pallido e ipoteso.' },
+        { id: 'antishock', penalita: 3, perche: 'Sdraiarlo aumenta il ritorno venoso al cuore e peggiora il respiro: nel dolore toracico si trasporta seduto, salvo che sia pallido e ipoteso.' },
         { id: 'spinale', perche: 'Non è un trauma: tre minuti buttati mentre il miocardio soffre.' },
       ],
     },

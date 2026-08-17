@@ -172,6 +172,10 @@ function aggiornaDecisione() {
   if (!d) { n.decisione.hidden = true; mount(n.decisione); return; }
 
   n.decisione.hidden = false;
+  // se sta succedendo qualcosa, la palette si toglie di mezzo: la carta
+  // della decisione deve essere la cosa che vedi
+  if (paletteAperta) n.chiudiPalette?.();
+  n.decisione.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   const opzioni = el('div.opts');
   const nodi = d.opzioni.map((o, idx) => {
     const b = el('button.opt', { type: 'button', 'data-key': String.fromCharCode(65 + idx) }, [o.t]);
@@ -627,7 +631,11 @@ export function render(params) {
 
   mount(radice, vista);
 
-  n = { radice, mon, squadra, diario, diarioBox, decisione, paletteTabs, paletteLista, tempoBarra, tempoTacche, tempoTxt };
+  n = {
+    radice, mon, squadra, diario, diarioBox, decisione,
+    paletteTabs, paletteLista, tempoBarra, tempoTacche, tempoTxt,
+    chiudiPalette: () => togglePalette(false),
+  };
 
   sim = creaIntervento(caso, { azioni: AZIONI });
   categoriaAperta = 'scena';

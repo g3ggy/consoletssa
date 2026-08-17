@@ -413,7 +413,7 @@ export function creaIntervento(caso, opzioni = {}) {
         id: Array.isArray(d.id) ? d.id[0] : d.id,
         label: d.label || etichetta(d),
         perche: d.perche,
-        penalita: d.penalita ?? 1,
+        penalita: d.penalita ?? 2,
       }));
 
     const gIniziale = gravita(normalizza(caso.iniziale));
