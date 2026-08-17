@@ -103,9 +103,18 @@ export async function render(params) {
   const search = el('input.toc-search', {
     type: 'search', placeholder: 'Filtra i capitoli…', 'aria-label': 'Filtra i capitoli',
   });
+  // Su schermo stretto l'indice parte chiuso: senza questo pulsante
+  // resterebbe irraggiungibile.
+  const tocToggle = el('button.btn.sm.toc-toggle', {
+    type: 'button', 'aria-expanded': 'false',
+  }, ['Indice dei capitoli', icon('next')]);
   const tocHost = el('nav.toc', { 'aria-label': 'Indice del manuale' }, [
-    search, buildToc(manual.chapters, chapter.slug, ''),
+    tocToggle, search, buildToc(manual.chapters, chapter.slug, ''),
   ]);
+  tocToggle.addEventListener('click', () => {
+    const open = tocHost.classList.toggle('open');
+    tocToggle.setAttribute('aria-expanded', String(open));
+  });
   search.addEventListener('input', () => {
     const old = $('.toc-body', tocHost);
     old.replaceWith(buildToc(manual.chapters, chapter.slug, search.value));

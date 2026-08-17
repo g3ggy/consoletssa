@@ -15,10 +15,19 @@
   position: sticky; top: 68px; max-height: calc(100dvh - 92px);
   overflow-y: auto; padding-right: var(--sp-2);
 }
+.toc-toggle { display: none; }
 @media (max-width: 1100px) {
   .toc { position: static; max-height: none; }
   .toc-body { display: none; }
   .toc.open .toc-body { display: block; }
+  .toc-toggle {
+    display: flex; width: 100%; justify-content: space-between;
+    margin-bottom: var(--sp-2);
+  }
+  .toc-toggle svg { transition: transform .18s var(--ease); }
+  .toc.open .toc-toggle svg { transform: rotate(90deg); }
+  .toc-search { display: none; }
+  .toc.open .toc-search { display: block; }
 }
 .toc-search {
   width: 100%; background: var(--surface); border: 1px solid var(--line);
