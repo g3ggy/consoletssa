@@ -226,7 +226,7 @@ export function creaIntervento(caso, opzioni = {}) {
     squadra = { ...squadra, [chi]: { ...squadra[chi], azione: null } };
     fatte = [...fatte, { id, chi, t }];
 
-    if (az.applica) applicaEffetto(az.applica(proietta()));
+    if (az.applica) applicaEffetto(az.applica(proietta(), contesto()));
 
     if (az.rileva) {
       const s = proietta();
@@ -269,11 +269,25 @@ export function creaIntervento(caso, opzioni = {}) {
   }
 
   /* ------------------------------ azioni --------------------------- */
+  /* Contesto passato ai prerequisiti: serve per le azioni che dipendono
+     da cosa hai gia' rilevato o riferito, non solo dallo stato clinico.
+     E' cosi' che l'infermiere puo' rispondere "prima misurale la glicemia". */
+  function contesto() {
+    return {
+      t,
+      letture,
+      fatte,
+      haFatto: (id) => fatte.some((f) => f.id === id),
+      haLettura: (chiave) => Boolean(letture[chiave]) && !letturaScaduta(chiave),
+    };
+  }
+
   function azioniDisponibili() {
     const s = proietta();
+    const ctx = contesto();
     return Object.values(catalogo).filter((az) => {
       if (az.unaVolta && fatte.some((f) => f.id === az.id)) return false;
-      if (az.richiede && !az.richiede(s)) return false;
+      if (az.richiede && !az.richiede(s, ctx)) return false;
       return true;
     });
   }
@@ -290,7 +304,12 @@ export function creaIntervento(caso, opzioni = {}) {
     if (!az.chi?.includes(chi)) return { ok: false, motivo: `${etichettaMembro(chi)} non può eseguire questa azione.` };
     if (!squadra[chi] || squadra[chi].liberoA > t) return { ok: false, motivo: `${etichettaMembro(chi)} è occupato.` };
     if (az.unaVolta && fatte.some((f) => f.id === az.id)) return { ok: false, motivo: 'Già fatto.' };
-    if (az.richiede && !az.richiede(proietta())) return { ok: false, motivo: az.motivoBloccato || 'Non è possibile adesso.' };
+    if (az.richiede && !az.richiede(proietta(), contesto())) {
+      const motivo = typeof az.motivoBloccato === 'function'
+        ? az.motivoBloccato(proietta(), contesto())
+        : az.motivoBloccato;
+      return { ok: false, motivo: motivo || 'Non è possibile adesso.' };
+    }
 
     const fineA = t + az.durata;
     squadra = { ...squadra, [chi]: { liberoA: fineA, azione: az.id } };
@@ -420,6 +439,7 @@ export function creaIntervento(caso, opzioni = {}) {
     esegui,
     azioniDisponibili,
     membriLiberi,
+    contesto,
     rispondiDecisione,
     letturaScaduta,
     etaLettura,
