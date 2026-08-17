@@ -8,6 +8,10 @@ negli esempi del progetto three.js (`examples/models/gltf/Xbot.glb`).
 - Origine: <https://github.com/mrdoob/three.js/tree/dev/examples/models/gltf>
 - Autore originale: Adobe Mixamo (<https://www.mixamo.com>)
 - Uso: figura umana neutra a scopo didattico, senza texture, con i materiali sostituiti a runtime.
+- Il file qui incluso è stato alleggerito per il telefono con `@gltf-transform/cli`
+  (`dedup`, `prune`, `weld`, `simplify --ratio 0.45`, `quantize`): da 2,9 MB e 49.000 triangoli
+  a 1,4 MB e 22.000 triangoli. La quantizzazione usa `KHR_mesh_quantization`, che three.js
+  legge da sé senza decodificatori aggiuntivi.
 
 La licenza Mixamo consente l'uso dei personaggi all'interno di un progetto, ma **non** la loro
 ridistribuzione come asset a sé stante. Se questo diventasse un problema, il modello si sostituisce

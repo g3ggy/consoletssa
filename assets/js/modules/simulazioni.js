@@ -285,7 +285,7 @@ function renderBody() {
   /* passo 4 — parametri */
   if (S.step >= 4) {
     const s = el('div.step', {}, [
-      stepHead(4, 'Parametri', 'Tocca ogni parametro sul monitor a destra per rilevarlo. Ognuno richiede il suo tempo, come sul campo.'),
+      stepHead(4, 'Parametri', 'Tocca ogni parametro sul monitor per rilevarlo: ognuno richiede il suo tempo, come sul campo.'),
       el('p.sub', { text: 'Obiettivo: valutazione primaria completa sotto i 90 secondi.' }),
     ]);
     if (S.step === 4 && !$('.vit.on', host.panel)) {
@@ -582,6 +582,32 @@ export function render() {
       filtro.esame ? 'Nessun riscontro fino al debriefing.' : 'Riscontro immediato a ogni risposta.');
   });
 
+  /* Su telefono i filtri stanno chiusi dietro un pulsante: altrimenti si
+     mangiano mezzo schermo prima ancora di iniziare lo scenario. */
+  const filtriToggle = el('button.chip.filtri-toggle', {
+    type: 'button', 'aria-expanded': 'false',
+  }, ['Filtri']);
+
+  const barraFiltri = el('div.card.tight.simbar', { style: { marginBottom: '16px' } }, [
+    el('div.row.simbar-head', {}, [
+      filtriToggle,
+      el('span.spacer'),
+      el('button.btn.sm.pri', { type: 'button', onclick: () => nuovoCaso() },
+        [icon('refresh'), 'Nuovo scenario']),
+    ]),
+    el('div.row.sim-filters', {}, [
+      el('span.lbl', { style: { margin: '0' }, text: 'Tipo' }), ...tipoChips,
+      el('span', { style: { width: '10px' } }),
+      el('span.lbl', { style: { margin: '0' }, text: 'Livello' }), ...diffChips,
+      el('span.spacer'),
+      esameChip,
+    ]),
+  ]);
+  filtriToggle.addEventListener('click', () => {
+    const open = barraFiltri.classList.toggle('open');
+    filtriToggle.setAttribute('aria-expanded', String(open));
+  });
+
   const panel = buildPanel();
   host.body = body;
   host.title = title;
@@ -592,16 +618,7 @@ export function render() {
       el('h2', { text: 'Simulazioni' }),
       el('p', { text: 'Un intervento per volta, dalla chiamata al ragguaglio. Il monitor a lato resta sempre visibile: parametri, cronometro della primaria e diario delle azioni. Alla fine il debriefing ti dice dove hai sbagliato e perché.' }),
     ]),
-    el('div.card.tight', { style: { marginBottom: '16px' } }, [
-      el('div.row', {}, [
-        el('span.lbl', { style: { margin: '0' }, text: 'Tipo' }), ...tipoChips,
-        el('span', { style: { width: '10px' } }),
-        el('span.lbl', { style: { margin: '0' }, text: 'Livello' }), ...diffChips,
-        el('span.spacer'),
-        esameChip,
-        el('button.btn.sm.pri', { type: 'button', onclick: () => nuovoCaso() }, [icon('refresh'), 'Nuovo scenario']),
-      ]),
-    ]),
+    barraFiltri,
     el('div.sim', {}, [
       el('div.card', {}, [
         el('div.row', { style: { marginBottom: '4px' } }, [meta]),

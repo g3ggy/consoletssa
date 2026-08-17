@@ -100,7 +100,11 @@
 .stage-tools {
   position: absolute; right: 10px; top: 10px; display: grid; gap: 6px;
 }
-.stage-tools .iconbtn { background: color-mix(in srgb, var(--surface) 80%, transparent); }
+.stage-tools .iconbtn {
+  background: var(--surface);
+  background: color-mix(in srgb, var(--surface) 82%, transparent);
+  font-family: var(--mono); font-size: 17px; line-height: 1;
+}
 
 /* etichette HTML ancorate agli hotspot 3D */
 .hotlabel {
@@ -109,6 +113,7 @@
   display: flex; align-items: center; gap: 7px;
   font-family: var(--disp); font-size: var(--fs-sm); letter-spacing: .08em;
   text-transform: uppercase; color: var(--ink);
+  background: var(--surface);
   background: color-mix(in srgb, var(--surface) 86%, transparent);
   border: 1px solid var(--line); border-radius: var(--r-full);
   padding: 3px 10px 3px 5px; white-space: nowrap;
@@ -171,6 +176,11 @@
 }
 
 /* ========================= 4. SIMULAZIONI =========================== */
+.simbar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-3); }
+.simbar .sim-filters { flex: 1 1 auto; }
+.simbar-head { flex: 0 0 auto; order: 2; margin-left: auto; }
+.filtri-toggle { display: none; }
+
 .sim { display: grid; gap: var(--sp-4); align-items: start; }
 @media (min-width: 1080px) { .sim { grid-template-columns: minmax(0, 1fr) 348px; } }
 

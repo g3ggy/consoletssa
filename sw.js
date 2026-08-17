@@ -5,7 +5,7 @@
    Per pubblicare una nuova versione basta cambiare CACHE.
    ===================================================================== */
 
-const CACHE = 'consoletssa-v2';
+const CACHE = 'consoletssa-v3';
 
 const PRECACHE = [
   './',
@@ -15,6 +15,7 @@ const PRECACHE = [
   './assets/css/base.css',
   './assets/css/app.css',
   './assets/css/modules.css',
+  './assets/css/mobile.css',
   './assets/js/main.js',
   './assets/js/core/dom.js',
   './assets/js/core/store.js',

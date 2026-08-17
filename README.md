@@ -21,7 +21,21 @@ Tutto gira nel browser, senza account e senza server: i progressi restano sul di
 | **Ripasso** | Quaranta carte con sistema di Leitner a cinque scatole (0 · 1 · 3 · 7 · 21 giorni). |
 | **Progressi** | Capitoli letti, carte in scadenza, storico delle simulazioni e — soprattutto — i passi che sbagli più spesso. |
 
-Scorciatoie: `1`-`6` per i moduli, `/` o `Cmd/Ctrl+K` per la ricerca globale, `T` per cambiare tema.
+Scorciatoie da tastiera: `1`-`6` per i moduli, `/` o `Cmd/Ctrl+K` per la ricerca globale, `T` per
+cambiare tema.
+
+## Da telefono
+
+È pensata prima di tutto per il telefono: barra dei moduli in basso, monitor del paziente che resta
+appiccicato in alto durante le simulazioni, indice del manuale richiudibile, bersagli da toccare
+grandi almeno 42 px, e nel modulo Corpo lo scorrimento verticale della pagina resta al browser
+(si ruota il modello trascinando in orizzontale, si ingrandisce con i pulsanti + e −).
+
+Sui telefoni la resa 3D scende a risoluzione ridotta e senza ombre, e il modello pesa 1,4 MB
+(circa metà dell'originale, dopo semplificazione e quantizzazione della mesh).
+
+Si può installare come applicazione: da iPhone *Condividi › Aggiungi alla schermata Home*, da
+Android *Menu › Installa app*. Dopo la prima visita funziona anche senza rete.
 
 ---
 
@@ -61,7 +75,7 @@ Nessuna dipendenza da installare, nessun passaggio di build: le librerie sono gi
 index.html               guscio dell'applicazione (import map + fogli di stile)
 sw.js                    service worker: il sito resta consultabile offline
 content/manuale.md       il testo degli appunti
-assets/css/              tokens · base · guscio · moduli
+assets/css/              tokens · base · guscio · moduli · telefono
 assets/js/core/          dom, store, router, markdown, tracciati, ricerca
 assets/js/data/          anatomia, scenari, carte
 assets/js/modules/       studio, corpo, monitor, simulazioni, ripasso, progressi
@@ -81,7 +95,7 @@ versione online nel giro di un minuto. Il file `.nojekyll` impedisce a Jekyll di
 cartelle che iniziano per underscore.
 
 Dopo un aggiornamento conviene alzare il numero di versione della cache in `sw.js`
-(`const CACHE = 'consoletssa-v2'`), altrimenti i visitatori abituali continuano a vedere la
+(`const CACHE = 'consoletssa-v3'`), altrimenti i visitatori abituali continuano a vedere la
 versione precedente finché non chiudono tutte le schede.
 
 ---

@@ -29,13 +29,19 @@ const BONE_PREFIX = /^mixamorig:?/i;
 let engine = null;
 
 /* ===================== costruzione della scena ======================= */
-function buildScene(stage, overlay, onPick) {
-  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+function buildScene(stage, overlay, onPick, onProgress) {
+  // Sui telefoni si abbassa la risoluzione e si spengono le ombre: la
+  // differenza visiva è minima, quella sulla fluidità no.
+  const leggero = window.matchMedia('(max-width: 900px), (pointer: coarse)').matches;
+
+  const renderer = new THREE.WebGLRenderer({
+    antialias: !leggero, alpha: true, powerPreference: 'high-performance',
+  });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, leggero ? 1.5 : 2));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.05;
-  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.enabled = !leggero;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   stage.append(renderer.domElement);
 
@@ -45,7 +51,7 @@ function buildScene(stage, overlay, onPick) {
   scene.add(new THREE.HemisphereLight(0xA8C6D8, 0x2A2320, 1.5));
   const key = new THREE.DirectionalLight(0xFFF3E6, 2.2);
   key.position.set(3.4, 6.2, 5.2);
-  key.castShadow = true;
+  key.castShadow = !leggero;
   key.shadow.mapSize.set(1024, 1024);
   key.shadow.camera.top = 4; key.shadow.camera.bottom = -1;
   key.shadow.camera.left = -3; key.shadow.camera.right = 3;
@@ -69,6 +75,7 @@ function buildScene(stage, overlay, onPick) {
   );
   floor.rotation.x = -Math.PI / 2;
   floor.receiveShadow = true;
+  floor.visible = !leggero;
   scene.add(floor);
 
   const skin = new THREE.MeshStandardMaterial({
@@ -120,7 +127,7 @@ function buildScene(stage, overlay, onPick) {
       model.traverse((o) => {
         if (o.isBone) bones.set(o.name.replace(BONE_PREFIX, ''), o);
         if (!o.isMesh) return;
-        o.castShadow = true;
+        o.castShadow = !leggero;
         o.material = skin;
         o.frustumCulled = false;   // la mesh skinnata inganna il culling
       });
@@ -136,7 +143,7 @@ function buildScene(stage, overlay, onPick) {
       scene.updateMatrixWorld(true);
       buildLayers();
       resolve(model);
-    }, undefined, reject);
+    }, (evt) => onProgress?.(evt), reject);
   });
 
   /* ------------------------- livelli sul corpo ------------------------ */
@@ -239,18 +246,49 @@ function buildScene(stage, overlay, onPick) {
     tilt: 0, tiltTarget: 0, yaw: 0,
   };
 
+  /* Sul telefono lo stage lascia passare lo scorrimento verticale della
+     pagina (touch-action: pan-y): si ruota trascinando in orizzontale e
+     si ingrandisce con i pulsanti, senza rubare il gesto di scorrimento. */
+  const pointers = new Map();
+  let pinchStart = 0;
+  let distStart = 0;
+
   const onDown = (e) => {
-    state.dragging = true; state.px = e.clientX; state.py = e.clientY;
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pointers.size === 2) {
+      const [a, b] = [...pointers.values()];
+      pinchStart = Math.hypot(a.x - b.x, a.y - b.y);
+      distStart = state.dist;
+      state.dragging = false;
+      return;
+    }
+    state.dragging = true;
+    state.px = e.clientX; state.py = e.clientY;
     stage.classList.add('drag');
     stage.setPointerCapture?.(e.pointerId);
   };
-  const onUp = () => { state.dragging = false; stage.classList.remove('drag'); };
+
+  const onUp = (e) => {
+    pointers.delete(e.pointerId);
+    if (pointers.size < 2) pinchStart = 0;
+    if (pointers.size === 0) { state.dragging = false; stage.classList.remove('drag'); }
+  };
+
   const onMove = (e) => {
+    if (pointers.has(e.pointerId)) pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+    if (pointers.size === 2 && pinchStart) {
+      const [a, b] = [...pointers.values()];
+      const now = Math.hypot(a.x - b.x, a.y - b.y);
+      if (now > 0) state.dist = clamp(distStart * (pinchStart / now), 3.4, 13);
+      return;
+    }
     if (!state.dragging) return;
     state.ry += (e.clientX - state.px) * 0.009;
     state.rx = clamp(state.rx + (e.clientY - state.py) * 0.005, -0.55, 0.55);
     state.px = e.clientX; state.py = e.clientY;
   };
+
   const onWheel = (e) => {
     e.preventDefault();
     state.dist = clamp(state.dist + e.deltaY * 0.006, 3.4, 13);
@@ -259,6 +297,7 @@ function buildScene(stage, overlay, onPick) {
   stage.addEventListener('pointerdown', onDown);
   stage.addEventListener('pointerup', onUp);
   stage.addEventListener('pointercancel', onUp);
+  stage.addEventListener('pointerleave', onUp);
   stage.addEventListener('pointermove', onMove);
   stage.addEventListener('wheel', onWheel, { passive: false });
 
@@ -371,14 +410,18 @@ function buildScene(stage, overlay, onPick) {
       placed.push({ l, x, y, side });
     });
 
+    const spinta = w < 420 ? 52 : 78;   // meno spinta su schermo stretto
     [-1, 1].forEach((side) => {
       const col = placed.filter((p) => p.side === side).sort((a, b) => a.y - b.y);
       let last = -Infinity;
       col.forEach((p) => {
         const y = Math.max(p.y, last + LABEL_GAP);
         last = y;
-        p.l.node.style.left = `${Math.round(p.x + side * 78)}px`;
-        p.l.node.style.top = `${Math.round(Math.min(h - 14, Math.max(14, y)))}px`;
+        // l'etichetta non deve mai uscire dal riquadro
+        const mezza = (p.l.node.offsetWidth || 90) / 2 + 6;
+        const x = clamp(p.x + side * spinta, mezza, w - mezza);
+        p.l.node.style.left = `${Math.round(x)}px`;
+        p.l.node.style.top = `${Math.round(clamp(y, 14, h - 14))}px`;
       });
     });
   }
@@ -405,7 +448,8 @@ function buildScene(stage, overlay, onPick) {
       state.tiltTarget = pos.tilt;
       return pos;
     },
-    resetView() { state.ry = 0; state.rx = 0.03; state.dist = 7.4; },
+    zoom(delta) { state.dist = clamp(state.dist + delta, 3.4, 13); },
+    resetView() { state.ry = 0; state.rx = 0.03; state.dist = 7.4; state.spin = true; },
     highlight(key) {
       labels.forEach((l) => l.node.classList.toggle('on', l.key === key));
       hotMeshes.forEach((m) => { m.material.emissiveIntensity = m.userData.key === key ? 2 : 1.1; });
@@ -417,6 +461,7 @@ function buildScene(stage, overlay, onPick) {
       stage.removeEventListener('pointerdown', onDown);
       stage.removeEventListener('pointerup', onUp);
       stage.removeEventListener('pointercancel', onUp);
+      stage.removeEventListener('pointerleave', onUp);
       stage.removeEventListener('pointermove', onMove);
       stage.removeEventListener('wheel', onWheel);
       stage.removeEventListener('click', onClick);
@@ -452,12 +497,24 @@ export function render() {
   const overlay = el('div.hot-overlay', {
     style: { position: 'absolute', inset: '0', pointerEvents: 'none' },
   });
+  const progressBar = el('i', { style: { width: '6%' } });
   const loading = el('div.stage-loading', {}, [
     el('span', { text: 'caricamento del modello' }),
-    el('div.meter', {}, [el('i', { style: { width: '30%' } })]),
+    el('div.meter', {}, [progressBar]),
   ]);
+
+  const touch = window.matchMedia('(pointer: coarse)').matches;
+  const zoomIn = el('button.iconbtn', { type: 'button', 'aria-label': 'Avvicina', text: '+' });
+  const zoomOut = el('button.iconbtn', { type: 'button', 'aria-label': 'Allontana', text: '−' });
+  const tools = el('div.stage-tools', {}, [zoomIn, zoomOut]);
+
   const stage = el('div', { id: 'stage' }, [
-    el('div.stage-hint', { text: 'trascina per ruotare · rotella per lo zoom · tocca un punto rosso' }),
+    el('div.stage-hint', {
+      text: touch
+        ? 'trascina in orizzontale per ruotare · tocca un punto rosso'
+        : 'trascina per ruotare · rotella per lo zoom · tocca un punto rosso',
+    }),
+    tools,
     overlay,
     loading,
   ]);
@@ -513,6 +570,9 @@ export function render() {
         if (!h) return;
         mount(info, infoCard(h));
         engine.highlight(key);
+      }, (evt) => {
+        if (!evt.lengthComputable) return;
+        progressBar.style.width = `${Math.round((evt.loaded / evt.total) * 100)}%`;
       });
     } catch (err) {
       console.error('[corpo] WebGL non disponibile', err);
@@ -540,7 +600,12 @@ export function render() {
       spinChip.setAttribute('aria-pressed', String(on));
       engine.setSpin(on);
     });
-    resetChip.addEventListener('click', () => engine.resetView());
+    resetChip.addEventListener('click', () => {
+      engine.resetView();
+      spinChip.setAttribute('aria-pressed', 'true');
+    });
+    zoomIn.addEventListener('click', () => engine.zoom(-1.1));
+    zoomOut.addEventListener('click', () => engine.zoom(1.1));
     posButtons.forEach((b) => b.addEventListener('click', () => {
       posButtons.forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
       posNote.textContent = engine.setPosition(b.dataset.pos).note;

@@ -1,0 +1,131 @@
+/* =====================================================================
+   MOBILE — adattamenti per telefono.
+   Va caricato per ultimo: contiene solo scostamenti dalle regole base.
+   Il pubblico principale legge da telefono, quindi qui si guarda a tre
+   cose: bersagli grandi da toccare, niente gesti rubati allo scorrimento
+   della pagina, e il monitor del paziente sempre sott'occhio.
+   ===================================================================== */
+
+/* ------------------- comportamento del tocco (tutti) ---------------- */
+button, a, input, select, textarea, .chip, .opt, .vit, .sq, summary {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+@media (pointer: coarse) {
+  .btn { min-height: 42px; }
+  .btn.sm { min-height: 36px; }
+  .chip { min-height: 36px; padding: 8px 14px; }
+  .iconbtn { min-height: 40px; min-width: 40px; }
+  .opt { padding: 14px 16px 14px 46px; }
+  .sq { padding: 12px 14px; }
+  .toc a { padding: 10px 9px; }
+  .palette-item { padding: 12px; }
+}
+
+@media (max-width: 900px) {
+  /* ------------------------------ guscio --------------------------- */
+  :root { --fs-2xl: 28px; --fs-xl: 23px; --fs-lg: 19px; }
+
+  .outlet { padding: var(--sp-4) var(--sp-3) 104px; }
+  .view-head { margin-bottom: var(--sp-4); }
+  .view-head p { font-size: var(--fs-sm); }
+
+  /* la barra in basso resta leggibile anche con la tacca */
+  .rail-nav { padding: 5px 4px; }
+  .navlink { min-height: 46px; }
+
+  .card { padding: var(--sp-4); border-radius: var(--r-md); }
+  .card.tight { padding: var(--sp-3); }
+
+  /* ------------------------------ studio --------------------------- */
+  .study-bar { top: 44px; padding: var(--sp-3); }
+  .study-bar .prog { min-width: 110px; }
+  .prose { font-size: 16.5px; max-width: none; }
+  .prose h2 { scroll-margin-top: 108px; }
+  .prose h3 { scroll-margin-top: 108px; }
+  .prose table { min-width: 380px; font-size: var(--fs-sm); }
+  .chapter-nav { flex-direction: column; }
+
+  /* ------------------------------ corpo ---------------------------- */
+  #stage {
+    aspect-ratio: 1 / 1;
+    max-height: 62vh;
+    /* pan-y: lo scorrimento verticale della pagina resta al browser,
+       il trascinamento orizzontale ruota il modello */
+    touch-action: pan-y;
+  }
+  .stage-hint { font-size: 9px; }
+  .hotlabel { font-size: 11.5px; padding: 3px 8px 3px 4px; }
+  .hotlabel .pip { width: 8px; height: 8px; }
+
+  /* ----------------------------- monitor --------------------------- */
+  .scope { height: 158px; }
+  .scope.sm { height: 110px; }
+  .rhythm-pick .btn, .breath-pick .btn { flex: 1 1 auto; justify-content: center; }
+  .decay .big { font-size: var(--fs-lg); }
+
+  /* --------------------------- simulazioni ------------------------- */
+  .simbar { display: block; }
+  .simbar-head { display: flex; margin-left: 0; }
+  .simbar-head .btn { flex: 1; justify-content: center; }
+  .filtri-toggle { display: inline-flex; }
+  .simbar .sim-filters { display: none; }
+  .simbar.open .sim-filters { display: flex; margin-top: var(--sp-3); }
+
+  /* colonna unica in flex: così l'ordine si può cambiare e il monitor
+     può restare appiccicato in alto mentre si scorre */
+  .sim { display: flex; flex-direction: column; align-items: stretch; }
+  .sim-panel { display: contents; }
+  .sim > .card { order: 1; }
+  .sim-panel > .card.tight { order: 2; }
+
+  .pmon {
+    order: -1;
+    position: sticky; top: 44px; z-index: 14;
+    box-shadow: 0 10px 20px -14px rgba(0, 0, 0, .7);
+  }
+  .pmon canvas { height: 48px; }
+  .pmon-head { padding: 6px 10px; }
+  .vit { padding: 7px 7px 8px; }
+  .vit .v { font-size: 19px; }
+  .vit .ref { display: none; }
+  .pmon-foot { padding: 7px 10px; }
+
+  .simlog { max-height: 170px; }
+  .obs { gap: var(--sp-2); }
+  .dispatch { padding: var(--sp-3); font-size: 12.5px; }
+
+  .timeline .tl { grid-template-columns: 42px 14px 1fr auto; gap: var(--sp-2); }
+  .score-hero { padding: var(--sp-4); gap: var(--sp-4); }
+  .score-ring, .score-ring svg { width: 92px; height: 92px; }
+  .score-ring .val b { font-size: 25px; }
+
+  /* ------------------------------ ripasso -------------------------- */
+  .fcard { padding: var(--sp-5) var(--sp-4); min-height: 200px; }
+  .fcard .q { font-size: var(--fs-md); }
+  .grade { grid-template-columns: 1fr; }
+
+  /* ----------------------------- progressi ------------------------- */
+  .stats { grid-template-columns: 1fr 1fr; }
+  .stat { padding: var(--sp-3); }
+  .stat .v { font-size: 25px; }
+
+  /* ------------------------------ ricerca -------------------------- */
+  .palette-back { padding: 6vh var(--sp-3) var(--sp-3); }
+  .palette { max-height: 80vh; }
+}
+
+/* schermi molto stretti (iPhone SE e simili) */
+@media (max-width: 380px) {
+  .vitals { grid-template-columns: repeat(2, 1fr); }
+  .stats { grid-template-columns: 1fr; }
+  .navlink { font-size: 9.5px; }
+}
+
+/* telefono in orizzontale: poca altezza, si recupera spazio */
+@media (max-height: 480px) and (orientation: landscape) {
+  #stage { max-height: 78vh; aspect-ratio: 16 / 10; }
+  .pmon { position: static; }
+  .fcard { min-height: 150px; }
+}
