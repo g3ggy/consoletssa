@@ -1,0 +1,112 @@
+/* =====================================================================
+   TOKENS — palette, tipografia, spaziature
+   Due temi: "monitor" (scuro, default) e "carta" (chiaro, per lo studio)
+   ===================================================================== */
+
+:root {
+  /* --- colori semantici clinici (invarianti fra i temi) --- */
+  --cri: #E0243C;
+  --cri-soft: rgba(224, 36, 60, .14);
+  --phos: #34D399;
+  --phos-soft: rgba(52, 211, 153, .14);
+  --amber: #F2B441;
+  --amber-soft: rgba(242, 180, 65, .14);
+  --blue: #5AA9E6;
+  --blue-soft: rgba(90, 169, 230, .14);
+  --violet: #A98BE0;
+
+  /* codici di gravità */
+  --cod-rosso: #E0243C;
+  --cod-giallo: #F2B441;
+  --cod-verde: #34D399;
+  --cod-bianco: #C6D3DC;
+
+  /* --- tipografia --- */
+  --disp: 'Barlow Condensed', 'Oswald', 'Arial Narrow', system-ui, sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  --body: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  --fs-xs: 11px;
+  --fs-sm: 13px;
+  --fs-base: 15px;
+  --fs-md: 17px;
+  --fs-lg: 21px;
+  --fs-xl: 27px;
+  --fs-2xl: 34px;
+
+  /* --- geometria --- */
+  --r-sm: 4px;
+  --r-md: 7px;
+  --r-lg: 12px;
+  --r-full: 999px;
+
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 22px;
+  --sp-6: 30px;
+  --sp-7: 42px;
+
+  --rail-w: 232px;
+  --max-w: 1420px;
+
+  --ease: cubic-bezier(.22, .61, .36, 1);
+}
+
+/* ---------------------------- tema MONITOR ------------------------- */
+:root,
+:root[data-theme="monitor"] {
+  --bg: #0A0E12;
+  --bg-grad: radial-gradient(ellipse 120% 70% at 50% -14%, #15212B 0%, #0A0E12 62%);
+  --surface: #131A21;
+  --surface-2: #19232B;
+  --surface-3: #1F2B35;
+  --scope-bg: #070B0F;
+  --line: #24313B;
+  --line-2: #33475622;
+  --ink: #DFE9EF;
+  --ink-2: #A9BAC6;
+  --ink-3: #7B8D9B;
+  --ink-shadow: rgba(0, 0, 0, .5);
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, .4);
+  --shadow-2: 0 12px 34px -16px rgba(0, 0, 0, .85);
+  --grid-line: rgba(52, 211, 153, .055);
+  --sel: rgba(90, 169, 230, .26);
+  color-scheme: dark;
+}
+
+/* ----------------------------- tema CARTA -------------------------- */
+:root[data-theme="carta"] {
+  --bg: #F4F1EA;
+  --bg-grad: radial-gradient(ellipse 120% 70% at 50% -14%, #FFFDF8 0%, #EFEBE2 66%);
+  --surface: #FFFDF8;
+  --surface-2: #F7F3EA;
+  --surface-3: #EDE7DA;
+  --scope-bg: #10171C;
+  --line: #DDD5C6;
+  --line-2: #DDD5C688;
+  --ink: #22282C;
+  --ink-2: #4A555D;
+  --ink-3: #7A858D;
+  --ink-shadow: rgba(0, 0, 0, .12);
+  --shadow-1: 0 1px 2px rgba(60, 50, 30, .08);
+  --shadow-2: 0 14px 30px -18px rgba(60, 50, 30, .38);
+  --grid-line: rgba(52, 211, 153, .06);
+  --sel: rgba(90, 169, 230, .3);
+  --phos: #0E9F6E;
+  --amber: #B4761A;
+  --blue: #2C7FC0;
+  color-scheme: light;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

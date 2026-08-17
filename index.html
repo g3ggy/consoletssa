@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="it" data-theme="monitor">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Console TSSA — addestramento soccorritore</title>
+<meta name="description" content="Banco di addestramento per soccorritore volontario CRI: manuale consultabile, corpo umano 3D esplorabile, ritmi cardiaci dal vivo, simulazioni di intervento con debriefing e ripasso a ripetizione dilazionata.">
+<meta name="theme-color" content="#0A0E12">
+<meta name="color-scheme" content="dark light">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230A0E12'/%3E%3Cpath d='M13 5h6v8h8v6h-8v8h-6v-8H5v-6h8z' fill='%23E0243C'/%3E%3C/svg%3E">
+
+<meta property="og:title" content="Console TSSA">
+<meta property="og:description" content="Studio, esplorazione e simulazione per il corso TSSA / soccorritore volontario CRI.">
+<meta property="og:type" content="website">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;650&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="./assets/css/tokens.css">
+<link rel="stylesheet" href="./assets/css/base.css">
+<link rel="stylesheet" href="./assets/css/app.css">
+<link rel="stylesheet" href="./assets/css/modules.css">
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "./vendor/three.module.js",
+    "GLTFLoader": "./vendor/GLTFLoader.js"
+  }
+}
+</script>
+</head>
+<body>
+
+<noscript>
+  <div style="max-width:620px;margin:60px auto;padding:24px;border:1px solid #24313B;border-radius:12px">
+    <h1 style="font-size:22px">Console TSSA</h1>
+    <p>Questa applicazione ha bisogno di JavaScript per funzionare: il manuale, il modello 3D e le
+    simulazioni vengono costruiti nel browser.</p>
+    <p>Gli appunti in formato testo restano comunque leggibili:
+    <a href="./content/manuale.md">manuale in markdown</a>.</p>
+  </div>
+</noscript>
+
+<script type="module" src="./assets/js/main.js"></script>
+</body>
+</html>

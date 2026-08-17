@@ -1,0 +1,95 @@
+/* =====================================================================
+   sw.js — service worker: il sito resta consultabile anche senza rete.
+   Strategia: "stale while revalidate" per le risorse dell'app, rete
+   prima per il manuale (così un aggiornamento degli appunti si vede).
+   Per pubblicare una nuova versione basta cambiare CACHE.
+   ===================================================================== */
+
+const CACHE = 'consoletssa-v1';
+
+const PRECACHE = [
+  './',
+  './index.html',
+  './manifest.webmanifest',
+  './assets/css/tokens.css',
+  './assets/css/base.css',
+  './assets/css/app.css',
+  './assets/css/modules.css',
+  './assets/js/main.js',
+  './assets/js/core/dom.js',
+  './assets/js/core/store.js',
+  './assets/js/core/router.js',
+  './assets/js/core/ui.js',
+  './assets/js/core/markdown.js',
+  './assets/js/core/manual.js',
+  './assets/js/core/waveform.js',
+  './assets/js/core/ribbon.js',
+  './assets/js/data/anatomy.js',
+  './assets/js/data/scenari.js',
+  './assets/js/data/carte.js',
+  './assets/js/modules/studio.js',
+  './assets/js/modules/corpo.js',
+  './assets/js/modules/monitor.js',
+  './assets/js/modules/simulazioni.js',
+  './assets/js/modules/ripasso.js',
+  './assets/js/modules/progressi.js',
+  './content/manuale.md',
+  './vendor/three.module.js',
+  './vendor/GLTFLoader.js',
+  './vendor/BufferGeometryUtils.js',
+  './assets/models/patient.glb',
+];
+
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(CACHE)
+      .then((cache) => cache.addAll(PRECACHE).catch((err) => {
+        // se una risorsa manca non blocchiamo l'installazione
+        console.warn('[sw] precache parziale', err);
+      }))
+      .then(() => self.skipWaiting()),
+  );
+});
+
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys()
+      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
+      .then(() => self.clients.claim()),
+  );
+});
+
+self.addEventListener('fetch', (event) => {
+  const { request } = event;
+  if (request.method !== 'GET') return;
+
+  const url = new URL(request.url);
+  if (url.origin !== self.location.origin) return; // font e CDN esterni: al browser
+
+  const isManual = url.pathname.endsWith('manuale.md');
+
+  event.respondWith((async () => {
+    const cache = await caches.open(CACHE);
+    const cached = await cache.match(request, { ignoreSearch: true });
+
+    const network = fetch(request)
+      .then((res) => {
+        if (res && res.ok) cache.put(request, res.clone());
+        return res;
+      })
+      .catch(() => null);
+
+    if (isManual) return (await network) || cached || Response.error();
+    if (cached) { network.catch(() => {}); return cached; }
+
+    const res = await network;
+    if (res) return res;
+
+    // navigazione offline senza cache puntuale: serviamo la shell
+    if (request.mode === 'navigate') {
+      const shell = await cache.match('./index.html');
+      if (shell) return shell;
+    }
+    return Response.error();
+  })());
+});

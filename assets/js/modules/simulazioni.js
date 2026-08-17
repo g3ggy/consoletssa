@@ -1,0 +1,625 @@
+/* =====================================================================
+   simulazioni.js — simulatore di intervento.
+
+   Struttura: a sinistra la scena e la decisione da prendere, a destra un
+   monitor paziente che resta sempre sott'occhio (tracciato, parametri,
+   cronometro della valutazione primaria, diario delle azioni).
+   ===================================================================== */
+
+import { el, mount, $, shuffle, pick, formatSeconds } from '../core/dom.js';
+import { icon, toast, scoreRing } from '../core/ui.js';
+import { navigate } from '../core/router.js';
+import { createScope } from '../core/waveform.js';
+import { setRibbonRhythm } from '../core/ribbon.js';
+import { saveRun } from '../core/store.js';
+import { SCENARI, OPZIONI, VITAL_META, DIFFICOLTA } from '../data/scenari.js';
+
+const PASSI = [
+  { key: 'scena', label: 'Sicurezza della scena' },
+  { key: 'colpo', label: 'Colpo d\'occhio' },
+  { key: 'azione', label: 'Azione immediata' },
+  { key: 'parametri', label: 'Parametri' },
+  { key: 'sample', label: 'SAMPLE' },
+  { key: 'codice', label: 'Codice di gravità' },
+  { key: 'sospetto', label: 'Sospetto' },
+  { key: 'ragguaglio', label: 'Ragguaglio' },
+];
+
+const PUNTI_MAX = 8; // 7 decisioni + 1 punto tempo
+
+let S = null;
+let scope = null;
+let timerId = null;
+let host = null;      // riferimenti ai nodi che aggiorniamo dal vivo
+let filtro = { tipo: 'tutti', difficolta: 0, esame: false };
+
+/* ============================ utilità ================================ */
+const nowSec = () => (S?.t0 ? (Date.now() - S.t0) / 1000 : 0);
+
+function log(text, kind = '') {
+  S.log.push({ t: nowSec(), text, kind });
+  renderLog();
+}
+
+function renderLog() {
+  if (!host?.log) return;
+  mount(host.log, ...S.log.slice().reverse().map((e) => el(`div.e${e.kind ? ` ${e.kind}` : ''}`, {}, [
+    el('span.t', { text: formatSeconds(e.t) }),
+    el('span', { text: e.text }),
+  ])));
+}
+
+function addPunto(passo, ok, dettaglio) {
+  S.punti.push({ passo, ok, dettaglio, t: nowSec() });
+  if (host?.score) host.score.textContent = String(S.punti.filter((p) => p.ok).length);
+}
+
+/* ====================== pannello monitor paziente ==================== */
+function buildPanel() {
+  const canvas = el('canvas', { 'aria-label': 'Monitor del paziente' });
+  const vitalsGrid = el('div.vitals');
+  const timerNode = el('span', {}, [document.createTextNode('primaria '), el('b', { text: '—' })]);
+  const scoreNode = el('b', { text: '0' });
+  const logNode = el('div.simlog');
+
+  const vitBtns = {};
+  Object.entries(VITAL_META).forEach(([k, meta]) => {
+    const btn = el('button.vit', { type: 'button', 'data-k': k, title: `Rileva ${meta.label}` }, [
+      el('div.k', {}, [meta.label]),
+      el('div.v', { text: '— —' }),
+      el('div.ref', { text: meta.ref }),
+    ]);
+    btn.addEventListener('click', () => misura(k, btn));
+    vitBtns[k] = btn;
+    vitalsGrid.append(btn);
+  });
+
+  const panel = el('div.sim-panel', {}, [
+    el('div.pmon', {}, [
+      el('div.pmon-head', {}, [
+        el('span.live'),
+        el('span', { text: 'monitor paziente' }),
+        el('span', { style: { flex: '1' } }),
+        el('span', { id: 'pmon-rhythm', text: 'in attesa' }),
+      ]),
+      canvas,
+      vitalsGrid,
+      el('div.pmon-foot', {}, [
+        timerNode,
+        el('span', { style: { flex: '1' } }),
+        el('span', {}, [document.createTextNode('punti '), scoreNode]),
+      ]),
+    ]),
+    el('div.card.tight', {}, [
+      el('p.lbl', { text: 'Diario dell\'intervento' }),
+      logNode,
+    ]),
+  ]);
+
+  host = { canvas, vitBtns, timer: timerNode, score: scoreNode, log: logNode, panel };
+  return panel;
+}
+
+function misura(k, btn) {
+  if (!S || S.misurati[k] || S.step < 4 || btn.dataset.busy) return;
+  const meta = VITAL_META[k];
+  const dato = S.caso.vitali[k];   // sempre lo scenario in corso, non quello iniziale
+
+  const busy = el('div.busy', {}, [el('i')]);
+  btn.append(busy);
+  btn.dataset.busy = '1';
+  const bar = $('i', busy);
+  const t0 = performance.now();
+  const durata = meta.tempo;
+
+  (function anim() {
+    const p = Math.min(1, (performance.now() - t0) / durata);
+    bar.style.width = `${p * 100}%`;
+    if (p < 1) { requestAnimationFrame(anim); return; }
+    busy.remove();
+    delete btn.dataset.busy;
+    S.misurati[k] = true;
+    btn.classList.add('on');
+    if (dato.flag) btn.classList.add(dato.flag);
+    $('.v', btn).innerHTML = `${dato.v}<span class="u">${typeof dato.v === 'number' ? meta.unit : ''}</span>`;
+    btn.title = dato.note;
+    log(`${meta.label}: ${dato.v}${typeof dato.v === 'number' ? ` ${meta.unit}` : ''}`, dato.flag === 'alarm' ? 'ko' : '');
+    checkPrimaria();
+  })();
+}
+
+function checkPrimaria() {
+  const totali = Object.keys(VITAL_META).length;
+  if (Object.keys(S.misurati).length < totali || S.tPrimaria !== null) return;
+  S.tPrimaria = Math.round(nowSec());
+  const entro = S.tPrimaria <= 90;
+  addPunto('tempo', entro, entro
+    ? `Valutazione primaria completata in ${S.tPrimaria}s, sotto i 90 richiesti.`
+    : `Valutazione primaria in ${S.tPrimaria}s: oltre i 90 secondi.`);
+  log(`Valutazione primaria completata in ${S.tPrimaria}s`, entro ? 'ok' : 'ko');
+  if (S.step === 4) { S.step = 5; renderBody(); }
+}
+
+function tick() {
+  if (!S || S.t0 === null) return;
+  const b = $('b', host.timer);
+  const s = S.tPrimaria !== null ? S.tPrimaria : Math.round(nowSec());
+  b.textContent = `${s}s`;
+  b.style.color = s > 90 ? 'var(--cri)' : '';
+}
+
+/* ============================ componenti ============================= */
+function opzioni(lista, onPick) {
+  const wrap = el('div.opts');
+  const nodi = lista.map((o, i) => {
+    const b = el('button.opt', { type: 'button', 'data-key': String.fromCharCode(65 + i) }, [o.t]);
+    b.addEventListener('click', () => {
+      if (wrap.dataset.done) return;
+      wrap.dataset.done = '1';
+      if (filtro.esame) {
+        b.classList.add('chosen');
+        b.style.borderColor = 'var(--blue)';
+      } else {
+        nodi.forEach((n, j) => {
+          const oo = lista[j];
+          n.classList.add(oo.ok ? 'good' : 'bad');
+          if (n === b) n.classList.add('chosen');
+          if (oo.w) n.append(el('span.why', { text: oo.w }));
+        });
+      }
+      onPick(o);
+    });
+    wrap.append(b);
+    return b;
+  });
+  return wrap;
+}
+
+function stepHead(n, titolo, sottotitolo) {
+  return el('div.step-head', {}, [
+    el('div', {}, [
+      el('p.step-num', { style: { margin: '0' }, text: `Passo ${n} di ${PASSI.length}` }),
+      el('h3', { text: titolo }),
+      sottotitolo ? el('p.sub', { text: sottotitolo }) : null,
+    ]),
+  ]);
+}
+
+function avanti(label, fn) {
+  return el('button.btn.pri', { type: 'button', style: { marginTop: '14px' }, onclick: fn },
+    [label, icon('next')]);
+}
+
+/* ============================== flusso =============================== */
+function renderBody() {
+  const box = host.body;
+  const caso = S.caso;
+  box.replaceChildren();
+
+  /* dispatch, sempre visibile */
+  box.append(el('div.dispatch', {}, [
+    el('div.hdr', {}, [
+      el('span', { text: `dispatch · codice ${caso.dispatch.codice} dalla centrale` }),
+      el('span.t', { text: caso.dispatch.luogo }),
+    ]),
+    el('div', { text: caso.dispatch.testo }),
+  ]));
+
+  /* passo 1 — scena */
+  if (S.step === 0) {
+    const lista = shuffle(OPZIONI.scena).slice(0, 3);
+    if (!lista.some((o) => o.ok)) lista[0] = OPZIONI.scena.find((o) => o.ok);
+    const s = el('div.step', {}, [
+      stepHead(1, 'Sei arrivato sul posto', 'Cosa fai per prima cosa?'),
+    ]);
+    s.append(opzioni(shuffle(lista), (o) => {
+      addPunto('scena', o.ok, o.w);
+      log(o.ok ? 'Valutata la sicurezza della scena' : 'Entrato senza valutare la scena', o.ok ? 'ok' : 'ko');
+      s.append(avanti('Guarda la scena', () => { S.step = 1; renderBody(); }));
+    }));
+    box.append(s);
+  }
+
+  /* da qui in poi mostriamo scena e colpo d'occhio */
+  if (S.step >= 1) {
+    box.append(el('div.obs', {}, [
+      el('div.box', {}, [
+        el('p.lbl', { text: 'La scena' }),
+        el('p', { text: caso.scena.testo }),
+        caso.scena.rischio
+          ? el('p', { style: { marginTop: '8px' } }, [el('span.badge.b-warn', { text: `rischio: ${caso.scena.rischio}` })])
+          : null,
+      ]),
+      el('div.box', {}, [
+        el('p.lbl', { text: 'Colpo d\'occhio' }),
+        el('p', { text: caso.colpoOcchio.testo }),
+      ]),
+    ]));
+  }
+
+  /* passo 2 — vitale o no */
+  if (S.step === 1) {
+    const lista = OPZIONI.colpo.map((o) => ({
+      ...o,
+      ok: o.v === caso.colpoOcchio.vitale,
+      w: o.v === caso.colpoOcchio.vitale
+        ? 'Corretto: quello che conta è se si muove, parla o reagisce.'
+        : 'Rileggi il colpo d\'occhio: conta se si muove e reagisce, non se "sta bene". Il gasping non è respiro.',
+    }));
+    const s = el('div.step', {}, [stepHead(2, 'Vitale o non vitale?', 'La primissima discriminazione, prima di ogni ABCDE.')]);
+    s.append(opzioni(lista, (o) => {
+      addPunto('colpo', o.ok, o.w);
+      log(o.v ? 'Paziente giudicato vitale' : 'Paziente giudicato non vitale', o.ok ? 'ok' : 'ko');
+      s.append(avanti('Agisci', () => {
+        S.step = 2;
+        S.t0 = Date.now();
+        startTimer();
+        renderBody();
+      }));
+    }));
+    box.append(s);
+  }
+
+  /* passo 3 — azione immediata */
+  if (S.step === 2) {
+    const giusta = OPZIONI.azione[caso.azione];
+    const lista = shuffle([
+      { t: giusta.t, ok: true, w: giusta.w },
+      ...shuffle(OPZIONI.azioneDistrattori).slice(0, 3).map((x) => ({ ...x, ok: false })),
+    ]);
+    const s = el('div.step', {}, [
+      stepHead(3, 'Azione immediata', 'Un problema che minaccia la vita si tratta appena identificato, non dopo la raccolta dati.'),
+    ]);
+    s.append(opzioni(lista, (o) => {
+      addPunto('azione', o.ok, o.w);
+      log(o.ok ? `Azione: ${giusta.t}` : 'Azione immediata non corretta', o.ok ? 'ok' : 'ko');
+      s.append(avanti('Rileva i parametri', () => {
+        S.step = 4;
+        attaccaMonitor();
+        renderBody();
+      }));
+    }));
+    box.append(s);
+  }
+
+  /* passo 4 — parametri */
+  if (S.step >= 4) {
+    const s = el('div.step', {}, [
+      stepHead(4, 'Parametri', 'Tocca ogni parametro sul monitor a destra per rilevarlo. Ognuno richiede il suo tempo, come sul campo.'),
+      el('p.sub', { text: 'Obiettivo: valutazione primaria completa sotto i 90 secondi.' }),
+    ]);
+    if (S.step === 4 && !$('.vit.on', host.panel)) {
+      s.append(el('div.row', {}, [el('span.badge.b-warn', { text: 'in attesa delle rilevazioni' })]));
+    }
+    box.append(s);
+  }
+
+  /* passo 5 — SAMPLE */
+  if (S.step >= 5) {
+    const nomi = { S: 'Segni e sintomi', A: 'Allergie', M: 'Medicine', P: 'Patologie', L: 'Ultimo pasto', E: 'Evento' };
+    const g = el('div.sample');
+    Object.entries(caso.sample).forEach(([k, v]) => {
+      const b = el('button.sq', { type: 'button' }, [
+        el('div.h', {}, [el('b', { text: k }), el('span', { text: nomi[k] })]),
+        el('span.a', { text: S.chiesti[k] ? v : '' }),
+      ]);
+      if (S.chiesti[k]) b.classList.add('asked');
+      b.addEventListener('click', () => {
+        if (S.chiesti[k]) return;
+        S.chiesti[k] = true;
+        b.classList.add('asked');
+        $('.a', b).textContent = v;
+        log(`Domanda ${k}: ${nomi[k]}`);
+        if (Object.keys(S.chiesti).length === 6 && S.step === 5) {
+          $('#sample-next')?.removeAttribute('disabled');
+        }
+      });
+      g.append(b);
+    });
+    const s = el('div.step', {}, [
+      stepHead(5, 'SAMPLE', 'Valutazione secondaria: domande mirate e rapide, non la storia della vita.'),
+      g,
+    ]);
+    if (S.step === 5) {
+      const btn = avanti('Assegna il codice', () => {
+        const chieste = Object.keys(S.chiesti).length;
+        addPunto('sample', chieste >= 5, chieste >= 5
+          ? `SAMPLE raccolto (${chieste}/6 voci).`
+          : `Solo ${chieste} voci su 6: la M e la P sono quelle che cambiano più spesso il quadro.`);
+        S.step = 6;
+        renderBody();
+      });
+      btn.id = 'sample-next';
+      s.append(btn);
+    }
+    box.append(s);
+  }
+
+  /* passo 6 — codice */
+  if (S.step === 6) {
+    const lista = OPZIONI.codice.map((o) => ({ ...o, ok: o.k === caso.codice }));
+    const s = el('div.step', {}, [
+      stepHead(6, 'Che codice assegni?', 'Guarda le funzioni vitali, non l\'impressione generale.'),
+    ]);
+    s.append(opzioni(lista, (o) => {
+      addPunto('codice', o.ok, o.ok ? o.w : `Il codice corretto era ${caso.codice.toUpperCase()}. ${OPZIONI.codice.find((c) => c.k === caso.codice).w}`);
+      log(`Codice assegnato: ${o.k.toUpperCase()}`, o.ok ? 'ok' : 'ko');
+      s.append(avanti('Formula il sospetto', () => { S.step = 7; renderBody(); }));
+    }));
+    box.append(s);
+  }
+
+  /* passo 7 — sospetto */
+  if (S.step === 7) {
+    const giusto = OPZIONI.sospetto[caso.sospetto];
+    const altri = shuffle(Object.entries(OPZIONI.sospetto).filter(([k]) => k !== caso.sospetto)).slice(0, 3);
+    const lista = shuffle([
+      { t: giusto, ok: true, w: 'Sul soccorso non si fa diagnosi: si formula un sospetto e lo si dichiara come tale.' },
+      ...altri.map(([, t]) => ({ t, ok: false, w: 'Non regge con quello che hai raccolto.' })),
+    ]);
+    const s = el('div.step', {}, [
+      stepHead(7, 'Con cosa lo consegni?', 'Un sospetto, mai una diagnosi.'),
+    ]);
+    s.append(opzioni(lista, (o) => {
+      addPunto('sospetto', o.ok, o.ok ? o.w : `Il sospetto corretto era: ${giusto}.`);
+      log(`Sospetto: ${o.t}`, o.ok ? 'ok' : 'ko');
+      s.append(avanti('Prepara il ragguaglio', () => { S.step = 8; renderBody(); }));
+    }));
+    box.append(s);
+  }
+
+  /* passo 8 — apertura del ragguaglio */
+  if (S.step === 8) {
+    const giusta = OPZIONI.apertura[caso.apertura];
+    const altra = Object.entries(OPZIONI.apertura).find(([k]) => k !== caso.apertura)[1];
+    const lista = shuffle([
+      { t: giusta.t, ok: true, w: giusta.w },
+      { t: altra.t, ok: false, w: 'Non è l\'ordine giusto per questo caso: qui pesa di più l\'altro elemento.' },
+      ...shuffle(OPZIONI.aperturaDistrattori).slice(0, 2).map((x) => ({ ...x, ok: false })),
+    ]);
+    const s = el('div.step', {}, [
+      stepHead(8, 'Come apri il ragguaglio?', 'Quattro punti: chi è · patologie rilevanti · evento e parametri salienti · prestazioni eseguite. Poi ti fermi.'),
+    ]);
+    s.append(opzioni(lista, (o) => {
+      addPunto('ragguaglio', o.ok, o.w);
+      log('Ragguaglio consegnato', o.ok ? 'ok' : 'ko');
+      s.append(avanti('Vedi il debriefing', () => { S.step = 9; stopTimer(); renderBody(); }));
+    }));
+    box.append(s);
+  }
+
+  /* debriefing */
+  if (S.step === 9) box.append(debrief());
+}
+
+/* ============================ debriefing ============================= */
+function debrief() {
+  const caso = S.caso;
+  const ok = S.punti.filter((p) => p.ok).length;
+  const codice = OPZIONI.codice.find((c) => c.k === caso.codice);
+
+  if (!S.salvato) {
+    S.salvato = true;
+    saveRun({
+      id: caso.id,
+      titolo: caso.titolo,
+      tipo: caso.tipo,
+      score: ok,
+      max: PUNTI_MAX,
+      seconds: S.tPrimaria,
+      errori: S.punti.filter((p) => !p.ok).map((p) => p.passo),
+    });
+  }
+
+  const nomiPasso = Object.fromEntries(PASSI.map((p) => [p.key, p.label]));
+  nomiPasso.tempo = 'Tempo della primaria';
+
+  const linea = S.punti.map((p) => el(`div.tl.${p.ok ? 'ok' : 'ko'}`, {}, [
+    el('span.t', { text: formatSeconds(p.t) }),
+    el('span.m'),
+    el('span', {}, [
+      el('b', { text: nomiPasso[p.passo] || p.passo }),
+      el('div', { style: { color: 'var(--ink-3)', fontSize: '13px' }, text: p.dettaglio || '' }),
+    ]),
+    el('span.p', { text: p.ok ? '+1' : '0' }),
+  ]));
+
+  const giudizio = ok >= 7 ? 'Intervento condotto bene: hai tenuto la gerarchia.'
+    : ok >= 5 ? 'Impianto corretto, ma qualcosa è scivolato. Guarda le righe rosse.'
+      : 'Rivedi il caso con calma: qui sotto trovi i capitoli che lo spiegano.';
+
+  return el('div.step.debrief', {}, [
+    el('h3', { text: 'Debriefing' }),
+    el('div.score-hero', {}, [
+      scoreRing(ok, PUNTI_MAX),
+      el('div', { style: { flex: '1', minWidth: '220px' } }, [
+        el('p', { style: { margin: '0 0 6px', fontSize: '17px' }, text: giudizio }),
+        el('p', { style: { margin: '0', color: 'var(--ink-3)', fontSize: '14px' },
+          text: S.tPrimaria !== null
+            ? `Valutazione primaria completata in ${S.tPrimaria} secondi.`
+            : 'Valutazione primaria non completata.' }),
+        el('div.row', { style: { marginTop: '12px' } }, [
+          el('button.btn.pri', { type: 'button', onclick: () => nuovoCaso() }, [icon('refresh'), 'Altro scenario']),
+          el('button.btn', { type: 'button', onclick: () => nuovoCaso(caso.id) }, ['Ripeti questo']),
+        ]),
+      ]),
+    ]),
+    el('div.dbox', {}, [
+      el('div.t', { text: 'come si sviluppa l\'intervento' }),
+      el('div.timeline', {}, linea),
+    ]),
+    el('div.dbox.ok', {}, [
+      el('div.t', { text: 'chiave di lettura' }),
+      el('p', { style: { margin: '0' }, text: caso.chiave }),
+    ]),
+    el('div.dbox.warn', {}, [
+      el('div.t', { text: 'la trappola' }),
+      el('p', { style: { margin: '0' }, text: caso.trappola }),
+    ]),
+    el('div.dbox', {}, [
+      el('div.t', { text: 'il ragguaglio, come lo diresti' }),
+      el('p.handover', { style: { margin: '0' }, text: caso.ragguaglio }),
+    ]),
+    el('div.dbox', {}, [
+      el('div.t', { text: 'codice corretto' }),
+      el('p', { style: { margin: '0' }, html: `<span class="badge b-${caso.codice}">${codice.t}</span> — ${codice.w}` }),
+    ]),
+    el('div.dbox', {}, [
+      el('div.t', { text: 'da rileggere sul manuale' }),
+      el('div.links-out', {}, caso.capitoli.map((slug) => el('button.btn.sm', {
+        type: 'button', onclick: () => navigate('studio', slug),
+      }, [`Capitolo ${slug.replace('cap-', '')}`]))),
+    ]),
+  ]);
+}
+
+/* ============================ ciclo di vita ========================== */
+function startTimer() {
+  stopTimer();
+  timerId = setInterval(tick, 250);
+}
+function stopTimer() {
+  if (timerId) clearInterval(timerId);
+  timerId = null;
+}
+
+function attaccaMonitor() {
+  const caso = S.caso;
+  if (!scope) {
+    scope = createScope(host.canvas, { kind: caso.ritmo, speed: 140, amp: 0.95 });
+  } else {
+    scope.setRhythm(caso.ritmo);
+  }
+  setRibbonRhythm(caso.ritmo);
+  const tag = $('#pmon-rhythm', host.panel);
+  if (tag) tag.textContent = 'derivazione DII';
+  log('Monitor applicato');
+}
+
+function candidati() {
+  return SCENARI.filter((c) => (filtro.tipo === 'tutti' || c.tipo === filtro.tipo)
+    && (!filtro.difficolta || c.difficolta === filtro.difficolta));
+}
+
+function nuovoCaso(forceId) {
+  const pool = candidati();
+  const scelto = forceId
+    ? SCENARI.find((c) => c.id === forceId)
+    : pick(pool.length ? pool : SCENARI);
+
+  S = {
+    caso: scelto,
+    step: 0,
+    punti: [],
+    t0: null,
+    tPrimaria: null,
+    misurati: {},
+    chiesti: {},
+    log: [],
+    salvato: false,
+  };
+  stopTimer();
+
+  // reset del pannello
+  Object.entries(host.vitBtns).forEach(([, btn]) => {
+    btn.classList.remove('on', 'warn', 'alarm');
+    $('.v', btn).textContent = '— —';
+    delete btn.dataset.busy;
+  });
+  host.score.textContent = '0';
+  $('b', host.timer).textContent = '—';
+  const tag = $('#pmon-rhythm', host.panel);
+  if (tag) tag.textContent = 'in attesa';
+  if (scope) { scope.destroy(); scope = null; }
+  setRibbonRhythm('sinusale');
+
+  host.title.textContent = scelto.titolo;
+  host.meta.replaceChildren(...[
+    el('span.badge.b-no', { text: scelto.tipo }),
+    el('span.badge.b-no', { text: DIFFICOLTA[scelto.difficolta].label }),
+    filtro.esame ? el('span.badge.b-warn', { text: 'modalità esame' }) : null,
+  ].filter(Boolean));
+
+  S.log = [];
+  renderLog();
+  renderBody();
+}
+
+/* =============================== VISTA =============================== */
+export function render() {
+  const body = el('div');
+  const title = el('h2', { text: '—' });
+  const meta = el('div.row');
+
+  const tipoChips = [
+    { k: 'tutti', l: 'Tutti' }, { k: 'medico', l: 'Medico' }, { k: 'trauma', l: 'Trauma' },
+  ].map((t) => el('button.chip', {
+    type: 'button', 'aria-pressed': String(filtro.tipo === t.k), 'data-t': t.k,
+  }, [t.l]));
+
+  const diffChips = [
+    { k: 0, l: 'Ogni livello' }, { k: 1, l: 'Base' }, { k: 2, l: 'Intermedio' }, { k: 3, l: 'Difficile' },
+  ].map((d) => el('button.chip', {
+    type: 'button', 'aria-pressed': String(filtro.difficolta === d.k), 'data-d': String(d.k),
+  }, [d.l]));
+
+  const esameChip = el('button.chip', {
+    type: 'button', 'aria-pressed': String(filtro.esame),
+  }, ['Modalità esame']);
+
+  tipoChips.forEach((c) => c.addEventListener('click', () => {
+    filtro = { ...filtro, tipo: c.dataset.t };
+    tipoChips.forEach((x) => x.setAttribute('aria-pressed', String(x === c)));
+  }));
+  diffChips.forEach((c) => c.addEventListener('click', () => {
+    filtro = { ...filtro, difficolta: Number(c.dataset.d) };
+    diffChips.forEach((x) => x.setAttribute('aria-pressed', String(x === c)));
+  }));
+  esameChip.addEventListener('click', () => {
+    filtro = { ...filtro, esame: !filtro.esame };
+    esameChip.setAttribute('aria-pressed', String(filtro.esame));
+    toast(filtro.esame ? 'Modalità esame attiva' : 'Modalità esame disattivata',
+      filtro.esame ? 'Nessun riscontro fino al debriefing.' : 'Riscontro immediato a ogni risposta.');
+  });
+
+  const panel = buildPanel();
+  host.body = body;
+  host.title = title;
+  host.meta = meta;
+
+  const view = el('div.view', {}, [
+    el('div.view-head', {}, [
+      el('h2', { text: 'Simulazioni' }),
+      el('p', { text: 'Un intervento per volta, dalla chiamata al ragguaglio. Il monitor a lato resta sempre visibile: parametri, cronometro della primaria e diario delle azioni. Alla fine il debriefing ti dice dove hai sbagliato e perché.' }),
+    ]),
+    el('div.card.tight', { style: { marginBottom: '16px' } }, [
+      el('div.row', {}, [
+        el('span.lbl', { style: { margin: '0' }, text: 'Tipo' }), ...tipoChips,
+        el('span', { style: { width: '10px' } }),
+        el('span.lbl', { style: { margin: '0' }, text: 'Livello' }), ...diffChips,
+        el('span.spacer'),
+        esameChip,
+        el('button.btn.sm.pri', { type: 'button', onclick: () => nuovoCaso() }, [icon('refresh'), 'Nuovo scenario']),
+      ]),
+    ]),
+    el('div.sim', {}, [
+      el('div.card', {}, [
+        el('div.row', { style: { marginBottom: '4px' } }, [meta]),
+        title,
+        body,
+      ]),
+      panel,
+    ]),
+  ]);
+
+  queueMicrotask(() => nuovoCaso());
+  return view;
+}
+
+export function destroy() {
+  stopTimer();
+  scope?.destroy();
+  scope = null;
+  host = null;
+  S = null;
+}

@@ -1,0 +1,10 @@
+# Materiale di terzi che non va pubblicato
+Manuale_TSSA_Illustrato.pdf
+
+# Versione precedente, tenuta solo in locale
+Console.html
+
+# Sistema
+.DS_Store
+Thumbs.db
+node_modules/

@@ -1,0 +1,26 @@
+{
+  "name": "Console TSSA — addestramento soccorritore",
+  "short_name": "Console TSSA",
+  "description": "Manuale, corpo umano 3D, ritmi cardiaci e simulazioni di intervento per il corso TSSA / soccorritore volontario CRI.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0A0E12",
+  "theme_color": "#0A0E12",
+  "lang": "it",
+  "categories": ["education", "medical"],
+  "icons": [
+    {
+      "src": "./assets/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./assets/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
