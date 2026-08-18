@@ -209,6 +209,60 @@ export function createScope(canvas, opts = {}) {
   };
 }
 
+/* ========================= PLETISMOGRAFIA ============================ */
+/* La traccia del saturimetro: un'onda pulsatile con incisura dicrota,
+   sincronizzata con la frequenza cardiaca. Non è un secondo ECG. */
+export function createPlethScope(canvas, opts = {}) {
+  let rate = opts.rate || 75;
+  let color = opts.color || '#41A9F0';
+  let t = 0;
+  let samples = new Float32Array(0);
+  let cursor = 0, filled = 0;
+
+  const valore = (tempo) => {
+    const p = ((tempo * rate) / 60) % 1;
+    if (p < 0.18) return Math.sin((p / 0.18) * (Math.PI / 2));          // salita rapida
+    if (p < 0.42) return Math.cos(((p - 0.18) / 0.24) * 1.1) * 0.72 + 0.24;
+    if (p < 0.52) return 0.34 + Math.sin(((p - 0.42) / 0.1) * Math.PI) * 0.1;  // incisura
+    return Math.max(0, 0.34 * (1 - (p - 0.52) / 0.48));
+  };
+
+  const host = createCanvasHost(canvas, {
+    onResize({ w }) { samples = new Float32Array(Math.max(2, w)); cursor = 0; filled = 0; },
+    onFrame({ ctx, w, h, dt, forced }) {
+      if (!forced) {
+        const steps = Math.max(1, Math.round(90 * dt));
+        for (let i = 0; i < steps; i += 1) {
+          t += dt / steps;
+          samples[cursor] = valore(t);
+          cursor = (cursor + 1) % w;
+          filled = Math.min(filled + 1, w);
+        }
+      }
+      ctx.clearRect(0, 0, w, h);
+      ctx.strokeStyle = color; ctx.lineWidth = 1.8; ctx.lineJoin = 'round';
+      ctx.beginPath();
+      let started = false;
+      const base = h * 0.88, k = h * 0.72;
+      for (let x = 0; x < w; x += 1) {
+        const ahead = (x - cursor + w) % w;
+        if (ahead > 0 && ahead < 12) { started = false; continue; }
+        if (filled < w && x > cursor) { started = false; continue; }
+        const y = base - samples[x] * k;
+        if (started) ctx.lineTo(x, y); else { ctx.moveTo(x, y); started = true; }
+      }
+      ctx.stroke();
+    },
+  });
+
+  return {
+    host,
+    setRate(v) { rate = Math.max(20, v || 75); },
+    setColor(c) { color = c; },
+    destroy() { host.destroy(); },
+  };
+}
+
 /* ============================== RESPIRO ============================== */
 export const BREATHS = {
   normale: {

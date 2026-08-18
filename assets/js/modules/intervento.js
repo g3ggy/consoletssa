@@ -9,16 +9,16 @@
 import { el, mount, $, formatSeconds, clamp } from '../core/dom.js';
 import { icon, toast, scoreRing } from '../core/ui.js';
 import { navigate } from '../core/router.js';
-import { createScope } from '../core/waveform.js';
+import { creaLifepak } from '../core/lifepak.js';
 import { setRibbonRhythm } from '../core/ribbon.js';
 import { saveRun } from '../core/store.js';
 import { creaIntervento } from '../core/sim-engine.js';
 import { AZIONI, CATEGORIE, azioniDi } from '../data/azioni.js';
 import { CASI, CASI_INDICE } from '../data/casi.js';
 import { cartellino, badgeCriticita } from '../core/cartellino.js';
+import { foglioEcg12 } from '../core/ecg12.js';
 
 let sim = null;
-let scope = null;
 let chiusure = [];
 let n = null;              // riferimenti ai nodi che si aggiornano
 let categoriaAperta = 'valutazione';
@@ -36,15 +36,6 @@ const AZIONE_PER_PARAMETRO = {
   temp: 'misura-temp',
   glicemia: 'misura-glicemia',
 };
-
-const PARAMETRI = [
-  { k: 'fc', label: 'FC', unita: 'bpm', rif: '60-100' },
-  { k: 'pa', label: 'PA', unita: 'mmHg', rif: '~120/80' },
-  { k: 'fr', label: 'FR', unita: 'atti/min', rif: '12-16' },
-  { k: 'spo2', label: 'SpO2', unita: '%', rif: '95-100' },
-  { k: 'temp', label: 'T', unita: '°C', rif: '36-37' },
-  { k: 'glicemia', label: 'Glicemia', unita: 'mg/dl', rif: '70-110' },
-];
 
 /* --------------------------- valutazioni --------------------------- */
 function allarme(k, valore, stato) {
@@ -65,20 +56,22 @@ function allarme(k, valore, stato) {
 }
 
 /* ============================== MONITOR ============================= */
+/* Il monitor è quello di bordo: HR, saturazione e pressione stanno sullo
+   schermo del LIFEPAK; frequenza respiratoria, temperatura e glicemia
+   sono rilevazioni manuali e stanno sotto, con l'età della misura. */
+const MANUALI = [
+  { k: 'fr', label: 'FR', unita: 'atti/min', rif: '12-16' },
+  { k: 'temp', label: 'T', unita: '°C', rif: '36-37' },
+  { k: 'glicemia', label: 'Glicemia', unita: 'mg/dl', rif: '70-110' },
+];
+
 function costruisciMonitor() {
-  const canvas = el('canvas', { 'aria-label': 'Tracciato del monitor' });
-  const griglia = el('div.vitals');
-  const testataRitmo = el('span', { text: 'monitor non collegato' });
+  const lp = creaLifepak({ energia: 200 });
+  const griglia = el('div.vitals.rilevazioni');
   const cronometro = el('b', { text: '0s' });
 
-  const pannello = el('div.pmon', {}, [
-    el('div.pmon-head', {}, [
-      el('span.live'),
-      el('span', { text: 'monitor paziente' }),
-      el('span', { style: { flex: '1' } }),
-      testataRitmo,
-    ]),
-    canvas,
+  const pannello = el('div.pannello-monitor', {}, [
+    lp.schermo,
     griglia,
     el('div.pmon-foot', {}, [
       el('span', {}, [document.createTextNode('sul posto da '), cronometro]),
@@ -87,25 +80,48 @@ function costruisciMonitor() {
     ]),
   ]);
 
-  return { pannello, canvas, griglia, testataRitmo, cronometro };
+  return { pannello, lp, griglia, cronometro, precedenti: {} };
 }
 
 function aggiornaMonitor() {
   const s = sim.stato;
   const collegato = s.tag.includes('monitor');
+  const lp = n.mon.lp;
 
-  n.mon.testataRitmo.textContent = collegato ? `derivazione DII · ${s.ritmo}` : 'monitor non collegato';
-  n.mon.cronometro.textContent = formatSeconds(sim.t);
-
-  if (collegato && !scope) {
-    scope = createScope(n.mon.canvas, { kind: s.ritmo, speed: 130, amp: 0.9 });
-    setRibbonRhythm(s.ritmo);
-  } else if (collegato && scope && scope.kind !== s.ritmo) {
-    scope.setRhythm(s.ritmo);
+  if (collegato) {
+    lp.collega(s.ritmo);
+    lp.collegaSpo2(s.fc);
+    lp.setMessaggio('');
     setRibbonRhythm(s.ritmo);
   }
 
-  mount(n.mon.griglia, ...PARAMETRI.map((p) => {
+  const pa = sim.valore('pa');
+  const etaPa = sim.etaLettura('pa');
+  lp.aggiorna({
+    orologio: formatSeconds(sim.t),
+    hr: collegato ? sim.valore('fc') : undefined,
+    spo2: collegato ? sim.valore('spo2') : undefined,
+    pa,
+    paOra: etaPa === null ? '' : (etaPa === 0 ? 'ora' : `${formatSeconds(etaPa)} fa`),
+    ritmo: s.ritmo,
+  });
+
+  /* Quello che cambia lampeggia: è così che si vede l'effetto
+     dell'ossigeno o della posizione, senza doverlo scrivere. */
+  ['fc', 'spo2', 'pa'].forEach((k) => {
+    const ora = sim.valore(k);
+    if (ora !== undefined && n.mon.precedenti[k] !== undefined && ora !== n.mon.precedenti[k]) {
+      lp.evidenzia(k === 'fc' ? 'hr' : (k === 'pa' ? 'nibp' : k));
+    }
+    n.mon.precedenti[k] = ora;
+  });
+
+  if (s.tag.includes('arresto')) lp.setMessaggio('ANALIZZARE IL RITMO — RCP IN CORSO');
+  else if (s.esito === 'morto') lp.setMessaggio('NESSUNA ATTIVITA');
+
+  n.mon.cronometro.textContent = formatSeconds(sim.t);
+
+  mount(n.mon.griglia, ...MANUALI.map((p) => {
     const val = sim.valore(p.k);
     const scaduta = sim.letturaScaduta(p.k);
     const eta = sim.etaLettura(p.k);
@@ -116,18 +132,17 @@ function aggiornaMonitor() {
     if (scaduta && val !== undefined) cls.push('vecchia');
 
     const azione = AZIONE_PER_PARAMETRO[p.k];
-    const nodo = el(`button.${cls.join('.')}`, {
+    return el(`button.${cls.join('.')}`, {
       type: 'button',
       title: val === undefined || val === null
         ? `Non ancora rilevato — ${AZIONI[azione]?.label || ''}`
-        : `Rilevato ${eta === 0 ? 'in continuo' : `${formatSeconds(eta)} fa`}`,
+        : `Rilevato ${formatSeconds(eta)} fa`,
       onclick: () => eseguiRapido(azione),
     }, [
       el('div.k', {}, [p.label]),
       el('div.v', { html: (val === undefined || val === null) ? '— —' : `${val}<span class="u">${p.unita}</span>` }),
       el('div.ref', { text: scaduta && val !== undefined ? `${formatSeconds(eta)} fa · rifai` : p.rif }),
     ]);
-    return nodo;
   }));
 
   const box = $('#int-stato-paziente', n.mon.pannello);
@@ -289,6 +304,20 @@ function aggiornaTempo() {
 }
 
 /* ============================ AGGIORNAMENTO ========================= */
+function aggiornaEcg() {
+  if (!n?.ecg) return;
+  const fatto = sim.stato.tag.includes('ecg-fatto');
+  if (!fatto || n.ecg.dataset.pronto) return;
+  n.ecg.dataset.pronto = '1';
+  n.ecg.hidden = false;
+  mount(n.ecg, foglioEcg12({
+    pattern: sim.caso.ecg?.pattern || 'normale',
+    fc: Number(sim.valore('fc')) || sim.stato.fc,
+    paziente: sim.caso.titolo,
+    ora: `acquisito a ${formatSeconds(sim.t)} dall'arrivo`,
+  }));
+}
+
 function aggiornaTutto() {
   if (!sim || !n) return;
   aggiornaMonitor();
@@ -297,6 +326,7 @@ function aggiornaTutto() {
   aggiornaDecisione();
   aggiornaPalette();
   aggiornaTempo();
+  aggiornaEcg();
 
   if (sim.stato.esito === 'morto') mostraDebriefing();
 }
@@ -432,7 +462,7 @@ function grafico(storico, eventi) {
 function mostraDebriefing() {
   const p = sim.chiudi();
   const caso = sim.caso;
-  if (scope) { scope.destroy(); scope = null; }
+  n?.mon?.lp?.distruggi();
   setRibbonRhythm('sinusale');
 
   saveRun({
@@ -543,6 +573,7 @@ export function render(params) {
   const diario = el('div.diario', { role: 'log', 'aria-live': 'polite', 'aria-relevant': 'additions' });
   const diarioBox = el('div.diario-box', {}, [diario]);
   const decisione = el('div.decisione.step', { hidden: true, role: 'alertdialog', 'aria-live': 'assertive' });
+  const ecgBox = el('div', { hidden: true });
   const paletteTabs = el('div.palette-tabs');
   const paletteLista = el('div.palette-lista');
   const tempoBarra = el('i');
@@ -623,6 +654,7 @@ export function render(params) {
           el('div.box', {}, [el('p.lbl', { text: 'Colpo d\'occhio' }), el('p', { text: caso.colpoOcchio.testo })]),
         ]),
         decisione,
+        ecgBox,
         el('p.lbl', { style: { marginTop: '18px' }, text: 'Diario dell\'intervento' }),
         diarioBox,
         apriPalette,
@@ -646,7 +678,7 @@ export function render(params) {
 
   n = {
     radice, mon, squadra, diario, diarioBox, decisione,
-    paletteTabs, paletteLista, tempoBarra, tempoTacche, tempoTxt,
+    paletteTabs, paletteLista, tempoBarra, tempoTacche, tempoTxt, ecg: ecgBox,
     chiudiPalette: () => togglePalette(false),
   };
 
@@ -660,8 +692,7 @@ export function render(params) {
 export function destroy() {
   chiusure.forEach((fn) => fn());
   chiusure = [];
-  scope?.destroy();
-  scope = null;
+  n?.mon?.lp?.distruggi();
   sim = null;
   n = null;
 }

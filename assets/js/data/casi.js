@@ -20,6 +20,7 @@ export const CASI = [
   /* ================================================================= */
   {
     id: 'shock-v2',
+    ecg: { pattern: 'normale' },
     titolo: '"Si sente fiacco"',
     tipo: 'medico',
     difficolta: 3,
@@ -152,6 +153,7 @@ export const CASI = [
   /* ================================================================= */
   {
     id: 'toracico-v2',
+    ecg: { pattern: 'stemi-inferiore' },
     titolo: 'Dolore toracico in casa',
     tipo: 'medico',
     difficolta: 2,
@@ -254,7 +256,8 @@ export const CASI = [
         { id: ['o2-maschera', 'o2-reservoir'], entro: 240, peso: 2, label: 'Ossigeno a flusso adeguato' },
         { id: 'monitor', entro: 240, peso: 2 },
         { id: 'misura-pa', entro: 300, peso: 2 },
-        { id: 'ecg-elettrodi', entro: 420, peso: 3 },
+        { id: 'ecg-elettrodi', entro: 420, peso: 2 },
+        { id: 'ecg-esegui', entro: 480, peso: 2 },
         { id: 'riferisci-infermiere', entro: 420, peso: 2 },
         { id: 'carica', entro: 660, peso: 3 },
       ],

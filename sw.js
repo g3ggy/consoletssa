@@ -8,7 +8,7 @@
    Per pubblicare una nuova versione basta cambiare CACHE.
    ===================================================================== */
 
-const CACHE = 'consoletssa-v8';
+const CACHE = 'consoletssa-v10';
 
 const PRECACHE = [
   './',
@@ -18,6 +18,7 @@ const PRECACHE = [
   './assets/css/base.css',
   './assets/css/app.css',
   './assets/css/modules.css',
+  './assets/css/lifepak.css',
   './assets/css/intervento.css',
   './assets/css/mobile.css',
   './assets/js/main.js',
@@ -31,6 +32,8 @@ const PRECACHE = [
   './assets/js/core/ribbon.js',
   './assets/js/core/sim-engine.js',
   './assets/js/core/cartellino.js',
+  './assets/js/core/lifepak.js',
+  './assets/js/core/ecg12.js',
   './assets/js/data/anatomy.js',
   './assets/js/data/scenari.js',
   './assets/js/data/scenari-arrivo.js',

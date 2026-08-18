@@ -9,7 +9,7 @@
 import { el, mount, $, shuffle, pick, formatSeconds } from '../core/dom.js';
 import { icon, toast, scoreRing } from '../core/ui.js';
 import { navigate } from '../core/router.js';
-import { createScope } from '../core/waveform.js';
+import { creaLifepak } from '../core/lifepak.js';
 import { setRibbonRhythm } from '../core/ribbon.js';
 import { saveRun } from '../core/store.js';
 import { SCENARI, OPZIONI, VITAL_META, DIFFICOLTA } from '../data/scenari.js';
@@ -30,7 +30,6 @@ const PASSI = [
 const PUNTI_MAX = 8; // 7 decisioni + 1 punto tempo
 
 let S = null;
-let scope = null;
 let timerId = null;
 let host = null;      // riferimenti ai nodi che aggiorniamo dal vivo
 let filtro = { tipo: 'tutti', difficolta: 0, esame: false };
@@ -57,15 +56,40 @@ function addPunto(passo, ok, dettaglio) {
 }
 
 /* ====================== pannello monitor paziente ==================== */
+/* Frequenza, saturazione e pressione stanno sullo schermo del monitor;
+   frequenza respiratoria, temperatura e glicemia sono rilevazioni
+   manuali e restano sotto. Un valore a parole ("assente", "non
+   rilevabile", "gasping") rimpicciolisce da solo invece di sbordare. */
+const SUL_MONITOR = { FC: 'hr', SpO2: 'spo2', PA: 'nibp' };
+
 function buildPanel() {
-  const canvas = el('canvas', { 'aria-label': 'Monitor del paziente' });
-  const vitalsGrid = el('div.vitals');
+  const lp = creaLifepak({ energia: 200 });
+  const vitalsGrid = el('div.vitals.rilevazioni');
   const timerNode = el('span', {}, [document.createTextNode('primaria '), el('b', { text: '—' })]);
   const scoreNode = el('b', { text: '0' });
   const logNode = el('div.simlog');
 
   const vitBtns = {};
-  Object.entries(VITAL_META).forEach(([k, meta]) => {
+
+  /* i tre parametri del monitor: si toccano sullo schermo */
+  Object.entries(SUL_MONITOR).forEach(([k, chiave]) => {
+    const box = lp.riquadro(chiave);
+    if (!box) return;
+    box.classList.add('lp-toccabile');
+    box.setAttribute('role', 'button');
+    box.setAttribute('tabindex', '0');
+    box.title = `Rileva ${VITAL_META[k].label}`;
+    const attiva = () => misura(k, box);
+    box.addEventListener('click', attiva);
+    box.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); attiva(); }
+    });
+    vitBtns[k] = box;
+  });
+
+  /* le rilevazioni manuali restano riquadri sotto lo schermo */
+  ['FR', 'T', 'Gly'].forEach((k) => {
+    const meta = VITAL_META[k];
     const btn = el('button.vit', { type: 'button', 'data-k': k, title: `Rileva ${meta.label}` }, [
       el('div.k', {}, [meta.label]),
       el('div.v', { text: '— —' }),
@@ -77,14 +101,8 @@ function buildPanel() {
   });
 
   const panel = el('div.sim-panel', {}, [
-    el('div.pmon', {}, [
-      el('div.pmon-head', {}, [
-        el('span.live'),
-        el('span', { text: 'monitor paziente' }),
-        el('span', { style: { flex: '1' } }),
-        el('span', { id: 'pmon-rhythm', text: 'in attesa' }),
-      ]),
-      canvas,
+    el('div.pannello-monitor', {}, [
+      lp.schermo,
       vitalsGrid,
       el('div.pmon-foot', {}, [
         timerNode,
@@ -98,35 +116,79 @@ function buildPanel() {
     ]),
   ]);
 
-  host = { canvas, vitBtns, timer: timerNode, score: scoreNode, log: logNode, panel };
+  host = { lp, vitBtns, timer: timerNode, score: scoreNode, log: logNode, panel };
   return panel;
 }
 
-function misura(k, btn) {
-  if (!S || S.misurati[k] || S.step < 4 || btn.dataset.busy) return;
+/** Scrive un valore rilevato, sul monitor o nel riquadro manuale. */
+function scriviValore(k, dato) {
   const meta = VITAL_META[k];
-  const dato = S.caso.vitali[k];   // sempre lo scenario in corso, non quello iniziale
+  const nodo = host.vitBtns[k];
+  if (!nodo) return;
+  const testo = String(dato.v);
+  const sulMonitor = Boolean(SUL_MONITOR[k]);
+
+  if (sulMonitor) {
+    const num = $('.lp-num', nodo);
+    const piede = $('.lp-piede', nodo);
+    nodo.dataset.lungo = testo.length > 12 ? '2' : (testo.length > 6 ? '1' : '0');
+    if (k === 'PA' && testo.includes('/')) {
+      const [sist, dia] = testo.split('/');
+      num.textContent = sist;
+      if (piede) piede.textContent = `/ ${dia}`;
+    } else {
+      num.textContent = testo;
+    }
+    nodo.classList.remove('lp-spento');
+    nodo.classList.toggle('lp-allarmato', dato.flag === 'alarm');
+    nodo.classList.add('lp-cambiato');
+    return;
+  }
+
+  const v = $('.v', nodo);
+  nodo.dataset.lungo = testo.length > 10 ? '2' : (testo.length > 5 ? '1' : '0');
+  v.innerHTML = `${testo}<span class="u">${typeof dato.v === 'number' ? meta.unit : ''}</span>`;
+  nodo.classList.add('on');
+  if (dato.flag) nodo.classList.add(dato.flag);
+}
+
+function misura(k, nodo) {
+  if (!S || S.misurati[k] || S.step < 4 || nodo.dataset.busy) return;
+  const meta = VITAL_META[k];
+  const dato = S.caso.vitali[k];
 
   const busy = el('div.busy', {}, [el('i')]);
-  btn.append(busy);
-  btn.dataset.busy = '1';
+  nodo.append(busy);
+  nodo.dataset.busy = '1';
   const bar = $('i', busy);
   const t0 = performance.now();
   const durata = meta.tempo;
 
+  let concluso = false;
+  const concludi = () => {
+    if (concluso) return;
+    concluso = true;
+    clearTimeout(scadenza);
+    busy.remove();
+    delete nodo.dataset.busy;
+    S.misurati[k] = true;
+    scriviValore(k, dato);
+    nodo.title = dato.note;
+    log(`${meta.label}: ${dato.v}${typeof dato.v === 'number' ? ` ${meta.unit}` : ''}`, dato.flag === 'alarm' ? 'ko' : '');
+    checkPrimaria();
+  };
+
+  /* Il conto alla rovescia non dipende da requestAnimationFrame: se la
+     scheda passa in secondo piano l'animazione si ferma, ma la
+     rilevazione deve concludersi lo stesso. */
+  const scadenza = setTimeout(concludi, durata);
+
   (function anim() {
+    if (concluso) return;
     const p = Math.min(1, (performance.now() - t0) / durata);
     bar.style.width = `${p * 100}%`;
     if (p < 1) { requestAnimationFrame(anim); return; }
-    busy.remove();
-    delete btn.dataset.busy;
-    S.misurati[k] = true;
-    btn.classList.add('on');
-    if (dato.flag) btn.classList.add(dato.flag);
-    $('.v', btn).innerHTML = `${dato.v}<span class="u">${typeof dato.v === 'number' ? meta.unit : ''}</span>`;
-    btn.title = dato.note;
-    log(`${meta.label}: ${dato.v}${typeof dato.v === 'number' ? ` ${meta.unit}` : ''}`, dato.flag === 'alarm' ? 'ko' : '');
-    checkPrimaria();
+    concludi();
   })();
 }
 
@@ -405,6 +467,13 @@ function renderBody() {
     s.append(opzioni(lista, (o) => {
       addPunto('ragguaglio', o.ok, o.w);
       log('Ragguaglio consegnato', o.ok ? 'ok' : 'ko');
+      // Il ragguaglio per esteso, da leggere ad alta voce: sapere che
+      // ordine seguire non basta, serve sentire come suona.
+      s.append(el('div.copione', {}, [
+        el('div.t', { text: 'quello che dici, per esteso' }),
+        el('p', { text: caso.ragguaglio }),
+        el('p.copione-nota', { text: 'Provalo ad alta voce: se ci metti più di trenta secondi, stai raccontando invece di consegnare.' }),
+      ]));
       s.append(avanti('Vedi il debriefing', () => { S.step = 9; stopTimer(); renderBody(); }));
     }));
     box.append(s);
@@ -507,14 +576,10 @@ function stopTimer() {
 
 function attaccaMonitor() {
   const caso = S.caso;
-  if (!scope) {
-    scope = createScope(host.canvas, { kind: caso.ritmo, speed: 140, amp: 0.95 });
-  } else {
-    scope.setRhythm(caso.ritmo);
-  }
+  host.lp.collega(caso.ritmo);
+  host.lp.collegaSpo2(Number(String(caso.vitali.FC.v).replace(/\D/g, '')) || 75);
+  host.lp.setMessaggio('');
   setRibbonRhythm(caso.ritmo);
-  const tag = $('#pmon-rhythm', host.panel);
-  if (tag) tag.textContent = 'derivazione DII';
   log('Monitor applicato');
 }
 
@@ -543,16 +608,23 @@ function nuovoCaso(forceId) {
   stopTimer();
 
   // reset del pannello
-  Object.entries(host.vitBtns).forEach(([, btn]) => {
-    btn.classList.remove('on', 'warn', 'alarm');
-    $('.v', btn).textContent = '— —';
-    delete btn.dataset.busy;
+  Object.entries(host.vitBtns).forEach(([k, nodo]) => {
+    delete nodo.dataset.busy;
+    nodo.dataset.lungo = '0';
+    if (SUL_MONITOR[k]) {
+      nodo.classList.remove('lp-allarmato', 'lp-cambiato');
+      nodo.classList.add('lp-spento');
+      $('.lp-num', nodo).textContent = '- - -';
+      const piede = $('.lp-piede', nodo);
+      if (piede) piede.textContent = '';
+    } else {
+      nodo.classList.remove('on', 'warn', 'alarm');
+      $('.v', nodo).textContent = '— —';
+    }
   });
   host.score.textContent = '0';
   $('b', host.timer).textContent = '—';
-  const tag = $('#pmon-rhythm', host.panel);
-  if (tag) tag.textContent = 'in attesa';
-  if (scope) { scope.destroy(); scope = null; }
+  host.lp.setMessaggio('COLLEGARE GLI ELETTRODI');
   setRibbonRhythm('sinusale');
 
   host.title.textContent = scelto.titolo;
@@ -682,8 +754,7 @@ export function render() {
 
 export function destroy() {
   stopTimer();
-  scope?.destroy();
-  scope = null;
+  host?.lp?.distruggi();
   host = null;
   S = null;
 }

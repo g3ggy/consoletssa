@@ -250,6 +250,15 @@ const ELENCO = [
     diario: 'Elettrodi posizionati per l\'ECG a dodici derivazioni.',
     spiega: 'Nel dolore toracico il tracciato precoce cambia la destinazione del paziente.',
   },
+  {
+    id: 'ecg-esegui', cat: 'C', label: 'Esegui e stampa l\'ECG a 12 derivazioni',
+    durata: 45, chi: ['tu', 'autista'], unaVolta: true,
+    richiede: (p) => p.tag.includes('ecg'),
+    motivoBloccato: 'Prima vanno posizionati gli elettrodi.',
+    applica: () => ({ tag: 'ecg-fatto' }),
+    diario: 'Acquisito e stampato il tracciato a dodici derivazioni.',
+    spiega: 'Il tracciato si stampa e si porta: in ospedale confrontano il vostro con quello nuovo.',
+  },
 
   /* ================================ D ============================== */
   {
