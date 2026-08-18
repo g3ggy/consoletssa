@@ -15,10 +15,10 @@ Tutto gira nel browser, senza account e senza server: i progressi restano sul di
 | Modulo | A cosa serve |
 |---|---|
 | **Studio** | Il manuale completo, capitolo per capitolo, con indice, ricerca e avanzamento di lettura. |
-| **Corpo** | Modello umano 3D reale: organi in trasparenza, irradiazione del dolore cardiaco, segni della scarica adrenergica, posizioni di trasporto. |
+| **Corpo** | Modello umano 3D reale e fermo, con viste comandate (fronte, dorso, fianchi, dall'alto): organi in trasparenza, irradiazione del dolore cardiaco, segni della scarica adrenergica, posizioni di trasporto. |
 | **Monitor** | Otto ritmi cardiaci che scorrono come su un monitor vero, quiz di riconoscimento, curva di efficacia della defibrillazione, pattern respiratori. |
 | **Simulazioni** | Due **interventi in tempo simulato** (il paziente peggiora se non agisci, ogni azione costa secondi, e ti dividi il lavoro con autista e infermiere) più dodici scenari a domande, dalla chiamata al ragguaglio. |
-| **Ripasso** | Quaranta carte con sistema di Leitner a cinque scatole (0 · 1 · 3 · 7 · 21 giorni). |
+| **Ripasso** | Novanta carte con sistema di Leitner a cinque scatole (0 · 1 · 3 · 7 · 21 giorni): quaranta sui punti chiave e le cinquanta domande di autoverifica del manuale. Si può ripassare anche solo dove si sbaglia. |
 | **Progressi** | Capitoli letti, carte in scadenza, storico delle simulazioni e — soprattutto — i passi che sbagli più spesso. |
 
 Scorciatoie da tastiera: `1`-`6` per i moduli, `/` o `Cmd/Ctrl+K` per la ricerca globale, `T` per
@@ -54,7 +54,13 @@ Non serve toccare il codice per cambiare quello che si studia.
 - **Gli scenari a domande** stanno in [`assets/js/data/scenari.js`](assets/js/data/scenari.js): ogni
   caso porta con sé dispatch, scena, parametri, SAMPLE, codice corretto, chiave di lettura, trappola
   e modello di ragguaglio.
-- **Le carte di ripasso** stanno in [`assets/js/data/carte.js`](assets/js/data/carte.js).
+- **Le carte di ripasso** stanno in [`assets/js/data/carte.js`](assets/js/data/carte.js) (punti chiave)
+  e [`assets/js/data/carte-autoverifica.js`](assets/js/data/carte-autoverifica.js) (le domande dei
+  capitoli 17 e 36).
+- **Il cartellino della centrale** si configura in
+  [`assets/js/data/cartellini.js`](assets/js/data/cartellini.js). I codici di patologia e scenario
+  sono scritti in chiaro invece di essere inventati: se la vostra CO usa sigle vere, si sostituiscono
+  lì e basta.
 - **I contenuti del modello 3D** stanno in [`assets/js/data/anatomy.js`](assets/js/data/anatomy.js):
   ogni punto è ancorato a un osso dello scheletro, quindi resta al suo posto anche cambiando modello.
 
