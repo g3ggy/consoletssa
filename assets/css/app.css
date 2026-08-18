@@ -279,3 +279,21 @@
   .topbar-actions { padding-right: var(--sp-3); }
   .ribbon, .ribbon canvas { height: 44px; }
 }
+
+/* numero di versione in fondo alla barra */
+.versione {
+  display: flex; align-items: baseline; gap: 6px;
+  background: none; border: 0; cursor: pointer; width: 100%;
+  padding: 4px 12px; color: var(--ink-3);
+  font-family: var(--mono); font-size: 10px; text-align: left;
+}
+.versione:hover { color: var(--ink-2); }
+.versione b { color: var(--phos); font-weight: 600; }
+.versione span { font-size: 9px; opacity: .75; }
+.novita { display: grid; gap: 8px; margin-top: var(--sp-3); }
+.novita-riga {
+  display: grid; grid-template-columns: 44px 1fr; gap: var(--sp-3);
+  font-size: var(--fs-sm); color: var(--ink-2);
+  padding-bottom: 8px; border-bottom: 1px solid var(--line-2);
+}
+.novita-riga b { font-family: var(--mono); font-size: var(--fs-xs); color: var(--phos); }

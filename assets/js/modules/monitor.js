@@ -9,6 +9,7 @@ import { createScope, createBreathScope, RHYTHMS, RHYTHM_KEYS, BREATHS } from '.
 import { recordRhythmAnswer, getState } from '../core/store.js';
 import { icon } from '../core/ui.js';
 import { setRibbonRhythm } from '../core/ribbon.js';
+import { foglioEcg12, PATTERN_ECG } from '../core/ecg12.js';
 
 let scope = null;
 let breath = null;
@@ -203,14 +204,71 @@ function breathCard() {
   return card;
 }
 
+/* ======================= ECG A 12 DERIVAZIONI ======================== */
+/* Il tracciato a dodici derivazioni non è un ritmo da riconoscere sul
+   monitor: è un foglio che si acquisisce, si legge e si porta in
+   ospedale. Qui si può generare e stampare per ogni quadro tipico. */
+function ecg12Card() {
+  const host = el('div');
+  const picker = el('div.rhythm-pick');
+  const fcInput = el('input', {
+    type: 'range', min: '40', max: '160', value: '78', step: '1',
+    'aria-label': 'Frequenza cardiaca del tracciato',
+    style: { width: '160px', accentColor: 'var(--cri)' },
+  });
+  const fcTxt = el('span', { class: 'num', style: { color: 'var(--phos)' }, text: '78/min' });
+
+  let pattern = 'stemi-inferiore';
+
+  function disegna() {
+    mount(host, foglioEcg12({
+      pattern,
+      fc: Number(fcInput.value),
+      paziente: PATTERN_ECG[pattern].label,
+      ora: 'tracciato di esercitazione',
+    }));
+  }
+
+  const bottoni = Object.entries(PATTERN_ECG).map(([k, p]) => el('button.btn.sm', {
+    type: 'button', 'data-p': k,
+    onclick: () => {
+      pattern = k;
+      bottoni.forEach((b) => b.classList.toggle('pri', b.dataset.p === k));
+      disegna();
+    },
+  }, [p.label]));
+  bottoni.forEach((b) => b.classList.toggle('pri', b.dataset.p === pattern));
+  picker.append(...bottoni);
+
+  fcInput.addEventListener('input', () => {
+    fcTxt.textContent = `${fcInput.value}/min`;
+    disegna();
+  });
+
+  queueMicrotask(disegna);
+
+  return el('div.card', {}, [
+    el('p.lbl', { text: 'ECG a 12 derivazioni' }),
+    el('p', { style: { color: 'var(--ink-3)', fontSize: '14px', margin: '0 0 12px' },
+      text: 'Scegli il quadro e guarda dove compaiono le alterazioni: quali derivazioni guardano quale parete è metà del lavoro. Il tasto di stampa manda in pagina solo il tracciato.' }),
+    picker,
+    el('div.row', { style: { marginTop: '10px' } }, [
+      el('span.lbl', { style: { margin: '0' }, text: 'Frequenza' }),
+      fcInput,
+      fcTxt,
+    ]),
+    host,
+  ]);
+}
+
 /* ============================== VISTA ================================ */
 export function render() {
   return el('div.view', {}, [
     el('div.view-head', {}, [
       el('h2', { text: 'Monitor' }),
-      el('p', { text: 'I ritmi che devi saper riconoscere e i pattern respiratori che cambiano la condotta. Il tracciato scorre come su un monitor vero: guarda la forma, non solo il numero.' }),
+      el('p', { text: 'I ritmi che devi saper riconoscere, l\'ECG a dodici derivazioni da acquisire e stampare, e i pattern respiratori che cambiano la condotta. Il tracciato scorre come su un monitor vero: guarda la forma, non solo il numero.' }),
     ]),
-    el('div.grid', {}, [ecgCard(), breathCard()]),
+    el('div.grid', {}, [ecgCard(), ecg12Card(), breathCard()]),
   ]);
 }
 

@@ -13,6 +13,7 @@ import { SCENARI } from './data/scenari.js';
 import { CASI } from './data/casi.js';
 import { RHYTHMS } from './core/waveform.js';
 import { snippet } from './core/markdown.js';
+import { VERSIONE, DATA_VERSIONE, NOVITA } from './versione.js';
 
 /* --------------------------- moduli/rotte --------------------------- */
 const MODULI = [
@@ -63,6 +64,15 @@ function buildRail() {
   syncDue();
   subscribe(syncDue);
 
+  const versione = el('button.versione', {
+    type: 'button',
+    title: 'Cosa è cambiato',
+    onclick: () => mostraNovita(),
+  }, [
+    el('b', { text: `v${VERSIONE}` }),
+    el('span', { text: DATA_VERSIONE }),
+  ]);
+
   return el('aside.rail', {}, [
     el('div.brand', {}, [
       el('div.cross', { 'aria-hidden': 'true' }),
@@ -72,8 +82,33 @@ function buildRail() {
       ]),
     ]),
     nav,
-    el('div.rail-foot', {}, [dueBadge]),
+    el('div.rail-foot', {}, [dueBadge, versione]),
   ]);
+}
+
+/** Elenco delle ultime novità, con il richiamo a ricaricare. */
+function mostraNovita() {
+  const chiudi = () => back.remove();
+  const back = el('div.palette-back', {
+    onclick: (e) => { if (e.target === back) chiudi(); },
+  }, [
+    el('div.palette', { role: 'dialog', 'aria-label': 'Novità', style: { padding: 'var(--sp-5)' } }, [
+      el('p.lbl', { style: { margin: '0 0 4px' }, text: `Console TSSA · versione ${VERSIONE}` }),
+      el('p', { style: { color: 'var(--ink-3)', fontSize: '13px' }, text: `Pubblicata il ${DATA_VERSIONE}.` }),
+      el('div.novita', {}, NOVITA.slice(0, 4).map((n) => el('div.novita-riga', {}, [
+        el('b', { text: n.v }),
+        el('span', { text: n.t }),
+      ]))),
+      el('p', { style: { marginTop: 'var(--sp-4)' } }, [
+        el('small', { text: 'Se il numero non coincide con quello che ti aspetti, ricarica la pagina: la console si aggiorna da sola al caricamento successivo.' }),
+      ]),
+      el('div.row', { style: { marginTop: 'var(--sp-3)' } }, [
+        el('button.btn.sm.pri', { type: 'button', onclick: () => window.location.reload() }, ['Ricarica adesso']),
+        el('button.btn.sm', { type: 'button', onclick: chiudi }, ['Chiudi']),
+      ]),
+    ]),
+  ]);
+  document.body.append(back);
 }
 
 function buildTopbar(palette) {

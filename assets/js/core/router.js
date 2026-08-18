@@ -59,14 +59,30 @@ async function resolve() {
 }
 
 function errorView(name, err) {
+  const messaggio = String(err && err.message ? err.message : err);
+  /* Un errore di import quasi sempre significa che il browser tiene in
+     cache un file vecchio accanto a uno nuovo: ricaricare risolve. */
+  const versioniMescolate = /does not provide an export|failed to fetch|Importing a module|MIME/i.test(messaggio);
+
   const div = document.createElement('div');
   div.className = 'card';
   div.innerHTML = `<p class="lbl">Errore</p>
     <p>La sezione <b>${name}</b> non si è caricata.</p>
-    <p><small>${String(err && err.message ? err.message : err)}</small></p>
-    <p><small>Se stai aprendo il file con doppio clic (protocollo <code>file://</code>) il browser
-    blocca il caricamento dei moduli e dei contenuti: serve un piccolo server locale
-    (<code>python3 -m http.server</code>) oppure la versione pubblicata su GitHub Pages.</small></p>`;
+    ${versioniMescolate
+    ? `<p>Il browser sta tenendo in memoria una versione precedente della console accanto a
+       quella nuova. <b>Ricarica la pagina</b> e si sistema.</p>
+       <p><button class="btn pri" id="ricarica-ora" type="button">Ricarica adesso</button></p>`
+    : `<p><small>Se stai aprendo il file con doppio clic (protocollo <code>file://</code>) il browser
+       blocca il caricamento dei moduli e dei contenuti: serve un piccolo server locale
+       (<code>python3 -m http.server</code>) oppure la versione pubblicata su GitHub Pages.</small></p>`}
+    <p><small>${messaggio}</small></p>`;
+  div.querySelector('#ricarica-ora')?.addEventListener('click', () => {
+    // svuota le cache prima di ricaricare, così non si ripresenta
+    if ('caches' in window) {
+      caches.keys().then((k) => Promise.all(k.map((x) => caches.delete(x))))
+        .finally(() => window.location.reload(true));
+    } else window.location.reload(true);
+  });
   return div;
 }
 

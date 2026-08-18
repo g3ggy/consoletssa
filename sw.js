@@ -8,7 +8,7 @@
    Per pubblicare una nuova versione basta cambiare CACHE.
    ===================================================================== */
 
-const CACHE = 'consoletssa-v10';
+const CACHE = 'consoletssa-1.4.0';
 
 const PRECACHE = [
   './',
@@ -34,6 +34,7 @@ const PRECACHE = [
   './assets/js/core/cartellino.js',
   './assets/js/core/lifepak.js',
   './assets/js/core/ecg12.js',
+  './assets/js/versione.js',
   './assets/js/data/anatomy.js',
   './assets/js/data/scenari.js',
   './assets/js/data/scenari-arrivo.js',
@@ -96,7 +97,12 @@ self.addEventListener('fetch', (event) => {
     const cache = await caches.open(CACHE);
     const cached = await cache.match(request, { ignoreSearch: true });
 
-    const network = fetch(request)
+    /* `cache: 'reload'` scavalca la cache HTTP del browser: senza questo
+       si può ritrovare un file nuovo accanto a uno vecchio ancora dentro
+       i dieci minuti di validità, e l'applicazione si rompe con un
+       errore di import. Meglio una richiesta in più che due versioni
+       mescolate. */
+    const network = fetch(request, fresco ? { cache: 'reload' } : undefined)
       .then((res) => {
         if (res && res.ok) cache.put(request, res.clone());
         return res;
