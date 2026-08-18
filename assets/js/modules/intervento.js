@@ -15,9 +15,11 @@ import { saveRun } from '../core/store.js';
 import { creaIntervento } from '../core/sim-engine.js';
 import { AZIONI, CATEGORIE, azioniDi } from '../data/azioni.js';
 import { CASI, CASI_INDICE } from '../data/casi.js';
+import { cartellino, badgeCriticita } from '../core/cartellino.js';
 
 let sim = null;
 let scope = null;
+let chiusure = [];
 let n = null;              // riferimenti ai nodi che si aggiornano
 let categoriaAperta = 'valutazione';
 let paletteAperta = false;
@@ -538,9 +540,9 @@ export function render(params) {
   const radice = el('div');
   const mon = costruisciMonitor();
   const squadra = el('div.squadra-box');
-  const diario = el('div.diario');
+  const diario = el('div.diario', { role: 'log', 'aria-live': 'polite', 'aria-relevant': 'additions' });
   const diarioBox = el('div.diario-box', {}, [diario]);
-  const decisione = el('div.decisione.step', { hidden: true });
+  const decisione = el('div.decisione.step', { hidden: true, role: 'alertdialog', 'aria-live': 'assertive' });
   const paletteTabs = el('div.palette-tabs');
   const paletteLista = el('div.palette-lista');
   const tempoBarra = el('i');
@@ -571,7 +573,7 @@ export function render(params) {
   });
 
   const apriPalette = el('button.btn.pri.palette-apri', { type: 'button' }, [icon('layers'), 'Azioni']);
-  const paletteBox = el('div.palette', {}, [
+  const paletteBox = el('div.palette', { role: 'dialog', 'aria-label': 'Azioni disponibili', 'aria-hidden': 'true' }, [
     el('div.palette-head', {}, [
       el('span.lbl', { style: { margin: '0' }, text: 'Cosa fai adesso' }),
       el('span.spacer'),
@@ -583,6 +585,15 @@ export function render(params) {
   const togglePalette = (aperta) => {
     paletteAperta = aperta;
     paletteBox.classList.toggle('aperta', aperta);
+    paletteBox.setAttribute('aria-hidden', String(!aperta));
+    apriPalette.setAttribute('aria-expanded', String(aperta));
+    if (aperta) {
+      // il fuoco entra nel pannello, altrimenti chi naviga da tastiera
+      // continua a muoversi dietro le quinte
+      setTimeout(() => paletteBox.querySelector('.pcat')?.focus(), 60);
+    } else {
+      apriPalette.focus();
+    }
   };
   apriPalette.addEventListener('click', () => togglePalette(!paletteAperta));
   $('.palette-chiudi', paletteBox).addEventListener('click', () => togglePalette(false));
@@ -590,9 +601,10 @@ export function render(params) {
   const vista = el('div.view.intervento', {}, [
     el('div.int-top', {}, [
       el('div', {}, [
-        el('p.step-num', { style: { margin: '0' }, text: `${caso.tipo} · ${caso.dispatch.codice} dalla centrale` }),
+        el('p.step-num', { style: { margin: '0' }, text: caso.tipo }),
         el('h2', { text: caso.titolo }),
       ]),
+      badgeCriticita(caso),
       el('span.spacer'),
       esameChip,
       consegna,
@@ -605,13 +617,7 @@ export function render(params) {
 
     el('div.int-corpo', {}, [
       el('div.int-scena', {}, [
-        el('div.dispatch', {}, [
-          el('div.hdr', {}, [
-            el('span', { text: `dispatch · codice ${caso.dispatch.codice}` }),
-            el('span.t', { text: caso.dispatch.luogo }),
-          ]),
-          el('div', { text: caso.dispatch.testo }),
-        ]),
+        cartellino(caso),
         el('div.obs', {}, [
           el('div.box', {}, [el('p.lbl', { text: 'La scena' }), el('p', { text: caso.scena.testo })]),
           el('div.box', {}, [el('p.lbl', { text: 'Colpo d\'occhio' }), el('p', { text: caso.colpoOcchio.testo })]),
@@ -629,6 +635,13 @@ export function render(params) {
     paletteBox,
   ]);
 
+  // Esc chiude il pannello delle azioni
+  const suTasto = (e) => {
+    if (e.key === 'Escape' && paletteAperta) { e.preventDefault(); togglePalette(false); }
+  };
+  document.addEventListener('keydown', suTasto);
+  chiusure.push(() => document.removeEventListener('keydown', suTasto));
+
   mount(radice, vista);
 
   n = {
@@ -645,6 +658,8 @@ export function render(params) {
 }
 
 export function destroy() {
+  chiusure.forEach((fn) => fn());
+  chiusure = [];
   scope?.destroy();
   scope = null;
   sim = null;

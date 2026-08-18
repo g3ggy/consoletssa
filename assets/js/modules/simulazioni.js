@@ -13,6 +13,7 @@ import { createScope } from '../core/waveform.js';
 import { setRibbonRhythm } from '../core/ribbon.js';
 import { saveRun } from '../core/store.js';
 import { SCENARI, OPZIONI, VITAL_META, DIFFICOLTA } from '../data/scenari.js';
+import { cartellino, badgeCriticita } from '../core/cartellino.js';
 import { CASI } from '../data/casi.js';
 
 const PASSI = [
@@ -197,14 +198,8 @@ function renderBody() {
   const caso = S.caso;
   box.replaceChildren();
 
-  /* dispatch, sempre visibile */
-  box.append(el('div.dispatch', {}, [
-    el('div.hdr', {}, [
-      el('span', { text: `dispatch · codice ${caso.dispatch.codice} dalla centrale` }),
-      el('span.t', { text: caso.dispatch.luogo }),
-    ]),
-    el('div', { text: caso.dispatch.testo }),
-  ]));
+  /* il cartellino della centrale, come arriva sul tablet di bordo */
+  box.append(cartellino(caso));
 
   /* passo 1 — l'arrivo, diverso per ogni caso */
   if (S.step === 0) {
@@ -562,6 +557,7 @@ function nuovoCaso(forceId) {
 
   host.title.textContent = scelto.titolo;
   host.meta.replaceChildren(...[
+    badgeCriticita(scelto),
     el('span.badge.b-no', { text: scelto.tipo }),
     el('span.badge.b-no', { text: DIFFICOLTA[scelto.difficolta].label }),
     filtro.esame ? el('span.badge.b-warn', { text: 'modalità esame' }) : null,

@@ -11,7 +11,7 @@ const DEFAULTS = Object.freeze({
   lastChapter: null, // slug ultimo capitolo aperto
   srs: {},           // { cardId: {box:1..5, due:ts, seen:n, ok:n, ko:n} }
   runs: [],          // storico simulazioni [{id, ts, score, max, seconds, errors:[]}]
-  rhythmQuiz: { seen: 0, ok: 0 },
+  rhythmQuiz: { seen: 0, ok: 0, per: {} },   // per: { fv: {seen, ok}, ... }
   streak: { last: null, days: 0 },
 });
 
@@ -140,10 +140,21 @@ export function saveRun(run) {
 }
 
 /* ---------------------------- quiz ritmi ---------------------------- */
-export function recordRhythmAnswer(correct) {
-  update((s) => ({
-    rhythmQuiz: { seen: s.rhythmQuiz.seen + 1, ok: s.rhythmQuiz.ok + (correct ? 1 : 0) },
-  }));
+export function recordRhythmAnswer(correct, ritmo) {
+  update((s) => {
+    const per = { ...(s.rhythmQuiz.per || {}) };
+    if (ritmo) {
+      const prima = per[ritmo] || { seen: 0, ok: 0 };
+      per[ritmo] = { seen: prima.seen + 1, ok: prima.ok + (correct ? 1 : 0) };
+    }
+    return {
+      rhythmQuiz: {
+        seen: s.rhythmQuiz.seen + 1,
+        ok: s.rhythmQuiz.ok + (correct ? 1 : 0),
+        per,
+      },
+    };
+  });
   touchStreak();
 }
 

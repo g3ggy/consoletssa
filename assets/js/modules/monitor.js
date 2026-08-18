@@ -101,7 +101,7 @@ function ecgCard() {
   function answerQuiz(key) {
     const right = quiz.key;
     const correct = key === right;
-    recordRhythmAnswer(correct);
+    recordRhythmAnswer(correct, right);
     const r = RHYTHMS[right];
     quiz = null;
     scope.setRhythm(right);

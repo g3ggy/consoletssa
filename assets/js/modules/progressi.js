@@ -9,6 +9,7 @@ import { getState, dueCards, boxCounts, resetAll, dayKey } from '../core/store.j
 import { CARTE_IDS } from '../data/carte.js';
 import { loadManual } from '../core/manual.js';
 import { SCENARI } from '../data/scenari.js';
+import { RHYTHMS } from '../core/waveform.js';
 
 const NOMI_PASSO = {
   scena: 'Sicurezza della scena',
@@ -172,8 +173,18 @@ export async function render() {
         el('div.card', {}, [
           el('p.lbl', { text: 'Riconoscimento dei ritmi' }),
           s.rhythmQuiz.seen
-            ? barra('Risposte esatte', s.rhythmQuiz.ok, s.rhythmQuiz.seen,
-              `${Math.round((s.rhythmQuiz.ok / s.rhythmQuiz.seen) * 100)}%`)
+            ? el('div.bars', {}, [
+              barra('Risposte esatte', s.rhythmQuiz.ok, s.rhythmQuiz.seen,
+                `${Math.round((s.rhythmQuiz.ok / s.rhythmQuiz.seen) * 100)}%`),
+              ...Object.entries(s.rhythmQuiz.per || {})
+                .filter(([, v]) => v.seen - v.ok > 0)
+                .sort((a, b) => (b[1].seen - b[1].ok) - (a[1].seen - a[1].ok))
+                .slice(0, 4)
+                .map(([k, v]) => barra(
+                  `${RHYTHMS[k]?.short || k} — sbagliato`, v.seen - v.ok, v.seen,
+                  `${v.seen - v.ok} su ${v.seen}`,
+                )),
+            ])
             : el('div.emptybox', { text: 'Prova il quiz nel modulo Monitor.' }),
           el('div.row', { style: { marginTop: '12px' } }, [
             el('button.btn.sm', { type: 'button', onclick: () => navigate('monitor') }, [icon('monitor'), 'Vai al monitor']),

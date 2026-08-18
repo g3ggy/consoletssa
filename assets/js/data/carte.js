@@ -1,9 +1,15 @@
 /* =====================================================================
    carte.js — mazzo di ripasso. Ogni carta rimanda al capitolo che la
    spiega, così dal ripasso si torna sempre al testo.
+
+   Il mazzo è la somma di due gruppi: le carte scritte qui sotto, che
+   battono sui punti chiave, e le cinquanta domande di autoverifica dei
+   capitoli 17 e 36 del manuale, che stanno in carte-autoverifica.js.
    ===================================================================== */
 
-export const CARTE = [
+import { CARTE_AUTOVERIFICA } from './carte-autoverifica.js';
+
+const CARTE_CHIAVE = [
   { id: 'c01', tema: 'Emergenza e urgenza', cap: 'cap-3',
     q: 'Qual è la differenza fra emergenza e urgenza? E fra urgenza differibile e indifferibile?',
     a: 'Emergenza = immediato pericolo di vita, almeno una funzione vitale compromessa → codice rosso. Urgenza = nessun pericolo immediato: indifferibile (giallo) se il quadro può evolvere, differibile (verde) se non cambia nell\'arco di qualche ora.' },
@@ -165,4 +171,12 @@ export const CARTE = [
     a: 'Anticipare: preparare il materiale prima che venga chiesto, riferire ciò che si è visto senza aspettare la domanda. Il rovescio è agire fuori dal proprio ruolo o dal protocollo: la catena di responsabilità esiste e va rispettata.' },
 ];
 
+export const CARTE = [...CARTE_CHIAVE, ...CARTE_AUTOVERIFICA];
 export const CARTE_IDS = CARTE.map((c) => c.id);
+
+/** Sottoinsiemi utili: il mazzo intero, oppure solo le domande d'esame. */
+export const GRUPPI = [
+  { id: 'tutte', label: 'Tutto il mazzo', filtro: () => true },
+  { id: 'chiave', label: 'Punti chiave', filtro: (c) => !c.parte },
+  { id: 'esame', label: 'Domande di autoverifica', filtro: (c) => Boolean(c.parte) },
+];

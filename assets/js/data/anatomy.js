@@ -215,10 +215,11 @@ export const POSITIONS = [
 export const HOME_INFO = {
   kicker: 'modulo corpo',
   title: 'Esplora il paziente',
-  body: `Ruota il modello trascinando, avvicina con la rotella. I punti rossi sono le zone approfondite
-  a lezione: aprine uno per leggerne la scheda. I livelli qui sotto accendono le mappe che di solito
-  vengono solo descritte a voce.`,
+  body: `Il modello sta fermo: lo giri tu. I pulsanti della vista lo portano di fronte, di dorso, di
+  fianco o visto dall'alto; trascinando lo ruoti a mano e con la rotella o i tasti + e − ti avvicini.
+  I punti rossi sono le zone approfondite a lezione: aprine uno per leggerne la scheda.`,
   list: [
+    '<b>Vista</b> — fronte, dorso, fianchi e dall\'alto, per trovare le sedi senza cercarle a caso',
     '<b>Organi</b> — rende la cute traslucida e mostra cuore, polmoni, encefalo, aorta e addome',
     '<b>Irradiazione</b> — le sedi in cui viene percepito il dolore di origine cardiaca',
     '<b>Segni adrenergici</b> — dove li vedi addosso al paziente, uno per uno',

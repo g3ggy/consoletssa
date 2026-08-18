@@ -97,6 +97,7 @@ function buildScene(stage, overlay, onPick, onProgress) {
   const hotMeshes = [];
   const labels = [];
   let mixer = null;
+  let azioneIdle = null;
   let bodyHeight = TARGET_HEIGHT;
 
   /* ---------------------------- caricamento -------------------------- */
@@ -132,12 +133,18 @@ function buildScene(stage, overlay, onPick, onProgress) {
         o.frustumCulled = false;   // la mesh skinnata inganna il culling
       });
 
+      /* Il modello sta FERMO. L'animazione serve solo a fissare una posa
+         naturale (braccia lungo i fianchi invece della posa a T), poi si
+         mette in pausa: un manichino che si muove da solo rende difficile
+         prendere la mira su un punto e non aggiunge niente allo studio. */
       if (gltf.animations?.length) {
         mixer = new THREE.AnimationMixer(model);
         const idle = gltf.animations.find((a) => /idle/i.test(a.name)) || gltf.animations[0];
-        const action = mixer.clipAction(idle);
-        action.timeScale = 0.35;    // respiro appena percettibile
-        action.play();
+        azioneIdle = mixer.clipAction(idle);
+        azioneIdle.timeScale = 0.3;
+        azioneIdle.play();
+        mixer.setTime(0.6);          // istante con la postura più neutra
+        azioneIdle.paused = true;
       }
 
       scene.updateMatrixWorld(true);
@@ -241,9 +248,14 @@ function buildScene(stage, overlay, onPick, onProgress) {
   }
 
   /* ------------------------- interazione utente ---------------------- */
+  const RIDOTTO = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const state = {
-    ry: 0, rx: 0.03, dist: 7.4, spin: true, dragging: false, px: 0, py: 0,
+    ry: 0, rx: 0.03, dist: 7.4,
+    ryTarget: 0, rxTarget: 0.03,   // le viste comandate puntano qui
+    spin: false,                   // fermo di default: è uno strumento, non un carosello
+    dragging: false, px: 0, py: 0,
     tilt: 0, tiltTarget: 0, yaw: 0,
+    inerziaY: 0,
   };
 
   /* Sul telefono lo stage lascia passare lo scorrimento verticale della
@@ -284,8 +296,12 @@ function buildScene(stage, overlay, onPick, onProgress) {
       return;
     }
     if (!state.dragging) return;
-    state.ry += (e.clientX - state.px) * 0.009;
+    const dx = (e.clientX - state.px) * 0.009;
+    state.ry += dx;
+    state.inerziaY = dx;
     state.rx = clamp(state.rx + (e.clientY - state.py) * 0.005, -0.55, 0.55);
+    state.ryTarget = state.ry;
+    state.rxTarget = state.rx;
     state.px = e.clientX; state.py = e.clientY;
   };
 
@@ -338,8 +354,24 @@ function buildScene(stage, overlay, onPick, onProgress) {
     const dt = Math.min(clock.getDelta(), 0.05);
     const t = clock.elapsedTime;
 
-    if (mixer) mixer.update(dt);
-    if (state.spin && !state.dragging) state.ry += dt * 0.2;
+    if (mixer && !azioneIdle?.paused) mixer.update(dt);
+
+    if (state.spin && !state.dragging) {
+      state.ry += dt * 0.2;
+      state.ryTarget = state.ry;
+    } else if (!state.dragging) {
+      // scivola verso la vista richiesta, con un filo di inerzia dopo il
+      // trascinamento: si ferma dove lo lasci, non continua a girare
+      state.inerziaY *= 0.9;
+      if (Math.abs(state.inerziaY) > 0.0004) {
+        state.ry += state.inerziaY;
+        state.ryTarget = state.ry;
+      } else {
+        const k = Math.min(1, dt * 6);
+        state.ry += (state.ryTarget - state.ry) * k;
+        state.rx += (state.rxTarget - state.rx) * k;
+      }
+    }
 
     state.tilt += (state.tiltTarget - state.tilt) * Math.min(1, dt * 4.5);
     pivot.rotation.x = state.tilt;
@@ -442,14 +474,40 @@ function buildScene(stage, overlay, onPick, onProgress) {
         skin.needsUpdate = true;
       }
     },
-    setSpin(on) { state.spin = on; },
+    setSpin(on) { state.spin = on && !RIDOTTO; },
+    setAnimazione(on) {
+      if (!azioneIdle) return;
+      azioneIdle.paused = !(on && !RIDOTTO);
+    },
+    vista(chiave) {
+      const viste = {
+        fronte: { ry: 0, rx: 0.03 },
+        dorso: { ry: Math.PI, rx: 0.03 },
+        destra: { ry: -Math.PI / 2, rx: 0.03 },
+        sinistra: { ry: Math.PI / 2, rx: 0.03 },
+        alto: { ry: 0, rx: 0.52 },
+      };
+      const v = viste[chiave] || viste.fronte;
+      state.spin = false;
+      state.inerziaY = 0;
+      // gira dalla parte più corta invece di fare il giro lungo
+      const giri = Math.round((state.ry - v.ry) / (Math.PI * 2));
+      state.ryTarget = v.ry + giri * Math.PI * 2;
+      state.rxTarget = v.rx;
+    },
     setPosition(key) {
       const pos = POSITIONS.find((p) => p.key === key) || POSITIONS[0];
       state.tiltTarget = pos.tilt;
       return pos;
     },
     zoom(delta) { state.dist = clamp(state.dist + delta, 3.4, 13); },
-    resetView() { state.ry = 0; state.rx = 0.03; state.dist = 7.4; state.spin = true; },
+    resetView() {
+      state.spin = false;
+      state.inerziaY = 0;
+      state.ryTarget = 0; state.rxTarget = 0.03;
+      state.dist = 7.4;
+      state.tiltTarget = 0;
+    },
     highlight(key) {
       labels.forEach((l) => l.node.classList.toggle('on', l.key === key));
       hotMeshes.forEach((m) => { m.material.emissiveIntensity = m.userData.key === key ? 2 : 1.1; });
@@ -529,7 +587,16 @@ export function render() {
     type: 'button', 'aria-pressed': 'false', 'data-layer': k,
   }, [label]));
 
-  const spinChip = el('button.chip', { type: 'button', 'aria-pressed': 'true' }, ['Rotazione']);
+  const VISTE = [
+    ['fronte', 'Fronte'], ['dorso', 'Dorso'],
+    ['destra', 'Fianco dx'], ['sinistra', 'Fianco sx'], ['alto', 'Dall\'alto'],
+  ];
+  const vistaChips = VISTE.map(([k, label]) => el('button.chip', {
+    type: 'button', 'data-vista': k, 'aria-pressed': String(k === 'fronte'),
+  }, [label]));
+
+  const spinChip = el('button.chip', { type: 'button', 'aria-pressed': 'false' }, ['Rotazione automatica']);
+  const animaChip = el('button.chip', { type: 'button', 'aria-pressed': 'false' }, ['Movimento del corpo']);
   const resetChip = el('button.chip', { type: 'button' }, ['Riporta la vista']);
 
   const posButtons = POSITIONS.map((p) => el('button.chip', {
@@ -548,11 +615,19 @@ export function render() {
     el('div.grid.g-2', {}, [
       el('div', {}, [
         el('div.stage-wrap', {}, [stage]),
-        el('div.row', { style: { marginTop: '12px' } }, [...layerChips, spinChip, resetChip]),
+        el('div.card.tight', { style: { marginTop: '12px' } }, [
+          el('p.lbl', { text: 'Vista' }),
+          el('div.row', {}, [...vistaChips, resetChip]),
+        ]),
+        el('div.card.tight', { style: { marginTop: '12px' } }, [
+          el('p.lbl', { text: 'Livelli' }),
+          el('div.row', {}, layerChips),
+        ]),
         el('div.card.tight', { style: { marginTop: '12px' } }, [
           el('p.lbl', { text: 'Posizione del paziente' }),
           el('div.row', {}, posButtons),
           posNote,
+          el('div.row', { style: { marginTop: '12px' } }, [spinChip, animaChip]),
         ]),
       ]),
       info,
@@ -600,9 +675,22 @@ export function render() {
       spinChip.setAttribute('aria-pressed', String(on));
       engine.setSpin(on);
     });
+    animaChip.addEventListener('click', () => {
+      const on = animaChip.getAttribute('aria-pressed') !== 'true';
+      animaChip.setAttribute('aria-pressed', String(on));
+      engine.setAnimazione(on);
+    });
+    vistaChips.forEach((c) => c.addEventListener('click', () => {
+      vistaChips.forEach((x) => x.setAttribute('aria-pressed', String(x === c)));
+      spinChip.setAttribute('aria-pressed', 'false');
+      engine.vista(c.dataset.vista);
+    }));
     resetChip.addEventListener('click', () => {
       engine.resetView();
-      spinChip.setAttribute('aria-pressed', 'true');
+      spinChip.setAttribute('aria-pressed', 'false');
+      vistaChips.forEach((x) => x.setAttribute('aria-pressed', String(x.dataset.vista === 'fronte')));
+      posButtons.forEach((x) => x.setAttribute('aria-pressed', String(x.dataset.pos === 'standing')));
+      posNote.textContent = POSITIONS[0].note;
     });
     zoomIn.addEventListener('click', () => engine.zoom(-1.1));
     zoomOut.addEventListener('click', () => engine.zoom(1.1));

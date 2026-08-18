@@ -7,16 +7,51 @@
 import { el, mount, shuffle } from '../core/dom.js';
 import { icon } from '../core/ui.js';
 import { navigate } from '../core/router.js';
-import { CARTE, CARTE_IDS } from '../data/carte.js';
+import { CARTE, CARTE_IDS, GRUPPI } from '../data/carte.js';
+import { SCENARI } from '../data/scenari.js';
+import { CASI } from '../data/casi.js';
 import { gradeCard, dueCards, boxCounts, getState } from '../core/store.js';
 
 let sessione = null;
 let nodi = null;
+let gruppo = 'tutte';
+
+/** I capitoli degli scenari che ti sono andati peggio. */
+function capitoliDeboli() {
+  const casi = [...SCENARI, ...CASI];
+  const runs = getState().runs || [];
+  const perCaso = {};
+  runs.forEach((r) => {
+    const quota = r.max ? r.score / r.max : 0;
+    if (!perCaso[r.id] || quota < perCaso[r.id]) perCaso[r.id] = quota;
+  });
+  const deboli = new Set();
+  Object.entries(perCaso).forEach(([id, quota]) => {
+    if (quota >= 0.75) return;
+    const caso = casi.find((c) => c.id === id);
+    (caso?.capitoli || []).forEach((cap) => deboli.add(cap));
+  });
+  return deboli;
+}
+
+function carteDelGruppo() {
+  if (gruppo === 'deboli') {
+    const capitoli = capitoliDeboli();
+    const scelte = CARTE.filter((c) => capitoli.has(c.cap));
+    return scelte.length ? scelte : CARTE;
+  }
+  const g = GRUPPI.find((x) => x.id === gruppo) || GRUPPI[0];
+  return CARTE.filter(g.filtro);
+}
 
 function costruisciCoda(soloScadute) {
-  const { fresh, due } = dueCards(CARTE_IDS);
-  const ids = soloScadute ? [...due, ...fresh] : shuffle(CARTE_IDS);
-  return ids.length ? ids : shuffle(CARTE_IDS);
+  const disponibili = carteDelGruppo().map((c) => c.id);
+  const insieme = new Set(disponibili);
+  const { fresh, due } = dueCards(disponibili);
+  const ids = soloScadute
+    ? [...due, ...fresh].filter((id) => insieme.has(id))
+    : shuffle(disponibili);
+  return ids.length ? ids : shuffle(disponibili);
 }
 
 function cartaCorrente() {
@@ -113,6 +148,23 @@ export function render() {
 
   const { total } = dueCards(CARTE_IDS);
 
+  const gruppiDisponibili = [
+    ...GRUPPI,
+    { id: 'deboli', label: 'Dove hai sbagliato', filtro: () => true },
+  ];
+  const chipGruppi = gruppiDisponibili.map((g) => {
+    const quante = g.id === 'deboli' ? null : CARTE.filter(g.filtro).length;
+    const chip = el('button.chip', {
+      type: 'button', 'aria-pressed': String(gruppo === g.id), 'data-g': g.id,
+    }, [quante === null ? g.label : `${g.label} · ${quante}`]);
+    chip.addEventListener('click', () => {
+      gruppo = g.id;
+      chipGruppi.forEach((x) => x.setAttribute('aria-pressed', String(x === chip)));
+      avvia(true);
+    });
+    return chip;
+  });
+
   nodi = { meta, q, a, card, cardHost, showBtn, grade, capBtn, actions, boxes, count };
 
   const view = el('div.view', {}, [
@@ -122,12 +174,13 @@ export function render() {
     ]),
     el('div.card.tight', { style: { marginBottom: '16px' } }, [
       el('div.row', {}, [
-        el('span.lbl', { style: { margin: '0' }, text: `${total} da ripassare oggi` }),
+        el('span.lbl', { style: { margin: '0' }, text: `${total} da ripassare oggi · ${CARTE.length} carte in tutto` }),
         el('span.spacer'),
         count,
         el('button.btn.sm.pri', { type: 'button', onclick: () => avvia(true) }, [icon('play'), 'Ripassa le scadute']),
         el('button.btn.sm', { type: 'button', onclick: () => avvia(false) }, ['Tutto il mazzo']),
       ]),
+      el('div.row', { style: { marginTop: '10px' } }, chipGruppi),
       el('div', { style: { marginTop: '10px' } }, [boxes]),
     ]),
     el('div.drill', {}, [cardHost, actions]),
