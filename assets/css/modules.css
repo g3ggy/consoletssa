@@ -453,3 +453,14 @@
   padding: var(--sp-6); text-align: center; color: var(--ink-3);
   border: 1px dashed var(--line); border-radius: var(--r-lg); font-size: var(--fs-sm);
 }
+
+/* riquadri di contesto dentro i passi degli scenari a domande */
+.box.arrivo, .box.situazione {
+  background: var(--surface-2); border: 1px solid var(--line);
+  border-left: 3px solid var(--blue);
+  border-radius: var(--r-md); padding: var(--sp-3) var(--sp-4);
+  margin-bottom: var(--sp-3);
+}
+.box.situazione { border-left-color: var(--cri); }
+.box.arrivo p, .box.situazione p { margin: 0; color: var(--ink-2); font-size: var(--fs-base); line-height: 1.6; }
+.box.situazione .lbl { margin-bottom: 6px; }

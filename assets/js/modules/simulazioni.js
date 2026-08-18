@@ -206,16 +206,26 @@ function renderBody() {
     el('div', { text: caso.dispatch.testo }),
   ]));
 
-  /* passo 1 — scena */
+  /* passo 1 — l'arrivo, diverso per ogni caso */
   if (S.step === 0) {
-    const lista = shuffle(OPZIONI.scena).slice(0, 3);
-    if (!lista.some((o) => o.ok)) lista[0] = OPZIONI.scena.find((o) => o.ok);
+    const arrivo = caso.arrivo;
+    const lista = arrivo
+      ? shuffle(arrivo.scelte)
+      : (() => {
+        const generiche = shuffle(OPZIONI.scena).slice(0, 3);
+        if (!generiche.some((o) => o.ok)) generiche[0] = OPZIONI.scena.find((o) => o.ok);
+        return shuffle(generiche);
+      })();
+
     const s = el('div.step', {}, [
-      stepHead(1, 'Sei arrivato sul posto', 'Cosa fai per prima cosa?'),
+      stepHead(1, 'Sei arrivato sul posto', arrivo ? arrivo.domanda : 'Cosa fai per prima cosa?'),
     ]);
-    s.append(opzioni(shuffle(lista), (o) => {
+    if (arrivo) {
+      s.append(el('div.box.arrivo', {}, [el('p', { text: arrivo.testo })]));
+    }
+    s.append(opzioni(lista, (o) => {
       addPunto('scena', o.ok, o.w);
-      log(o.ok ? 'Valutata la sicurezza della scena' : 'Entrato senza valutare la scena', o.ok ? 'ok' : 'ko');
+      log(o.ok ? 'Arrivo gestito correttamente' : 'Arrivo sul posto: scelta non corretta', o.ok ? 'ok' : 'ko');
       s.append(avanti('Guarda la scena', () => { S.step = 1; renderBody(); }));
     }));
     box.append(s);
@@ -264,13 +274,29 @@ function renderBody() {
   /* passo 3 — azione immediata */
   if (S.step === 2) {
     const giusta = OPZIONI.azione[caso.azione];
+    /* Prima i distrattori scritti per QUESTO caso: sono errori plausibili
+       qui e adesso, non frasi buone per qualunque scenario. */
+    const specifici = (caso.azioniSbagliate || []).map((x) => ({ ...x, ok: false }));
+    const generici = shuffle(OPZIONI.azioneDistrattori)
+      .slice(0, Math.max(1, 3 - specifici.length))
+      .map((x) => ({ ...x, ok: false }));
     const lista = shuffle([
       { t: giusta.t, ok: true, w: giusta.w },
-      ...shuffle(OPZIONI.azioneDistrattori).slice(0, 3).map((x) => ({ ...x, ok: false })),
+      ...specifici,
+      ...generici,
     ]);
     const s = el('div.step', {}, [
-      stepHead(3, 'Azione immediata', 'Un problema che minaccia la vita si tratta appena identificato, non dopo la raccolta dati.'),
+      /* Niente sottotitolo generico: il principio lo enunciava senza mai
+         dire quale fosse il problema. Lo dice il riquadro qui sotto. */
+      stepHead(3, 'Azione immediata',
+        'Quello che minaccia la vita si tratta adesso, prima di raccogliere altri dati.'),
     ]);
+    if (caso.situazione) {
+      s.append(el('div.box.situazione', {}, [
+        el('p.lbl', { text: 'Che cosa hai davanti' }),
+        el('p', { text: caso.situazione }),
+      ]));
+    }
     s.append(opzioni(lista, (o) => {
       addPunto('azione', o.ok, o.w);
       log(o.ok ? `Azione: ${giusta.t}` : 'Azione immediata non corretta', o.ok ? 'ok' : 'ko');

@@ -4,6 +4,8 @@
    modello di ragguaglio e i capitoli del manuale da rileggere.
    ===================================================================== */
 
+import { DETTAGLI_ARRIVO } from './scenari-arrivo.js';
+
 /* Valori di riferimento dell'adulto, mostrati sotto ogni parametro. */
 export const VITAL_META = {
   FC: { label: 'FC', unit: 'bpm', ref: '60-100', tempo: 900 },
@@ -20,8 +22,8 @@ export const SCENARI = [
     titolo: 'Dolore toracico in casa',
     tipo: 'medico',
     difficolta: 1,
-    dispatch: { codice: 'GIALLO', testo: 'Uomo di 68 anni, dolore al petto da circa 40 minuti. Il figlio riferisce che è sudato e non sta bene.', luogo: 'Abitazione privata, secondo piano' },
-    scena: { testo: 'Appartamento illuminato, familiari presenti e collaborativi. Ascensore funzionante. Nessun rischio evidente.', sicura: true },
+    dispatch: { codice: 'GIALLO', testo: 'Uomo di 68 anni, dolore al petto da circa 40 minuti. Il figlio riferisce che è sudato e non sta bene.', luogo: 'Abitazione privata, secondo piano senza ascensore' },
+    scena: { testo: 'Appartamento illuminato, familiari presenti e collaborativi. Scale strette e niente ascensore: per riscendere serviranno il telo o la sedia. Nessun rischio evidente.', sicura: true },
     colpoOcchio: { testo: 'Seduto sul divano, pallido, sudato, una mano sul petto. Parla a frasi complete e ti guarda arrivare.', vitale: true },
     ritmo: 'sinusale',
     respiro: 'normale',
@@ -558,6 +560,11 @@ export const OPZIONI = {
     { t: 'Elenco tutti i parametri nell\'ordine in cui li ho rilevati', w: 'I parametri servono, ma dopo aver detto chi è il paziente e cosa gli è successo. Solo i salienti.' },
   ],
 };
+
+/* L'arrivo sul posto e l'inquadramento dell'azione immediata stanno in
+   un file a parte: sono la parte che rende ogni caso diverso dagli altri
+   nei primi passi, dove prima erano tutti uguali. */
+SCENARI.forEach((caso) => Object.assign(caso, DETTAGLI_ARRIVO[caso.id] || {}));
 
 export const DIFFICOLTA = {
   1: { label: 'Base', desc: 'Quadro tipico, segni evidenti.' },
