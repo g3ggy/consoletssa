@@ -10,9 +10,16 @@ import { recordRhythmAnswer, getState } from '../core/store.js';
 import { icon } from '../core/ui.js';
 import { setRibbonRhythm } from '../core/ribbon.js';
 import { foglioEcg12, PATTERN_ECG } from '../core/ecg12.js';
+import {
+  battito, frequenzaBattito, allarme, fermaAllarme, allarmeAttivo,
+  caricaDefibrillatore, caricaPronta, fermaCarica,
+  avviaMetronomo, fermaMetronomo, metronomoAttivo, BPM_RCP,
+  nibpConclusa, setMuto, audioMuto,
+} from '../core/suoni.js';
 
 let scope = null;
 let breath = null;
+let chiusureSuoni = [];
 
 /* ============================== ECG ================================== */
 function ecgCard() {
@@ -261,6 +268,100 @@ function ecg12Card() {
   ]);
 }
 
+/* ========================= TONI DEL MONITOR ========================== */
+/* Un banco di prova: qui i suoni si ascoltano isolati, e si impara a
+   riconoscerli. Il battito che si abbassa con la saturazione è quello
+   che in ambulanza avvisa prima dello schermo. */
+function suoniCard() {
+  const spo2 = el('input', {
+    type: 'range', min: '70', max: '100', value: '98', step: '1',
+    'aria-label': 'Saturazione del tono del battito',
+    style: { width: '180px', accentColor: 'var(--blue)' },
+  });
+  const spo2Txt = el('span.num', { style: { color: 'var(--blue)' }, text: '98% · 800 Hz' });
+  let ansaBattito = null;
+
+  const aggiornaTxt = () => {
+    const v = Number(spo2.value);
+    spo2Txt.textContent = `${v}% · ${frequenzaBattito(v)} Hz`;
+  };
+  spo2.addEventListener('input', aggiornaTxt);
+  aggiornaTxt();
+
+  const btnBattito = el('button.btn.sm', { type: 'button' }, ['Battito continuo']);
+  btnBattito.addEventListener('click', () => {
+    if (ansaBattito) {
+      clearInterval(ansaBattito); ansaBattito = null;
+      btnBattito.classList.remove('pri');
+      btnBattito.textContent = 'Battito continuo';
+      return;
+    }
+    battito(Number(spo2.value));
+    ansaBattito = setInterval(() => battito(Number(spo2.value)), 60000 / 75);
+    btnBattito.classList.add('pri');
+    btnBattito.textContent = 'Ferma il battito';
+  });
+  chiusureSuoni.push(() => { if (ansaBattito) clearInterval(ansaBattito); });
+
+  const btnAllarmeAlto = el('button.btn.sm', { type: 'button' }, ['Allarme alta priorità']);
+  const btnAllarmeMedio = el('button.btn.sm', { type: 'button' }, ['Allarme media priorità']);
+  const sincronizzaAllarmi = () => {
+    btnAllarmeAlto.classList.toggle('pri', allarmeAttivo() === 'alta');
+    btnAllarmeMedio.classList.toggle('pri', allarmeAttivo() === 'media');
+  };
+  const commutaAllarme = (livello) => {
+    if (allarmeAttivo() === livello) fermaAllarme(); else allarme(livello);
+    sincronizzaAllarmi();
+  };
+  btnAllarmeAlto.addEventListener('click', () => commutaAllarme('alta'));
+  btnAllarmeMedio.addEventListener('click', () => commutaAllarme('media'));
+
+  const btnCarica = el('button.btn.sm', { type: 'button' }, ['Carica e pronto alla scarica']);
+  btnCarica.addEventListener('click', () => {
+    caricaDefibrillatore({ secondi: 3 });
+    setTimeout(() => caricaPronta({ durataMassima: 8 }), 3000);
+    setTimeout(fermaCarica, 9000);
+  });
+
+  const btnMetronomo = el('button.btn.sm', { type: 'button' }, [`Metronomo ${BPM_RCP}/min`]);
+  btnMetronomo.addEventListener('click', () => {
+    if (metronomoAttivo()) { fermaMetronomo(); btnMetronomo.classList.remove('pri'); }
+    else { avviaMetronomo(); btnMetronomo.classList.add('pri'); }
+  });
+
+  const btnNibp = el('button.btn.sm', { type: 'button', onclick: () => nibpConclusa() },
+    ['Fine misurazione pressione']);
+
+  const btnMuto = el('button.chip', { type: 'button' });
+  const sincronizzaMuto = () => {
+    const m = audioMuto();
+    btnMuto.textContent = m ? 'Audio spento' : 'Audio acceso';
+    btnMuto.setAttribute('aria-pressed', String(!m));
+  };
+  btnMuto.addEventListener('click', () => { setMuto(!audioMuto()); sincronizzaMuto(); sincronizzaAllarmi(); });
+  sincronizzaMuto();
+
+  return el('div.card', {}, [
+    el('div.row', {}, [
+      el('p.lbl', { style: { margin: '0' }, text: 'Toni del monitor' }),
+      el('span.spacer'),
+      btnMuto,
+    ]),
+    el('p', { style: { color: 'var(--ink-3)', fontSize: '14px', margin: '8px 0 12px' },
+      text: 'Sono generati dal browser, non registrati: stesse frequenze e stessi ritmi del monitor di bordo. Ascoltali isolati finché non li riconosci a orecchio.' }),
+    el('div.row', {}, [
+      el('span.lbl', { style: { margin: '0' }, text: 'Saturazione' }),
+      spo2, spo2Txt,
+    ]),
+    el('div.row', { style: { marginTop: '12px' } }, [
+      btnBattito, btnAllarmeAlto, btnAllarmeMedio, btnCarica, btnMetronomo, btnNibp,
+    ]),
+    el('p', { style: { marginTop: '12px' } }, [
+      el('small', { text: 'Il tono del battito scende a scatti con la saturazione: 800 Hz sopra il 98%, 200 Hz sotto l\'85%. In fibrillazione e in asistolia il monitor tace, ed è quel silenzio il segnale.' }),
+    ]),
+  ]);
+}
+
 /* ============================== VISTA ================================ */
 export function render() {
   return el('div.view', {}, [
@@ -268,11 +369,16 @@ export function render() {
       el('h2', { text: 'Monitor' }),
       el('p', { text: 'I ritmi che devi saper riconoscere, l\'ECG a dodici derivazioni da acquisire e stampare, e i pattern respiratori che cambiano la condotta. Il tracciato scorre come su un monitor vero: guarda la forma, non solo il numero.' }),
     ]),
-    el('div.grid', {}, [ecgCard(), ecg12Card(), breathCard()]),
+    el('div.grid', {}, [ecgCard(), suoniCard(), ecg12Card(), breathCard()]),
   ]);
 }
 
 export function destroy() {
+  chiusureSuoni.forEach((fn) => fn());
+  chiusureSuoni = [];
+  fermaAllarme();
+  fermaMetronomo();
+  fermaCarica();
   scope?.destroy(); scope = null;
   breath?.destroy(); breath = null;
 }
