@@ -114,6 +114,7 @@ export function createEcgSource(kindKey) {
   return {
     advance,
     value,
+    get phase() { return phase; },
     get kind() { return kind; },
     set kind(k) { if (RHYTHMS[k]) { kind = k; phase = 0; cycleScale = 1; } },
   };
@@ -126,6 +127,8 @@ export function createEcgSource(kindKey) {
  */
 export function createScope(canvas, opts = {}) {
   const src = createEcgSource(opts.kind || 'sinusale');
+  const onBeat = opts.onBeat || null;
+  let fasePrec = 0;
   let color = opts.color || RHYTHMS[src.kind].color;
   let speed = opts.speed || 130;
   let amp = opts.amp ?? 1;
@@ -149,6 +152,14 @@ export function createScope(canvas, opts = {}) {
           samples[cursor] = src.value();
           cursor = (cursor + 1) % w;
           filled = Math.min(filled + 1, w);
+
+          /* il picco R passa a fase 0,375: è lì che il monitor emette
+             il tono, quindi suono e disegno restano in sincrono */
+          if (onBeat) {
+            const f = src.phase;
+            if (fasePrec < 0.375 && f >= 0.375) onBeat(src.kind);
+            fasePrec = f;
+          }
         }
       }
       draw(ctx, w, h);

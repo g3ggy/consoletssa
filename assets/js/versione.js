@@ -13,11 +13,12 @@
    (e la stessa stringa in cima a sw.js).
    ===================================================================== */
 
-export const VERSIONE = '1.4.0';
+export const VERSIONE = '1.5.0';
 export const DATA_VERSIONE = '18 agosto 2026';
 
 /** Cosa è cambiato, dalla più recente. Le prime tre finiscono nel pannello. */
 export const NOVITA = [
+  { v: '1.5.0', t: 'Toni del monitor: battito che cambia con la saturazione, allarmi, fine misurazione. Si possono zittire.' },
   { v: '1.4.0', t: 'Monitor in stile LIFEPAK 15, ECG a 12 derivazioni stampabile, ragguaglio per esteso.' },
   { v: '1.3.0', t: 'Cinquanta domande del manuale nel ripasso, cartellino CO118, modello 3D fermo con viste comandate.' },
   { v: '1.2.0', t: 'Arrivo sul posto e inquadramento diversi per ogni scenario.' },

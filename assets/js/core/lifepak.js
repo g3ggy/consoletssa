@@ -19,6 +19,8 @@
 
 import { el, $, formatSeconds } from './dom.js';
 import { createScope, createPlethScope } from './waveform.js';
+import { battito, allarme, fermaAllarme, nibpConclusa, setMuto, conferma } from './suoni.js';
+import { getState } from './store.js';
 
 /* Colori del dispositivo: ogni parametro ha il colore della sua traccia. */
 export const LP_COLORI = {
@@ -71,12 +73,18 @@ export function creaLifepak(opzioni = {}) {
   const nibp = riquadro('nibp', 'NIBP', 'mmHg');
 
   const orologio = el('span.lp-clock', { text: '--:--:--' });
+  const tastoAudio = el('button.lp-audio', {
+    type: 'button',
+    'aria-label': 'Attiva o disattiva i toni del monitor',
+    title: 'Toni del monitor',
+  });
   const derivazione = el('span.lp-deriv', { text: 'II  x1.0' });
   const energia = el('span.lp-energia', { text: `${opzioni.energia ?? 200}J` });
   const messaggio = el('div.lp-msg', { text: 'COLLEGARE GLI ELETTRODI' });
 
   const schermo = el('div.lp15', {}, [
     el('div.lp-top', {}, [
+      tastoAudio,
       el('span.lp-bt', { text: '✦' }),
       el('span', { style: { flex: '1' } }),
       orologio,
@@ -95,6 +103,24 @@ export function creaLifepak(opzioni = {}) {
   let scope = null;
   let plethScope = null;
   let collegato = false;
+  let spo2Corrente = 100;
+  let inAllarme = false;
+
+  /* ------------------------------- audio ---------------------------- */
+  const sincronizzaTastoAudio = () => {
+    const muto = Boolean(getState().audio?.muto);
+    tastoAudio.textContent = muto ? '🔇' : '🔊';
+    tastoAudio.classList.toggle('muto', muto);
+    tastoAudio.setAttribute('aria-pressed', String(!muto));
+  };
+  tastoAudio.addEventListener('click', () => {
+    const muto = !getState().audio?.muto;
+    setMuto(muto);
+    sincronizzaTastoAudio();
+    if (!muto) conferma();
+    if (muto) fermaAllarme();
+  });
+  sincronizzaTastoAudio();
 
   /* --------------------------- aggiornamento ------------------------ */
   function fuoriLimiti(chiave, v) {
@@ -128,7 +154,12 @@ export function creaLifepak(opzioni = {}) {
     collega(ritmo) {
       if (collegato) return;
       collegato = true;
-      scope = createScope(canvasEcg, { kind: ritmo, speed: 130, amp: 0.85, grid: false, color: LP_COLORI.hr });
+      scope = createScope(canvasEcg, {
+        kind: ritmo, speed: 130, amp: 0.85, grid: false, color: LP_COLORI.hr,
+        /* niente tono su fibrillazione e asistolia: là non c'è un QRS
+           da segnalare, ed è proprio quello che deve saltare all'occhio */
+        onBeat: (k) => { if (k !== 'fv' && k !== 'asistolia') battito(spo2Corrente); },
+      });
       messaggio.textContent = '';
       schermo.classList.add('lp-acceso');
     },
@@ -156,6 +187,7 @@ export function creaLifepak(opzioni = {}) {
      */
     aggiorna(d) {
       orologio.textContent = d.orologio || formatSeconds(d.t || 0);
+      if (typeof d.spo2 === 'number') spo2Corrente = d.spo2;
       scriviRiquadro(hr, 'hr', d.hr, { attivo: collegato });
       scriviRiquadro(spo2, 'spo2', d.spo2, { attivo: Boolean(plethScope) });
       /* Sul dispositivo la sistolica è grande e la diastolica sta sotto:
@@ -167,7 +199,16 @@ export function creaLifepak(opzioni = {}) {
         extra: dia ? `/ ${dia}` : '',
       });
       if (d.ritmo) this.setRitmo(d.ritmo, Number(d.hr) || undefined);
+
+      /* l'allarme sonoro segue quello visivo: parte quando un riquadro
+         va fuori limiti e tace appena rientra */
+      const allarmato = Boolean(schermo.querySelector('.lp-allarmato'));
+      if (allarmato && !inAllarme) { inAllarme = true; allarme('alta'); }
+      else if (!allarmato && inAllarme) { inAllarme = false; fermaAllarme(); }
     },
+
+    /** Da chiamare quando la misurazione della pressione si conclude. */
+    segnalaNibp() { nibpConclusa(); },
 
     /** Segnala che un valore è appena cambiato: il riquadro lampeggia. */
     evidenzia(chiave) {
@@ -180,6 +221,8 @@ export function creaLifepak(opzioni = {}) {
     },
 
     distruggi() {
+      fermaAllarme();
+      inAllarme = false;
       scope?.destroy();
       plethScope?.destroy();
       scope = null; plethScope = null;

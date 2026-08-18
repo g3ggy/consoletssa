@@ -173,6 +173,7 @@ function misura(k, nodo) {
     delete nodo.dataset.busy;
     S.misurati[k] = true;
     scriviValore(k, dato);
+    if (k === 'PA') host.lp.segnalaNibp();
     nodo.title = dato.note;
     log(`${meta.label}: ${dato.v}${typeof dato.v === 'number' ? ` ${meta.unit}` : ''}`, dato.flag === 'alarm' ? 'ko' : '');
     checkPrimaria();

@@ -110,9 +110,11 @@ function aggiornaMonitor() {
      dell'ossigeno o della posizione, senza doverlo scrivere. */
   ['fc', 'spo2', 'pa'].forEach((k) => {
     const ora = sim.valore(k);
-    if (ora !== undefined && n.mon.precedenti[k] !== undefined && ora !== n.mon.precedenti[k]) {
+    const prima = n.mon.precedenti[k];
+    if (ora !== undefined && prima !== undefined && ora !== prima) {
       lp.evidenzia(k === 'fc' ? 'hr' : (k === 'pa' ? 'nibp' : k));
     }
+    if (k === 'pa' && ora !== undefined && prima === undefined) lp.segnalaNibp();
     n.mon.precedenti[k] = ora;
   });
 

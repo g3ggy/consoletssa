@@ -13,6 +13,7 @@ const DEFAULTS = Object.freeze({
   runs: [],          // storico simulazioni [{id, ts, score, max, seconds, errors:[]}]
   rhythmQuiz: { seen: 0, ok: 0, per: {} },   // per: { fv: {seen, ok}, ... }
   streak: { last: null, days: 0 },
+  audio: { muto: false },      // i toni del monitor
 });
 
 let state = load();

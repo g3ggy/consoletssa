@@ -8,7 +8,7 @@
    Per pubblicare una nuova versione basta cambiare CACHE.
    ===================================================================== */
 
-const CACHE = 'consoletssa-1.4.0';
+const CACHE = 'consoletssa-1.5.0';
 
 const PRECACHE = [
   './',
@@ -35,6 +35,7 @@ const PRECACHE = [
   './assets/js/core/lifepak.js',
   './assets/js/core/ecg12.js',
   './assets/js/versione.js',
+  './assets/js/core/suoni.js',
   './assets/js/data/anatomy.js',
   './assets/js/data/scenari.js',
   './assets/js/data/scenari-arrivo.js',

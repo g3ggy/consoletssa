@@ -178,3 +178,12 @@
 .vit[data-lungo="1"] .v { font-size: 15px; line-height: 1.2; }
 .vit[data-lungo="2"] .v { font-size: 12px; line-height: 1.2; }
 .vit .v { overflow: hidden; text-overflow: ellipsis; }
+
+/* tasto dei toni sulla barra del monitor */
+.lp-audio {
+  background: none; border: 0; cursor: pointer; padding: 0 2px;
+  font-size: 12px; line-height: 1; opacity: .9;
+}
+.lp-audio:hover { opacity: 1; }
+.lp-audio.muto { opacity: .45; filter: grayscale(1); }
+.lp-audio:focus-visible { outline: 1px solid var(--lp-hr); outline-offset: 2px; }
