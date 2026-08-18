@@ -10,6 +10,8 @@
    di scendere dal mezzo, e la SUA descrizione precisa del momento in cui
    devi decidere.
 
+   deriva              di quanto peggiorano i parametri AL MINUTO se
+                       nessuno interviene: il monitor non resta fermo
    arrivo.testo        cosa hai sotto gli occhi appena arrivato
    arrivo.domanda      la decisione che quel posto ti impone
    arrivo.scelte       opzioni di quel caso: la risposta giusta cambia
@@ -21,6 +23,7 @@
 export const DETTAGLI_ARRIVO = {
   /* ------------------------------------------------------------------ */
   toracico: {
+    deriva: { FC: +0.9, SpO2: -0.15, PA: -1.2 },
     arrivo: {
       testo: "Il figlio vi aspetta al portone e vi fa strada. Secondo piano, scale strette, niente ascensore. Sul pianerottolo non c'è nessun pericolo: la scena è tranquilla.",
       domanda: "Cosa porti su?",
@@ -46,6 +49,7 @@ export const DETTAGLI_ARRIVO = {
 
   /* ------------------------------------------------------------------ */
   bpco: {
+    deriva: { FC: +1.2, SpO2: -0.45, PA: -0.5 },
     arrivo: {
       testo: "La badante vi apre e vi accompagna in camera. In un angolo c'è la bombola dell'ossigeno domiciliare. La signora vi guarda entrare senza salutare: sta usando tutto il fiato che ha per respirare.",
       domanda: "Da cosa parti?",
@@ -71,6 +75,7 @@ export const DETTAGLI_ARRIVO = {
 
   /* ------------------------------------------------------------------ */
   arresto: {
+    deriva: { FC: 0, SpO2: 0, PA: 0 },
     arrivo: {
       testo: "Open space, una decina di colleghi in cerchio intorno a un uomo a terra. Uno vi fa segno con la mano. Nessun pericolo ambientale — ma nessuno sta facendo niente.",
       domanda: "Cosa fai entrando?",
@@ -94,6 +99,7 @@ export const DETTAGLI_ARRIVO = {
 
   /* ------------------------------------------------------------------ */
   shock: {
+    deriva: { FC: +1.6, SpO2: -0.1, PA: -2.5 },
     arrivo: {
       testo: "La moglie vi apre e dice subito «l'ho fatto sedere, è solo un po' stanco». Casa in ordine, nessun rischio, nessuna fretta nella sua voce. Il codice della centrale era verde.",
       domanda: "Con che testa entri?",
@@ -117,6 +123,7 @@ export const DETTAGLI_ARRIVO = {
 
   /* ------------------------------------------------------------------ */
   ipoglicemia: {
+    deriva: { FC: +0.6, SpO2: 0, PA: -0.4 },
     arrivo: {
       testo: "Marciapiede, un crocchio di sei o sette persone attorno a un uomo seduto a terra. Qualcuno filma con il telefono. Un passante ripete a voce alta «è ubriaco, lasciatelo perdere».",
       domanda: "Come ti avvicini?",
@@ -142,6 +149,7 @@ export const DETTAGLI_ARRIVO = {
 
   /* ------------------------------------------------------------------ */
   incidente: {
+    deriva: { FC: +1.4, SpO2: -0.3, PA: -1.8 },
     arrivo: {
       testo: "Auto contro palo, in carreggiata. Il traffico continua a scorrere a fianco senza rallentare, sotto la vettura c'è una pozza di liquido. I vigili del fuoco non sono ancora arrivati. Il conducente è dentro e si muove.",
       domanda: "Prima cosa?",
@@ -165,6 +173,7 @@ export const DETTAGLI_ARRIVO = {
 
   /* ------------------------------------------------------------------ */
   anticoagulante: {
+    deriva: { FC: +0.2, SpO2: 0, PA: +0.3 },
     arrivo: {
       testo: "La figlia vi apre e dice «è caduta ma sta benissimo, secondo me non c'era bisogno di chiamarvi». Corridoio con poca luce e un tappeto arrotolato a metà. La signora è seduta a terra, appoggiata al muro.",
       domanda: "Cosa fai per prima cosa?",
@@ -188,6 +197,7 @@ export const DETTAGLI_ARRIVO = {
 
   /* ------------------------------------------------------------------ */
   anafilassi: {
+    deriva: { FC: +2.2, SpO2: -0.8, PA: -3.2 },
     arrivo: {
       testo: "Giardino sul retro. Sotto la grondaia, a tre o quattro metri dal paziente, si vede chiaramente un nido di calabroni con insetti che entrano ed escono. L'uomo è in piedi vicino alla siepe, i familiari intorno a lui.",
       domanda: "Prima cosa?",
@@ -211,6 +221,7 @@ export const DETTAGLI_ARRIVO = {
 
   /* ------------------------------------------------------------------ */
   cocaina: {
+    deriva: { FC: +1.1, SpO2: -0.05, PA: +0.8 },
     arrivo: {
       testo: "Vi apre un ragazzo che resta sulla porta e vi guarda senza dire niente. Appartamento in disordine, musica ancora accesa, sul tavolo del salotto bicchieri e una carta di credito.",
       domanda: "Come imposti la scena?",
@@ -234,6 +245,7 @@ export const DETTAGLI_ARRIVO = {
 
   /* ------------------------------------------------------------------ */
   ictus: {
+    deriva: { FC: +0.2, SpO2: -0.05, PA: +0.6 },
     arrivo: {
       testo: "Il marito vi aspetta sul pianerottolo con la carta d'identità già in mano e dice «io l'ho vista bene alle 9:40, ne sono sicuro». Sono le 10:15. Casa tranquilla, nessun rischio.",
       domanda: "Che valore dai a quella frase?",
@@ -257,6 +269,7 @@ export const DETTAGLI_ARRIVO = {
 
   /* ------------------------------------------------------------------ */
   sincope: {
+    deriva: { FC: -0.8, SpO2: +0.1, PA: +1.4 },
     arrivo: {
       testo: "Sala d'attesa affollata e calda, una ventina di persone in fila. Una ragazza è sdraiata a terra fra due sedie, cosciente, con qualcuno che le fa aria con un volantino. Un impiegato vi fa cenno da dietro il vetro.",
       domanda: "Prima cosa?",
@@ -280,6 +293,7 @@ export const DETTAGLI_ARRIVO = {
 
   /* ------------------------------------------------------------------ */
   schiacciamento: {
+    deriva: { FC: +1.3, SpO2: -0.2, PA: -1.1 },
     arrivo: {
       testo: "Cantiere. I vigili del fuoco stanno già puntellando la lastra con dei martinetti. Sopra il paziente c'è altro materiale accatastato che non sembra stabile. Il caposquadra dei VVF vi viene incontro.",
       domanda: "Come entri in scena?",

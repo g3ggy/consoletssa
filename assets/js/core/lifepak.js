@@ -35,21 +35,27 @@ const LIMITI = {
   spo2: [90, 100],
   nibp: [90, 160],
   co2: [30, 45],
+  temp: [35, 38],
 };
 
 const trattini = '- - -';
 
+/* Un riquadro parametro come sul dispositivo: nome e unità in alto, la
+   campanella dell'allarme a sinistra, il numero grande, i limiti a
+   destra. La campanella barrata significa allarme silenziato. */
 function riquadro(chiave, etichetta, unita) {
   const valore = el('span.lp-num', { text: trattini });
   const extra = el('span.lp-extra');
   const ora = el('span.lp-ora');
+  const campana = el('span.lp-campana', { text: '🔔' });
   const box = el(`div.lp-box.lp-${chiave}`, { 'data-k': chiave }, [
     el('div.lp-testa', {}, [
       el('span.lp-nome', { text: etichetta }),
+      el('span', { style: { flex: '1' } }),
       el('span.lp-unita', { text: unita }),
     ]),
     el('div.lp-riga', {}, [
-      el('span.lp-allarme', { text: '▲' }),
+      campana,
       valore,
       el('div.lp-limiti', {}, [
         el('span', { text: String(LIMITI[chiave]?.[1] ?? '') }),
@@ -58,7 +64,7 @@ function riquadro(chiave, etichetta, unita) {
     ]),
     el('div.lp-piede', {}, [extra, ora]),
   ]);
-  return { box, valore, extra, ora };
+  return { box, valore, extra, ora, campana };
 }
 
 /**
@@ -69,7 +75,9 @@ export function creaLifepak(opzioni = {}) {
   const canvasPleth = el('canvas.lp-onda.lp-pleth', { 'aria-label': 'Pletismografia' });
 
   const hr = riquadro('hr', 'HR', '');
-  const spo2 = riquadro('spo2', 'SPO2', '%');
+  const spo2 = riquadro('spo2', 'SpO2', '%');
+  const co2 = riquadro('co2', 'CO2', 'mmHg');
+  const temp = riquadro('temp', 'Temp', '°C');
   const nibp = riquadro('nibp', 'NIBP', 'mmHg');
 
   const orologio = el('span.lp-clock', { text: '--:--:--' });
@@ -94,7 +102,7 @@ export function creaLifepak(opzioni = {}) {
       derivazione,
     ]),
     el('div.lp-corpo', {}, [
-      el('div.lp-parametri', {}, [hr.box, spo2.box, nibp.box]),
+      el('div.lp-parametri', {}, [hr.box, spo2.box, co2.box, temp.box, nibp.box]),
       el('div.lp-canali', {}, [canvasEcg, canvasPleth]),
     ]),
     messaggio,
@@ -105,6 +113,28 @@ export function creaLifepak(opzioni = {}) {
   let collegato = false;
   let spo2Corrente = 100;
   let inAllarme = false;
+
+  /* Su un paziente vero nessun numero resta identico: la frequenza
+     ballonzola di un paio di battiti, la saturazione di un punto. Se
+     restano immobili si capisce subito che è una figura, non un
+     paziente. Lo scarto è solo di visualizzazione: lo stato clinico
+     resta quello che decide il motore. */
+  let scarti = { hr: 0, spo2: 0 };
+  let variabilita = true;
+  const ansaScarti = setInterval(() => {
+    if (!variabilita) { scarti = { hr: 0, spo2: 0 }; return; }
+    scarti = {
+      hr: Math.round((Math.random() * 2 - 1) * 2),
+      spo2: Math.random() < 0.55 ? 0 : (Math.random() < 0.5 ? -1 : 1),
+    };
+  }, 1900);
+
+  const conScarto = (chiave, valore) => {
+    if (typeof valore !== 'number' || !variabilita) return valore;
+    const v = valore + (scarti[chiave] || 0);
+    if (chiave === 'spo2') return Math.max(50, Math.min(100, v));
+    return Math.max(0, v);
+  };
 
   /* ------------------------------- audio ---------------------------- */
   const sincronizzaTastoAudio = () => {
@@ -173,12 +203,19 @@ export function creaLifepak(opzioni = {}) {
       canvasPleth.classList.add('attiva');
     },
 
+    /* La traccia segue la frequenza che cambia, non quella d'inizio. */
+    setFrequenzaPleth(frequenza) { plethScope?.setRate(frequenza); },
+
     setRitmo(ritmo, frequenza) {
       scope?.setRhythm(ritmo, LP_COLORI.hr);
       if (frequenza) plethScope?.setRate(frequenza);
     },
 
     setDerivazione(testo) { derivazione.textContent = testo; },
+    setVariabilita(on) { variabilita = on; },
+    /* Lo scarto fisiologico del momento: chi scrive i riquadri da fuori
+       (le simulazioni) lo usa per non avere numeri di marmo. */
+    scarto(chiave) { return variabilita ? (scarti[chiave] || 0) : 0; },
     setEnergia(j) { energia.textContent = `${j}J`; },
     setMessaggio(testo) { messaggio.textContent = testo || ''; },
 
@@ -188,15 +225,20 @@ export function creaLifepak(opzioni = {}) {
     aggiorna(d) {
       orologio.textContent = d.orologio || formatSeconds(d.t || 0);
       if (typeof d.spo2 === 'number') spo2Corrente = d.spo2;
-      scriviRiquadro(hr, 'hr', d.hr, { attivo: collegato });
-      scriviRiquadro(spo2, 'spo2', d.spo2, { attivo: Boolean(plethScope) });
+      scriviRiquadro(hr, 'hr', conScarto('hr', d.hr), { attivo: collegato });
+      scriviRiquadro(spo2, 'spo2', conScarto('spo2', d.spo2), { attivo: Boolean(plethScope) });
+      scriviRiquadro(co2, 'co2', d.co2, { attivo: d.co2 !== undefined, extra: d.rr ? `${d.rr} RR` : '' });
+      scriviRiquadro(temp, 'temp', d.temp, { attivo: d.temp !== undefined });
       /* Sul dispositivo la sistolica è grande e la diastolica sta sotto:
          "92/56" su una riga sola non ci sta e veniva tagliato. */
       const [sist, dia] = String(d.pa || '').split('/');
+      const media = (sist && dia)
+        ? Math.round((Number(sist) + 2 * Number(dia)) / 3)
+        : null;
       scriviRiquadro(nibp, 'nibp', d.pa ? sist : undefined, {
         attivo: Boolean(d.pa),
         ora: d.paOra || '',
-        extra: dia ? `/ ${dia}` : '',
+        extra: dia ? `${dia}${media ? `   (${media})` : ''}` : '',
       });
       if (d.ritmo) this.setRitmo(d.ritmo, Number(d.hr) || undefined);
 
@@ -221,6 +263,7 @@ export function creaLifepak(opzioni = {}) {
     },
 
     distruggi() {
+      clearInterval(ansaScarti);
       fermaAllarme();
       inAllarme = false;
       scope?.destroy();

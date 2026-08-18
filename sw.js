@@ -8,7 +8,7 @@
    Per pubblicare una nuova versione basta cambiare CACHE.
    ===================================================================== */
 
-const CACHE = 'consoletssa-1.5.1';
+const CACHE = 'consoletssa-1.6.0';
 
 const PRECACHE = [
   './',

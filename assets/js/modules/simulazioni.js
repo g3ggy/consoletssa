@@ -121,12 +121,59 @@ function buildPanel() {
 }
 
 /** Scrive un valore rilevato, sul monitor o nel riquadro manuale. */
-function scriviValore(k, dato) {
+/* Quanto è derivato un parametro dal momento in cui l'hai rilevato.
+   Frequenza e saturazione sono continue sul monitor, quindi cambiano
+   sotto gli occhi; la pressione resta ferma al valore misurato finché
+   non la rilevi di nuovo — esattamente come sul mezzo. */
+function valoreDerivato(k, dato) {
+  const deriva = S.caso.deriva?.[k];
+  const base = parseFloat(String(dato.v));
+  if (!deriva || Number.isNaN(base) || S.t0 === null) return dato.v;
+  const minuti = Math.max(0, (Date.now() - S.t0) / 60000);
+  const v = base + deriva * minuti;
+  if (k === 'SpO2') return Math.round(Math.max(50, Math.min(100, v)));
+  if (k === 'FC') return Math.round(Math.max(0, v));
+  return Math.round(v);
+}
+
+/** La pressione derivata mantiene il rapporto fra sistolica e diastolica. */
+function pressioneDerivata(dato) {
+  const deriva = S.caso.deriva?.PA;
+  const testo = String(dato.v);
+  if (!deriva || !testo.includes('/') || S.t0 === null) return testo;
+  const [sist, dia] = testo.split('/').map(Number);
+  const minuti = Math.max(0, (Date.now() - S.t0) / 60000);
+  const s2 = Math.round(Math.max(40, sist + deriva * minuti));
+  const d2 = Math.round(Math.max(20, dia + deriva * 0.6 * minuti));
+  return `${s2}/${d2}`;
+}
+
+/* Soglie oltre le quali il monitor suona: non stanno nel caso, stanno
+   nel valore che leggi adesso. Cosi se il paziente peggiora davanti a te
+   l'allarme parte da solo. */
+function fuoriSoglia(k, v) {
+  if (typeof v !== 'number' || Number.isNaN(v)) return false;
+  if (k === 'FC') return v < 40 || v > 150;
+  if (k === 'SpO2') return v < 90;
+  return false;
+}
+
+function scriviValore(k, dato, opzioni = {}) {
   const meta = VITAL_META[k];
   const nodo = host.vitBtns[k];
   if (!nodo) return;
-  const testo = String(dato.v);
+  let grezzo = k === 'PA' ? pressioneDerivata(dato) : valoreDerivato(k, dato);
+  /* Sul monitor frequenza e saturazione ballano di continuo, come quelle
+     vere: lo scarto arriva dal LIFEPAK così curve e numeri respirano
+     insieme. La pressione no: è una misura singola, resta al suo valore. */
+  if (typeof grezzo === 'number' && SUL_MONITOR[k] && k !== 'PA') {
+    grezzo = grezzo + host.lp.scarto(SUL_MONITOR[k]);
+    if (k === 'SpO2') grezzo = Math.max(50, Math.min(100, grezzo));
+    if (k === 'FC') grezzo = Math.max(0, grezzo);
+  }
+  const testo = String(grezzo);
   const sulMonitor = Boolean(SUL_MONITOR[k]);
+  const allarme = dato.flag === 'alarm' || fuoriSoglia(k, typeof grezzo === 'number' ? grezzo : NaN);
 
   if (sulMonitor) {
     const num = $('.lp-num', nodo);
@@ -135,13 +182,17 @@ function scriviValore(k, dato) {
     if (k === 'PA' && testo.includes('/')) {
       const [sist, dia] = testo.split('/');
       num.textContent = sist;
-      if (piede) piede.textContent = `/ ${dia}`;
+      /* scriviamo dentro .lp-extra e non sul piede intero: così resta in
+         piedi anche .lp-ora, che dice da quanto la misura è vecchia */
+      const extra = $('.lp-extra', nodo);
+      if (extra) extra.textContent = `/ ${dia}`;
+      else if (piede) piede.textContent = `/ ${dia}`;
     } else {
       num.textContent = testo;
     }
     nodo.classList.remove('lp-spento');
-    nodo.classList.toggle('lp-allarmato', dato.flag === 'alarm');
-    nodo.classList.add('lp-cambiato');
+    nodo.classList.toggle('lp-allarmato', allarme);
+    if (opzioni.evidenzia) nodo.classList.add('lp-cambiato');
     return;
   }
 
@@ -153,7 +204,11 @@ function scriviValore(k, dato) {
 }
 
 function misura(k, nodo) {
-  if (!S || S.misurati[k] || S.step < 4 || nodo.dataset.busy) return;
+  if (!S || S.step < 4 || nodo.dataset.busy) return;
+  /* la pressione si rimisura: dopo un minuto il valore vecchio non vale
+     più niente, ed è il concetto che serve portarsi a casa */
+  const rimisurabile = k === 'PA' && S.misuratiA?.[k] && (Date.now() - S.misuratiA[k]) > 60000;
+  if (S.misurati[k] && !rimisurabile) return;
   const meta = VITAL_META[k];
   const dato = S.caso.vitali[k];
 
@@ -172,8 +227,9 @@ function misura(k, nodo) {
     busy.remove();
     delete nodo.dataset.busy;
     S.misurati[k] = true;
-    scriviValore(k, dato);
-    if (k === 'PA') host.lp.segnalaNibp();
+    S.misuratiA = { ...(S.misuratiA || {}), [k]: Date.now() };
+    scriviValore(k, dato, { evidenzia: true });
+    if (k === 'PA') { etaPressione(); host.lp.segnalaNibp(); }
     nodo.title = dato.note;
     log(`${meta.label}: ${dato.v}${typeof dato.v === 'number' ? ` ${meta.unit}` : ''}`, dato.flag === 'alarm' ? 'ko' : '');
     checkPrimaria();
@@ -205,8 +261,44 @@ function checkPrimaria() {
   if (S.step === 4) { S.step = 5; renderBody(); }
 }
 
+/* Frequenza e saturazione, una volta collegato il monitor, continuano
+   ad aggiornarsi: è quello che fa un monitor vero, e rende evidente se
+   il paziente sta peggiorando mentre tu raccogli l'anamnesi. */
+function aggiornaContinui() {
+  if (!S || !host?.lp || S.t0 === null) return;
+  ['FC', 'SpO2'].forEach((k) => {
+    if (!S.misurati[k]) return;
+    const dato = S.caso.vitali[k];
+    if (typeof dato.v !== 'number') return;    // "assente" non deriva
+    scriviValore(k, dato);
+  });
+  etaPressione();
+  /* anche il tracciato accelera o rallenta con la frequenza derivata */
+  const fc = valoreDerivato('FC', S.caso.vitali.FC);
+  if (typeof fc === 'number' && fc > 0) host.lp.setFrequenzaPleth(fc);
+}
+
+/* La pressione non è un valore continuo: è la fotografia di un minuto fa.
+   Scriverlo sotto il numero è il modo più diretto per insegnare che va
+   ripetuta, e il riquadro si riaccende quando torna rilevabile. */
+function etaPressione() {
+  const nodo = host.vitBtns.PA;
+  const quando = S.misuratiA?.PA;
+  if (!nodo || !quando) return;
+  const ora = $('.lp-ora', nodo);
+  if (!ora) return;
+  const secondi = Math.round((Date.now() - quando) / 1000);
+  ora.textContent = secondi < 60 ? `${secondi}s fa` : `${Math.floor(secondi / 60)} min fa`;
+  const vecchia = secondi > 60;
+  nodo.classList.toggle('lp-vecchio', vecchia);
+  nodo.title = vecchia
+    ? 'Misura di oltre un minuto fa: tocca per rilevarla di nuovo.'
+    : 'Pressione appena rilevata.';
+}
+
 function tick() {
   if (!S || S.t0 === null) return;
+  aggiornaContinui();
   const b = $('b', host.timer);
   const s = S.tPrimaria !== null ? S.tPrimaria : Math.round(nowSec());
   b.textContent = `${s}s`;
@@ -602,6 +694,7 @@ function nuovoCaso(forceId) {
     t0: null,
     tPrimaria: null,
     misurati: {},
+    misuratiA: {},
     chiesti: {},
     log: [],
     salvato: false,
@@ -613,11 +706,17 @@ function nuovoCaso(forceId) {
     delete nodo.dataset.busy;
     nodo.dataset.lungo = '0';
     if (SUL_MONITOR[k]) {
-      nodo.classList.remove('lp-allarmato', 'lp-cambiato');
+      nodo.classList.remove('lp-allarmato', 'lp-cambiato', 'lp-vecchio');
       nodo.classList.add('lp-spento');
+      nodo.removeAttribute('title');
       $('.lp-num', nodo).textContent = '- - -';
-      const piede = $('.lp-piede', nodo);
-      if (piede) piede.textContent = '';
+      /* svuotiamo i due campi del piede senza smontarli: servono ancora
+         per il valore diastolico e per l'età della misura */
+      const extra = $('.lp-extra', nodo);
+      const ora = $('.lp-ora', nodo);
+      if (extra) extra.textContent = '';
+      if (ora) ora.textContent = '';
+      if (!extra && !ora) { const p = $('.lp-piede', nodo); if (p) p.textContent = ''; }
     } else {
       nodo.classList.remove('on', 'warn', 'alarm');
       $('.v', nodo).textContent = '— —';

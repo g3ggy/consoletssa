@@ -187,3 +187,25 @@
 .lp-audio:hover { opacity: 1; }
 .lp-audio.muto { opacity: .45; filter: grayscale(1); }
 .lp-audio:focus-visible { outline: 1px solid var(--lp-hr); outline-offset: 2px; }
+
+/* cinque riquadri come sul dispositivo */
+.lp-parametri { grid-template-rows: repeat(5, 1fr); }
+.lp-corpo { min-height: 232px; }
+.lp-num { font-size: 26px; }
+.lp-campana { font-size: 8px; line-height: 1; opacity: .55; filter: grayscale(1); }
+.lp-allarmato .lp-campana { filter: none; opacity: 1; animation: lpAllarme 1s infinite; }
+.lp-nibp .lp-piede { font-size: 12px; }
+
+@media (max-width: 900px) {
+  /* su telefono restano i tre che contano: CO2 e temperatura sono
+     quasi sempre senza cavo, e occuperebbero spazio per dei trattini */
+  .lp-co2, .lp-temp { display: none; }
+  .lp-parametri { grid-template-columns: repeat(3, 1fr); }
+  .lp-corpo { min-height: 0; }
+}
+
+/* Una misura invecchiata: il numero resta leggibile ma spento, e il
+   riquadro torna toccabile perché va ripetuta. */
+.lp-box.lp-vecchio .lp-num { opacity: .55; }
+.lp-box.lp-vecchio .lp-ora { color: #F2C14E; }
+.lp-box.lp-vecchio { cursor: pointer; }
