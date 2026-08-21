@@ -21,6 +21,22 @@ import { DOMANDE_ELENCO } from '../data/domande.js';
 /* Il paziente c'è sempre e non va dichiarato dal caso. */
 export const PAZIENTE = { id: 'paziente', label: 'il paziente' };
 
+/* In italiano «a» e l'articolo si fondono, e «chiedi a il paziente» non
+   si legge. Gli interlocutori si dichiarano con l'articolo davanti — «la
+   moglie», «il figlio» — così restano leggibili anche da soli, nella
+   barra della palette. Qui si articola la preposizione per il diario. */
+const PREPOSIZIONE = [
+  [/^il /, 'al '], [/^lo /, 'allo '], [/^la /, 'alla '],
+  [/^l'/, 'all\''], [/^i /, 'ai '], [/^gli /, 'agli '], [/^le /, 'alle '],
+];
+
+/** «il paziente» → «al paziente»; un nome proprio resta «a Marco». */
+export function aChi(label) {
+  const testo = String(label);
+  const regola = PREPOSIZIONE.find(([quale]) => quale.test(testo));
+  return regola ? testo.replace(regola[0], regola[1]) : `a ${testo}`;
+}
+
 /** Chi si può interrogare in questo caso, col paziente per primo. */
 export function interlocutoriDi(caso) {
   const altri = caso?.anamnesi?.interlocutori || [];

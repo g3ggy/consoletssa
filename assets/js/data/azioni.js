@@ -22,6 +22,7 @@ export const CATEGORIE = [
   { id: 'immobilizzo', label: 'Immobilizzo', desc: 'Presidi e trasporto' },
   { id: 'comunicazione', label: 'Comunicazione', desc: 'Centrale, infermiere, paziente' },
   { id: 'infermiere', label: 'Infermiere', desc: 'Da richiedere: li esegue lui' },
+  { id: 'anamnesi', label: 'Anamnesi', desc: 'Domande al paziente e a chi c\'è' },
 ];
 
 /** Elenco piatto, poi indicizzato per id in fondo al file. */

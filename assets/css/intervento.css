@@ -207,3 +207,25 @@
     border-radius: var(--r-lg) var(--r-lg) 0 0;
   }
 }
+
+/* Quello che una persona ti ha detto: si legge come parlato, non come
+   un dato rilevato. */
+.riga.risposta .txt { color: var(--ink-2); font-style: italic; }
+.riga.risposta .seg { color: var(--ink-3); }
+
+/* --- anamnesi nella palette --- */
+.anam-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+.anam-head > span { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); }
+.anam-chi { display: flex; gap: 6px; flex-wrap: wrap; }
+.anam-p {
+  padding: 6px 12px; border-radius: 999px; border: 1px solid var(--line);
+  background: transparent; color: var(--ink-2); font: inherit; font-size: 14px; cursor: pointer;
+}
+.anam-p[aria-pressed="true"] { border-color: var(--phos); color: var(--phos); }
+/* La lettera dello schema sta sulla riga della domanda, non sopra:
+   `.az-testo span` è a blocchi, e va scavalcato per specificità. */
+.az-testo .anam-lettera {
+  display: inline-block; min-width: 18px; margin-top: 0; margin-right: 8px;
+  color: var(--phos); font-size: inherit; font-weight: 700;
+}
+.pal-riga.gia-chiesta { opacity: .55; }

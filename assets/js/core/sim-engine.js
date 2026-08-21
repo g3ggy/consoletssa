@@ -27,7 +27,7 @@ import {
 } from './fisiologia.js';
 import { applicaOffese, applicaTerapie, compensoBloccato } from '../data/offese.js';
 import {
-  PAZIENTE, interlocutoriDi, puoRispondere, rispostaA, domandeDisponibili,
+  PAZIENTE, aChi, interlocutoriDi, puoRispondere, rispostaA, domandeDisponibili,
   revisioneAnamnesi,
 } from './anamnesi.js';
 import { DOMANDE } from '../data/domande.js';
@@ -575,7 +575,7 @@ export function creaIntervento(caso, opzioni = {}) {
     if (!permesso.ok) return { ok: false, motivo: permesso.motivo };
 
     squadra = { ...squadra, tu: { liberoA: t + d.durata, azione: `domanda:${d.id}` } };
-    scrivi('azione', `Chiedi a ${etichettaInterlocutore(interlocutore)}: ${d.testo}`, `domanda:${d.id}`);
+    scrivi('azione', `Chiedi ${aChi(etichettaInterlocutore(interlocutore))}: ${d.testo}`, `domanda:${d.id}`);
     avanza(d.durata);
 
     const r = rispostaA({

@@ -32,8 +32,9 @@ test('le azioni dei farmaci sono solo dell\'infermiere', () => {
     });
 });
 
-test('ogni categoria ha almeno un\'azione', () => {
-  CATEGORIE.forEach((c) => {
+test('ogni categoria di azioni ha almeno un\'azione', () => {
+  /* L'anamnesi non ha azioni: ha domande, e stanno in domande.js. */
+  CATEGORIE.filter((c) => c.id !== 'anamnesi').forEach((c) => {
     assert.ok(azioniDi(c.id).length > 0, `categoria vuota: ${c.id}`);
   });
 });

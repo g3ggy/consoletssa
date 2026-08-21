@@ -15,6 +15,7 @@ import { saveRun } from '../core/store.js';
 import { creaIntervento } from '../core/sim-engine.js';
 import { AZIONI, CATEGORIE, azioniDi } from '../data/azioni.js';
 import { CASI, CASI_INDICE } from '../data/casi.js';
+import { DOMANDE_ELENCO } from '../data/domande.js';
 import { cartellino, badgeCriticita } from '../core/cartellino.js';
 import { foglioEcg12 } from '../core/ecg12.js';
 
@@ -190,6 +191,7 @@ function aggiornaSquadra() {
 /* =============================== DIARIO ============================= */
 const ICONA_RIGA = {
   osservazione: '👁', azione: '›', squadra: '»', evento: '!', allarme: '⚠', esito: '■',
+  risposta: '“',
 };
 
 function aggiornaDiario() {
@@ -252,13 +254,57 @@ function esegui(id, chi) {
   aggiornaTutto();
 }
 
+/* La barra di chi hai davanti, e sotto le domande che gli puoi fare.
+   Un tocco per domanda: chi si è girato verso la moglie continua a
+   parlare con lei finché non si gira di nuovo. */
+function pannelloAnamnesi() {
+  const barra = el('div.anam-chi', {}, sim.interlocutori.map((persona) => el('button.anam-p', {
+    type: 'button',
+    'aria-pressed': String(persona.id === sim.interlocutore),
+    onclick: () => {
+      const esito = sim.rivolgitiA(persona.id);
+      if (!esito.ok) { toast('Non ora', esito.motivo, 'warn'); return; }
+      aggiornaTutto();
+    },
+  }, [persona.label])));
+
+  const disponibili = sim.domandeDisponibili();
+  const righe = disponibili.map((d) => {
+    const gia = sim.raccolte.some((r) => r.domanda === d.id && r.interlocutore === sim.interlocutore);
+    return el(`div.pal-riga${gia ? '.gia-chiesta' : ''}`, {}, [
+      el('div.az-testo', {}, [
+        el('b', {}, [el('span.anam-lettera', { text: d.lettera }), d.testo]),
+        el('span', { text: gia ? 'Gliel\'hai già chiesto' : `Schema ${d.schema}` }),
+      ]),
+      el('div.az-meta', {}, [el('span.durata', { text: `${d.durata}s` })]),
+      el('div.az-btn', {}, [
+        el('button.btn.sm.pri', {
+          type: 'button',
+          onclick: () => {
+            const esito = sim.chiedi(d.id);
+            if (!esito.ok) { toast('Non ora', esito.motivo, 'warn'); return; }
+            aggiornaTutto();
+          },
+        }, ['Chiedi']),
+      ]),
+    ]);
+  });
+
+  return el('div.anam', {}, [
+    el('div.anam-head', {}, [el('span', { text: 'parli con' }), barra]),
+    ...righe,
+  ]);
+}
+
 function aggiornaPalette() {
   const disponibili = sim.azioniDisponibili();
   const inCategoria = azioniDi(categoriaAperta)
     .filter((a) => disponibili.some((d) => d.id === a.id));
 
   mount(n.paletteTabs, ...CATEGORIE.map((c) => {
-    const quante = azioniDi(c.id).filter((a) => disponibili.some((d) => d.id === a.id)).length;
+    const quante = c.id === 'anamnesi'
+      ? sim.domandeDisponibili().length
+      : azioniDi(c.id).filter((a) => disponibili.some((d) => d.id === a.id)).length;
     return el('button.pcat', {
       type: 'button',
       'aria-pressed': String(c.id === categoriaAperta),
@@ -266,6 +312,13 @@ function aggiornaPalette() {
       title: c.desc,
     }, [c.label, el('i', { text: String(quante) })]);
   }));
+
+  /* L'anamnesi non è fatta di azioni: è fatta di domande, e prima delle
+     domande c'è la persona a cui le fai. */
+  if (categoriaAperta === 'anamnesi') {
+    mount(n.paletteLista, pannelloAnamnesi());
+    return;
+  }
 
   if (!inCategoria.length) {
     mount(n.paletteLista, el('p.palette-vuota', { text: 'Niente da fare in questa categoria, adesso.' }));

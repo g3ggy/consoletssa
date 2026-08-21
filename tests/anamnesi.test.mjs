@@ -216,3 +216,23 @@ test('quello che non hai chiesto non compare fra le voci', () => {
   assert.deepEqual(r.voci, []);
   assert.deepEqual(r.avvisi, []);
 });
+
+/* ==================== come si nomina chi hai davanti ================ */
+
+import { aChi } from '../assets/js/core/anamnesi.js';
+
+test('«a» e l\'articolo si fondono, come si parla', () => {
+  assert.equal(aChi('il paziente'), 'al paziente');
+  assert.equal(aChi('la moglie'), 'alla moglie');
+  assert.equal(aChi('il figlio'), 'al figlio');
+  assert.equal(aChi('lo zio'), 'allo zio');
+  assert.equal(aChi('l\'amica'), 'all\'amica');
+  assert.equal(aChi('i colleghi'), 'ai colleghi');
+  assert.equal(aChi('gli agenti'), 'agli agenti');
+  assert.equal(aChi('le figlie'), 'alle figlie');
+});
+
+test('senza articolo resta com\'è, con la preposizione davanti', () => {
+  assert.equal(aChi('Marco'), 'a Marco');
+  assert.equal(aChi('un passante'), 'a un passante');
+});
