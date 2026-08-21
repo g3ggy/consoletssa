@@ -35,6 +35,9 @@ const AZIONE_PER_PARAMETRO = {
   spo2: 'monitor',
   temp: 'misura-temp',
   glicemia: 'misura-glicemia',
+  refill: 'refill',
+  cute: 'colorito',
+  sete: 'chiedi-sete',
 };
 
 /* --------------------------- valutazioni --------------------------- */
@@ -52,6 +55,12 @@ function allarme(k, valore, stato) {
   if (k === 'fr') { if (num > 28 || num < 9) return 'alarm'; if (num > 22 || num < 11) return 'warn'; return ''; }
   if (k === 'glicemia') { if (num < 60 || num > 250) return 'alarm'; if (num < 70 || num > 180) return 'warn'; return ''; }
   if (k === 'temp') { if (num > 39 || num < 35) return 'alarm'; if (num > 37.5 || num < 36) return 'warn'; return ''; }
+  /* I segni del compenso si accendono mentre il monitor è ancora
+     tranquillo: è tutto il senso del modello, e va visto a colpo
+     d'occhio. Refill normale sotto i due secondi — Bolognin :6489. */
+  if (k === 'refill') { if (num > 3) return 'alarm'; if (num > 2) return 'warn'; return ''; }
+  if (k === 'cute') return String(valore) === 'normale' ? '' : 'warn';
+  if (k === 'sete') return String(valore) === 'no' ? '' : 'warn';
   return stato ? '' : '';
 }
 
@@ -63,6 +72,9 @@ const MANUALI = [
   { k: 'fr', label: 'FR', unita: 'atti/min', rif: '12-16' },
   { k: 'temp', label: 'T', unita: '°C', rif: '36-37' },
   { k: 'glicemia', label: 'Glicemia', unita: 'mg/dl', rif: '70-110' },
+  { k: 'refill', label: 'Refill', unita: '', rif: 'sotto 2 s' },
+  { k: 'cute', label: 'Cute', unita: '', rif: 'colorito e temperatura' },
+  { k: 'sete', label: 'Sete', unita: '', rif: 'glielo chiedi tu' },
 ];
 
 function costruisciMonitor() {
@@ -134,8 +146,12 @@ function aggiornaMonitor() {
     if (scaduta && val !== undefined) cls.push('vecchia');
 
     const azione = AZIONE_PER_PARAMETRO[p.k];
+    /* "pallida, fredda, sudata" non sta nello spazio di un numero a tre
+       cifre: la tessera cambia corpo invece di sbordare. */
+    const lungo = String(val ?? '').length;
     return el(`button.${cls.join('.')}`, {
       type: 'button',
+      'data-lungo': lungo > 12 ? '2' : (lungo > 6 ? '1' : '0'),
       title: val === undefined || val === null
         ? `Non ancora rilevato — ${AZIONI[azione]?.label || ''}`
         : `Rilevato ${formatSeconds(eta)} fa`,
@@ -384,7 +400,12 @@ function grafico(storico, eventi) {
          scende da 96 a 84 su un asse 40-200 sarebbe una riga piatta.
          La fascia di normalità entra comunque nel dominio, così resta
          il riferimento visivo. */
-      const valori = storico.map((p2) => p2[serie.k]);
+      /* Un parametro può smettere di esistere: in arresto il saturimetro
+         non legge più niente. Quei punti si saltano, invece di disegnare
+         una caduta a zero che il paziente non ha mai avuto. */
+      const punti = storico.filter((p2) => typeof p2[serie.k] === 'number');
+      if (!punti.length) { $('.gvalore', legenda).textContent = 'non rilevata'; return; }
+      const valori = punti.map((p2) => p2[serie.k]);
       let min = Math.min(...valori, serie.normale[0]);
       let max = Math.max(...valori, serie.normale[1]);
       const margine = Math.max((max - min) * 0.18, 4);
@@ -413,26 +434,29 @@ function grafico(storico, eventi) {
       // la traccia
       c.strokeStyle = linea; c.lineWidth = 2; c.lineJoin = 'round'; c.lineCap = 'round';
       c.beginPath();
-      storico.forEach((p, i) => {
+      punti.forEach((p, i) => {
         const px = x(p.t); const py = y(p[serie.k]);
         if (i) c.lineTo(px, py); else c.moveTo(px, py);
       });
       c.stroke();
 
       // punto finale, sempre etichettato
-      const ultimo = storico[storico.length - 1];
+      const ultimo = punti[punti.length - 1];
       c.fillStyle = linea;
       c.beginPath(); c.arc(x(ultimo.t), y(ultimo[serie.k]), 3.5, 0, Math.PI * 2); c.fill();
 
       if (evidenziaT !== null) {
-        const vicino = storico.reduce((a, b) => (Math.abs(b.t - evidenziaT) < Math.abs(a.t - evidenziaT) ? b : a));
+        const vicino = punti.reduce((a, b) => (Math.abs(b.t - evidenziaT) < Math.abs(a.t - evidenziaT) ? b : a));
         c.strokeStyle = inchiostro; c.lineWidth = 1;
         c.beginPath(); c.moveTo(x(vicino.t), 0); c.lineTo(x(vicino.t), h); c.stroke();
         c.fillStyle = linea;
         c.beginPath(); c.arc(x(vicino.t), y(vicino[serie.k]), 4.5, 0, Math.PI * 2); c.fill();
         $('.gvalore', legenda).textContent = `${formatSeconds(vicino.t)} · ${Math.round(vicino[serie.k])} ${serie.unita}`;
       } else {
-        $('.gvalore', legenda).textContent = `${Math.round(ultimo[serie.k])} ${serie.unita} alla consegna`;
+        const finale = storico[storico.length - 1];
+        $('.gvalore', legenda).textContent = typeof finale[serie.k] === 'number'
+          ? `${Math.round(ultimo[serie.k])} ${serie.unita} alla consegna`
+          : 'alla fine non si leggeva più';
       }
     };
 
@@ -454,7 +478,7 @@ function grafico(storico, eventi) {
   ]);
   const t = el('table');
   t.innerHTML = `<thead><tr><th>Tempo</th>${SERIE.map((s) => `<th>${s.label}</th>`).join('')}</tr></thead>
-    <tbody>${storico.map((p) => `<tr><td>${formatSeconds(p.t)}</td>${SERIE.map((s) => `<td>${Math.round(p[s.k])}</td>`).join('')}</tr>`).join('')}</tbody>`;
+    <tbody>${storico.map((p) => `<tr><td>${formatSeconds(p.t)}</td>${SERIE.map((s) => `<td>${typeof p[s.k] === 'number' ? Math.round(p[s.k]) : '&mdash;'}</td>`).join('')}</tr>`).join('')}</tbody>`;
   tabella.append(el('div.table-wrap', {}, [t]));
   wrap.append(tabella);
 

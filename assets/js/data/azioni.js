@@ -124,21 +124,21 @@ const ELENCO = [
   {
     id: 'o2-occhialini', cat: 'B', label: 'Ossigeno con occhialini, 2-4 l/min', durata: 30,
     chi: ['tu', 'autista'], unaVolta: true,
-    applica: () => ({ spo2: +2, tag: 'o2' }),
+    applica: () => ({ tag: 'o2' }),
     diario: 'Ossigeno con occhialini nasali.',
     spiega: 'Flussi bassi quando la saturazione è appena sotto e il paziente respira bene.',
   },
   {
     id: 'o2-maschera', cat: 'B', label: 'Maschera semplice, 6-8 l/min', durata: 30,
     chi: ['tu', 'autista'], unaVolta: true,
-    applica: () => ({ spo2: +3, tag: 'o2' }),
+    applica: () => ({ tag: 'o2' }),
     diario: 'Ossigeno con maschera semplice.',
     spiega: 'Via di mezzo. Sotto i 5 l/min la maschera semplice fa rirespirare anidride carbonica.',
   },
   {
     id: 'o2-reservoir', cat: 'B', label: 'Maschera con reservoir, 12-15 l/min', durata: 40,
     chi: ['tu', 'autista'], unaVolta: true,
-    applica: () => ({ spo2: +5, tag: 'o2' }),
+    applica: () => ({ tag: 'o2' }),
     diario: 'Ossigeno ad alti flussi con reservoir.',
     spiega: 'Quadro critico o saturazione bassa: si parte alti e si scende, non il contrario.',
   },
@@ -146,7 +146,7 @@ const ELENCO = [
     id: 'pallone', cat: 'B', label: 'Ventila con pallone-maschera', durata: 45, chi: ['tu'],
     richiede: (p) => p.coscienza === 'U' || p.respiro.tipo === 'gasping' || p.respiro.tipo === 'assente',
     motivoBloccato: 'Il paziente respira da solo: ventilarlo adesso non serve.',
-    applica: () => ({ spo2: +6, tag: 'ventilazione' }),
+    applica: () => ({ tag: 'pallone' }),
     diario: 'Ventilazione con pallone-maschera, due operatori.',
     spiega: 'In arresto o in respiro inefficace. Meglio in due: uno tiene la maschera, uno spreme.',
   },
@@ -155,7 +155,7 @@ const ELENCO = [
     chi: ['tu', 'autista'], unaVolta: true,
     richiede: (p) => p.coscienza === 'A' || p.coscienza === 'V',
     motivoBloccato: 'Non è cosciente abbastanza per stare seduto.',
-    applica: () => ({ spo2: +2, tag: 'seduta' }),
+    applica: () => ({ tag: 'seduta' }),
     diario: 'Paziente messo in posizione semiseduta.',
     spiega: 'Alleggerisce il cuore e facilita l\'espansione del torace: dolore toracico e dispnea.',
   },
@@ -174,6 +174,28 @@ const ELENCO = [
     spiega: 'La sistolica sotto 100 orienta, sotto 90 è shock conclamato.',
   },
   {
+    id: 'refill', cat: 'valutazione', label: 'Test del riempimento capillare',
+    durata: 15, chi: ['tu'], rileva: 'refill',
+    /* Quindici secondi per un segno che arriva molto prima che la
+       pressione si muova. Si preme sull'unghia cinque secondi tenendo
+       la mano più in alto del cuore, e si conta quanto ci mette a
+       tornare il colore. Normale sotto i due secondi — Bolognin :6489. */
+    diario: (p) => `Riempimento capillare ${p.refill} secondi.`,
+    spiega: 'Sopra i due secondi la periferia è vasocostretta: il paziente sta compensando, anche se la pressione è ancora buona.',
+  },
+  {
+    id: 'colorito', cat: 'valutazione', label: 'Guarda il colorito e tocca la cute',
+    durata: 10, chi: ['tu'], rileva: 'cute',
+    diario: 'Guardi il colorito e tocchi la fronte e le mani.',
+    spiega: 'Pallore, cute fredda e sudorazione algida sono vasocostrizione: il sangue viene tolto alla pelle per darlo agli organi nobili.',
+  },
+  {
+    id: 'chiedi-sete', cat: 'valutazione', label: 'Chiedigli se ha sete',
+    durata: 10, chi: ['tu'], rileva: 'sete',
+    diario: (p) => (p.sete ? 'Dice che ha sete.' : 'Dice di no.'),
+    spiega: 'Il senso di sete è un segno di shock che il paziente riferisce da solo, se glielo chiedi.',
+  },
+  {
     id: 'polso-radiale', cat: 'valutazione', label: 'Cerca il polso radiale', durata: 15,
     chi: ['tu'], rileva: 'polso',
     diario: (p) => (p.polsoRadiale ? 'Polso radiale presente.' : 'Polso radiale assente: cerco il carotideo.'),
@@ -181,13 +203,13 @@ const ELENCO = [
   },
   {
     id: 'compressione', cat: 'C', label: 'Compressione diretta dell\'emorragia', durata: 30,
-    chi: ['tu'], unaVolta: true, applica: () => ({ tag: 'emostasi' }),
+    chi: ['tu'], unaVolta: true, applica: () => ({ tag: 'compressione' }),
     diario: 'Compressione diretta sulla ferita.',
     spiega: 'La X di X-ABCDE: un\'emorragia massiva si ferma prima di ogni altra cosa.',
   },
   {
     id: 'laccio', cat: 'C', label: 'Applica il laccio emostatico', durata: 60, chi: ['tu'],
-    unaVolta: true, applica: () => ({ tag: 'emostasi' }),
+    unaVolta: true, applica: () => ({ tag: 'laccio' }),
     diario: 'Laccio emostatico applicato, ora annotata.',
     spiega: 'Quando la compressione non basta. Si stringe finché smette, e si segna l\'ora.',
   },
@@ -286,7 +308,7 @@ const ELENCO = [
     motivoBloccato: (p, ctx) => (ctx.haLettura('glicemia')
       ? 'Non è abbastanza vigile per deglutire in sicurezza.'
       : 'Prima misura la glicemia: senza quel numero non sai cosa stai correggendo.'),
-    applica: () => ({ glicemia: +45, tag: 'zucchero' }),
+    applica: () => ({ tag: 'zucchero' }),
     diario: 'Zucchero somministrato per via orale.',
     spiega: 'Solo al paziente vigile e in grado di deglutire. Mai a chi non è sveglio.',
   },
@@ -295,7 +317,7 @@ const ELENCO = [
     durata: 45, chi: ['tu'], unaVolta: true,
     richiede: (p) => p.tag.includes('ha-autoiniettore'),
     motivoBloccato: 'Il paziente non ha con sé un autoiniettore.',
-    applica: () => ({ pas: +25, spo2: +5, tag: 'adrenalina' }),
+    applica: () => ({ tag: 'adrenalina' }),
     diario: 'Autoiniettore di adrenalina somministrato nella faccia laterale della coscia.',
     spiega: 'È il farmaco del paziente: il soccorritore lo assiste nell\'autosomministrazione.',
   },
@@ -415,7 +437,7 @@ const ELENCO = [
     chi: ['infermiere'], unaVolta: true,
     richiede: (p) => p.tag.includes('ev'),
     motivoBloccato: 'Serve prima un accesso venoso.',
-    applica: () => ({ pas: +18, tag: 'liquidi' }),
+    applica: () => ({ tag: 'liquidi' }),
     diario: 'Infusione di cristalloidi avviata.',
     spiega: 'Riempie il contenitore quando il problema è volume.',
   },
@@ -424,7 +446,7 @@ const ELENCO = [
     chi: ['infermiere'], unaVolta: true,
     richiede: (p, ctx) => ctx.haFatto('riferisci-infermiere'),
     motivoBloccato: 'L\'infermiere non sa ancora cosa ha davanti: riferiscigli il quadro.',
-    applica: () => ({ pas: +30, spo2: +6, tag: 'adrenalina' }),
+    applica: () => ({ tag: 'adrenalina' }),
     diario: 'Adrenalina somministrata intramuscolo.',
     spiega: 'Il farmaco dell\'anafilassi. Il cortisone nell\'acuto arriva troppo tardi.',
   },
@@ -444,7 +466,7 @@ const ELENCO = [
     motivoBloccato: (p, ctx) => (ctx.haLettura('glicemia')
       ? 'Serve prima un accesso venoso.'
       : 'L\'infermiere ti chiede la glicemia prima di somministrarla.'),
-    applica: () => ({ glicemia: +60, coscienza: 'A', tag: 'glucosata' }),
+    applica: () => ({ tag: 'glucosata' }),
     diario: 'Glucosata endovena: il paziente si riprende.',
     spiega: 'Per l\'ipoglicemico che non può deglutire.',
   },

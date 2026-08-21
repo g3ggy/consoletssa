@@ -341,3 +341,148 @@ test('la gravità cresce con ipotensione, ipossia e coscienza alterata', () => {
   assert.ok(gravita({ ...base, spo2: 85 }) > 0);
   assert.ok(gravita({ ...base, coscienza: 'U' }) > gravita({ ...base, coscienza: 'V' }));
 });
+
+/* ============= il motore col modello fisiologico ==================== */
+
+function casoFisiologico(extra = {}) {
+  return {
+    id: 'prova-fis', titolo: 'Caso fisiologico', motore: 3,
+    fisiologia: {
+      base: { fc: 72, pas: 135, pad: 82, spo2: 98, fr: 14, glicemia: 96 },
+      riserve: { volemia: 5000 },
+      offese: [{ tipo: 'emorragia', sede: 'interna', portata: 60 }],
+      modificatori: {},
+    },
+    eventi: [], soglie: [],
+    azioni: { necessarie: [], utili: [], dannose: [] },
+    ...extra,
+  };
+}
+
+test('un caso fisiologico parte dai parametri derivati, non dichiarati', () => {
+  const i = avvia(casoFisiologico());
+  assert.equal(i.stato.pas, 135);
+  assert.equal(i.stato.fc, 72);
+});
+
+test('col passare del tempo l\'emorragia si fa sentire', () => {
+  const i = avvia(casoFisiologico());
+  i.avanza(60 * 15);                       // quindici minuti, 900 ml
+  assert.ok(i.stato.fc > 90, `la frequenza doveva salire, invece è ${i.stato.fc}`);
+  assert.equal(i.stato.pas, 135, 'ma la pressione tiene ancora: è il compenso');
+});
+
+test('passato il ginocchio la pressione cede', () => {
+  const i = avvia(casoFisiologico());
+  i.avanza(60 * 28);                       // 1680 ml, oltre il 30%
+  assert.ok(i.stato.pas < 130, `la pressione doveva cedere, invece è ${i.stato.pas}`);
+});
+
+test('senza nessuno che intervenga il paziente arresta', () => {
+  const i = avvia(casoFisiologico());
+  i.avanza(60 * 50);
+  assert.equal(i.stato.esito === 'morto' || i.stato.tag.includes('arresto'), true,
+    'dopo cinquanta minuti di emorragia non trattata non si sta bene');
+});
+
+test('nell\'arresto i parametri restano fermi a zero', () => {
+  const i = avvia(casoFisiologico());
+  i.avanza(60 * 50);
+  assert.equal(i.stato.fc, 0, 'un paziente in arresto non ha frequenza');
+  assert.equal(i.stato.pas, 0);
+  assert.equal(i.stato.polsoRadiale, false);
+});
+
+test('l\'arresto da emorragia non è defibrillabile', () => {
+  const i = avvia(casoFisiologico());
+  i.avanza(60 * 50);
+  assert.equal(i.stato.ritmo, 'pea', 'il DAE non risolve un esanguinamento');
+});
+
+test('il vecchio formato con decorso continua a funzionare', () => {
+  const i = avvia(casoProva());
+  i.avanza(60);
+  assert.equal(i.stato.pas, 97, 'i casi senza blocco fisiologia non cambiano');
+});
+
+/* Nel formato 3 un provvedimento non muove un numero: mette un tag, e
+   sono le riserve a cambiare strada. */
+const AZIONI_FIS = {
+  ...AZIONI_PROVA,
+  liquidi: {
+    id: 'liquidi', cat: 'C', label: 'Infusione di liquidi',
+    durata: 30, chi: ['tu'], unaVolta: true,
+    applica: () => ({ tag: 'liquidi' }),
+    spiega: 'prova',
+  },
+};
+
+test('la posizione antishock tiene su la pressione anche nel formato 3', () => {
+  const senza = avvia(casoFisiologico(), AZIONI_FIS);
+  senza.avanza(60 * 32);
+  const con = avvia(casoFisiologico(), AZIONI_FIS);
+  con.esegui('antishock', 'tu');
+  con.avanza(60 * 32 - con.t);
+  assert.ok(con.stato.pas > senza.stato.pas,
+    `in antishock ${con.stato.pas}, senza ${senza.stato.pas}`);
+});
+
+test('i liquidi comprano tempo, e si vede nei parametri', () => {
+  const senza = avvia(casoFisiologico(), AZIONI_FIS);
+  senza.avanza(60 * 30);
+  const con = avvia(casoFisiologico(), AZIONI_FIS);
+  con.esegui('liquidi', 'tu');
+  con.avanza(60 * 30 - con.t);
+  assert.ok(con.stato.pas > senza.stato.pas,
+    `con la flebo ${con.stato.pas}, senza ${senza.stato.pas}`);
+});
+
+test('i segni del compenso si leggono solo se qualcuno li va a cercare', () => {
+  const AZIONI_SEGNI = {
+    ...AZIONI_FIS,
+    refill: { id: 'refill', cat: 'valutazione', label: 'Refill', durata: 15, chi: ['tu'], rileva: 'refill', spiega: 'prova' },
+    colorito: { id: 'colorito', cat: 'valutazione', label: 'Colorito', durata: 10, chi: ['tu'], rileva: 'cute', spiega: 'prova' },
+    'chiedi-sete': { id: 'chiedi-sete', cat: 'valutazione', label: 'Sete', durata: 10, chi: ['tu'], rileva: 'sete', spiega: 'prova' },
+  };
+  const i = avvia(casoFisiologico(), AZIONI_SEGNI);
+  i.avanza(60 * 18);                       // 1080 ml, in pieno compenso
+  assert.equal(i.valore('refill'), undefined, 'finché non lo fai non sai niente');
+
+  i.esegui('refill', 'tu');
+  i.esegui('colorito', 'tu');
+  i.esegui('chiedi-sete', 'tu');
+  assert.match(String(i.valore('refill')), /^[2-9](\.\d)? s$/, 'il refill è allungato');
+  assert.equal(i.valore('cute'), 'pallida, fredda, sudata');
+  assert.equal(i.valore('sete'), 'ha sete');
+});
+
+test('in arresto il saturimetro non legge più niente', () => {
+  const i = avvia(casoFisiologico(), AZIONI_FIS);
+  i.avanza(60 * 50);
+  assert.equal(i.stato.spo2, null,
+    'senza circolo la sonda al dito non ha niente da misurare: il riquadro resta a trattini');
+});
+
+test('nel formato 3 un effetto su una riserva agisce sulla riserva, non sul numero', () => {
+  const AZIONI_DOLORE = {
+    ...AZIONI_FIS,
+    calma: {
+      id: 'calma', cat: 'comunicazione', label: 'Rassicura', durata: 30, chi: ['tu'],
+      applica: () => ({ dolore: -3 }),
+      spiega: 'prova',
+    },
+  };
+  const caso = casoFisiologico({
+    fisiologia: {
+      base: { fc: 72, pas: 135, pad: 82, spo2: 98, fr: 14, glicemia: 96 },
+      riserve: { volemia: 5000, dolore: 8 },
+      offese: [],
+      modificatori: {},
+    },
+  });
+  const i = avvia(caso, AZIONI_DOLORE);
+  const prima = i.stato.fc;
+  i.esegui('calma', 'tu');
+  assert.equal(i.stato.dolore, 5, 'il dolore è sceso davvero, non per finta');
+  assert.ok(i.stato.fc < prima, 'e con lui la frequenza, perché la spinta adrenergica cala');
+});
