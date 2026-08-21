@@ -245,3 +245,56 @@ test('vale anche per «da», che nel debriefing dice chi te l\'ha detto', () => 
   assert.equal(daChi('gli agenti'), 'dagli agenti');
   assert.equal(daChi('Marco'), 'da Marco');
 });
+
+/* ==================== le risposte a varianti ======================== */
+
+const CON_VARIANTI = {
+  risposte: {
+    evento: {
+      paziente: [
+        { se: (tag) => tag.includes('in-disparte'),
+          t: '«…ho tirato.»', qualita: 'buona', rivela: ['cocaina'] },
+        { t: '«Eravamo a una festa.»', qualita: 'vaga' },
+      ],
+    },
+  },
+};
+
+const DOM_EVENTO = { id: 'evento', nonSo: 'non so', confuso: 'boh' };
+
+test('senza il tag vince la variante di ripiego', () => {
+  const r = rispostaA({ domanda: DOM_EVENTO, anamnesi: CON_VARIANTI, interlocutore: 'paziente', coscienza: 'A', tag: [] });
+  assert.match(r.testo, /festa/);
+  assert.deepEqual(r.rivela, []);
+});
+
+test('col tag giusto vince la variante che rivela', () => {
+  const r = rispostaA({ domanda: DOM_EVENTO, anamnesi: CON_VARIANTI, interlocutore: 'paziente', coscienza: 'A', tag: ['in-disparte'] });
+  assert.match(r.testo, /tirato/);
+  assert.deepEqual(r.rivela, ['cocaina']);
+});
+
+test('senza tag passati non esplode e prende il ripiego', () => {
+  const r = rispostaA({ domanda: DOM_EVENTO, anamnesi: CON_VARIANTI, interlocutore: 'paziente', coscienza: 'A' });
+  assert.match(r.testo, /festa/);
+});
+
+test('un elenco senza nessuna variante buona vale come non saperlo', () => {
+  const soloSe = { risposte: { evento: { paziente: [{ se: (tag) => tag.includes('mai'), t: 'x', qualita: 'buona' }] } } };
+  const r = rispostaA({ domanda: DOM_EVENTO, anamnesi: soloSe, interlocutore: 'paziente', coscienza: 'A', tag: [] });
+  assert.equal(r.ripiego, 'nonSo');
+});
+
+test('a coscienza V la variante non serve: risponde confuso lo stesso', () => {
+  const r = rispostaA({ domanda: DOM_EVENTO, anamnesi: CON_VARIANTI, interlocutore: 'paziente', coscienza: 'V', tag: ['in-disparte'] });
+  assert.equal(r.ripiego, 'confuso');
+});
+
+test('la revisione sa che chi ha varianti poteva rispondere meglio', () => {
+  const caso = { anamnesi: CON_VARIANTI };
+  const r = revisioneAnamnesi(caso, [
+    { domanda: 'evento', interlocutore: 'paziente', qualita: 'vaga', rivela: [], ripiego: null, t: 30 },
+  ]);
+  assert.equal(r.voci.length, 1);
+  assert.doesNotThrow(() => JSON.stringify(r.avvisi));
+});

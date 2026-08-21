@@ -75,8 +75,23 @@ export function puoRispondere(idInterlocutore, coscienza) {
  * @param {string} coscienza      AVPU del paziente in questo momento
  * @returns {{testo: string, qualita: string, rivela: string[], ripiego: string|null}}
  */
-export function rispostaA({ domanda, anamnesi, interlocutore, coscienza }) {
-  const scritta = anamnesi?.risposte?.[domanda.id]?.[interlocutore];
+/* Una risposta può essere scritta in più varianti, e vince la prima il
+   cui `se(tag)` combacia. Serve a una cosa sola, ma importante: la
+   stessa persona risponde diversamente a seconda di CHI STA
+   ASCOLTANDO. Il capitolo 33 degli appunti è esplicito — la domanda
+   sulle sostanze va fatta in disparte, senza amici o familiari
+   presenti, e allora arriva una verità «che il paziente non aveva detto
+   a nessun altro».
+
+   Chi scrive un oggetto solo, come hanno fatto tutti i casi finora,
+   continua a funzionare senza saperne niente. */
+function variante(scritta, tag) {
+  if (!Array.isArray(scritta)) return scritta;
+  return scritta.find((v) => !v.se || v.se(tag)) || null;
+}
+
+export function rispostaA({ domanda, anamnesi, interlocutore, coscienza, tag = [] }) {
+  const scritta = variante(anamnesi?.risposte?.[domanda.id]?.[interlocutore], tag);
 
   /* Nessuno è obbligato a sapere tutto: se il caso non ha scritto la
      risposta per questa persona, quella persona non lo sa. È il modo di
@@ -156,8 +171,14 @@ export function revisioneAnamnesi(caso, raccolte = []) {
     .filter((v) => v.qualita !== 'buona')
     .map((v) => {
       const risposte = caso?.anamnesi?.risposte?.[v.domanda] || {};
+      /* Una risposta a varianti vale per la MIGLIORE che dichiara: se
+         una delle sue vie porta a una risposta buona, quella persona
+         «avrebbe risposto meglio». */
+      const dichiaraBuona = (r) => (Array.isArray(r)
+        ? r.some((x) => x?.qualita === 'buona')
+        : r?.qualita === 'buona');
       const chiSapeva = Object.keys(risposte)
-        .filter((id) => risposte[id]?.qualita === 'buona')
+        .filter((id) => dichiaraBuona(risposte[id]))
         .filter((id) => !raccolte.some((r) => r.domanda === v.domanda && r.interlocutore === id));
       if (!chiSapeva.length) return null;
       return `${etichetta(chiSapeva[0])} avrebbe risposto meglio: chiedere a chi c'è costa pochi secondi.`;
