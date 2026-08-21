@@ -171,3 +171,35 @@ test('la coscienza si altera solo quando il compenso non basta più', () => {
   assert.equal(segni(compensato, BASE, {}).coscienza, 'A');
   assert.notEqual(segni(scompensato, BASE, {}).coscienza, 'A');
 });
+
+/* ==================== i parametri visibili ========================== */
+
+import { parametriVisibili } from '../assets/js/core/fisiologia.js';
+
+test('i parametri visibili mettono insieme circolo, respiro e segni', () => {
+  const p = parametriVisibili(riserveIniziali({ volemia: 5000 }), BASE, {});
+  for (const k of ['fc', 'pas', 'pad', 'spo2', 'fr', 'coscienza', 'cute', 'refill', 'polsoRadiale']) {
+    assert.ok(k in p, `manca ${k}`);
+  }
+});
+
+test('la saturazione viene dall\'ossigenazione, non dalla volemia', () => {
+  const sanguinante = { ...riserveIniziali({ volemia: 5000 }), volemia: 3500 };
+  const ipossico = { ...riserveIniziali({}), ossigenazione: 0.85 };
+  assert.ok(parametriVisibili(sanguinante, BASE, {}).spo2 > 94, 'chi sanguina satura ancora bene');
+  assert.ok(parametriVisibili(ipossico, BASE, {}).spo2 < 92, 'chi non ventila no');
+});
+
+test('il dolore alza frequenza e pressione', () => {
+  const calmo = riserveIniziali({});
+  const dolorante = { ...riserveIniziali({}), dolore: 9 };
+  const a = parametriVisibili(calmo, BASE, {});
+  const b = parametriVisibili(dolorante, BASE, {});
+  assert.ok(b.fc > a.fc, 'il dolore fa battere il cuore più forte');
+  assert.ok(b.pas > a.pas, 'e alza la pressione');
+});
+
+test('la glicemia bassa altera la coscienza anche senza perdita di sangue', () => {
+  const r = { ...riserveIniziali({}), glicemia: 35 };
+  assert.notEqual(parametriVisibili(r, BASE, {}).coscienza, 'A');
+});

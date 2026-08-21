@@ -179,3 +179,63 @@ export function segni(riserve, base, modificatori = {}) {
     fase,
   };
 }
+
+/* Quanto il dolore alza frequenza e pressione, per punto di scala.
+   ASSUNZIONE NOSTRA: il Bolognin dice che succede (:6481), non di
+   quanto. */
+const SPINTA_DOLORE_FC = 3.5;
+const SPINTA_DOLORE_PAS = 2.5;
+
+const PESO_COSCIENZA = { A: 0, V: 1, P: 2, U: 3 };
+const SCALA_COSCIENZA = ['A', 'V', 'P', 'U'];
+
+/** Il peggiore fra due stati di coscienza. */
+function peggiore(a, b) {
+  return SCALA_COSCIENZA[Math.max(PESO_COSCIENZA[a] ?? 0, PESO_COSCIENZA[b] ?? 0)];
+}
+
+/**
+ * Tutto quello che un soccorritore può misurare o vedere addosso al
+ * paziente, calcolato dalle riserve. Nessuno di questi valori è
+ * memorizzato da qualche parte: escono da qui ogni volta.
+ */
+export function parametriVisibili(riserve, base, modificatori = {}) {
+  const c = circolo(riserve, base, modificatori);
+  const s = segni(riserve, base, modificatori);
+
+  /* Il dolore tira su frequenza e pressione per via adrenergica: è
+     compenso anche quello, e maschera l'ipovolemia. */
+  const fc = Math.round(c.fc + riserve.dolore * SPINTA_DOLORE_FC);
+  const pas = Math.round(c.pas + riserve.dolore * SPINTA_DOLORE_PAS);
+
+  const spo2 = Math.round(fra(riserve.ossigenazione * 100, 50, 100));
+
+  /* Si respira più in fretta per due motivi diversi: perché manca
+     ossigeno, o perché manca sangue da ossigenare. */
+  const fr = Math.round(fra(
+    base.fr + (s.tachipnea ? 10 : 0) + Math.max(0, (0.95 - riserve.ossigenazione) * 100),
+    0, 60,
+  ));
+
+  /* Sotto i 50 di glicemia la coscienza va, e non c'entra niente col
+     sangue: è il quadro che si confonde con l'ictus e con l'ubriaco. */
+  const daGlicemia = riserve.glicemia < 30 ? 'P' : (riserve.glicemia < 50 ? 'V' : 'A');
+
+  return {
+    fc: fra(fc, 0, 220),
+    pas: fra(pas, 0, 300),
+    /* mai sotto zero: un monitor non stampa una diastolica negativa */
+    pad: Math.max(0, Math.min(c.pad, fra(pas, 0, 300) - 8)),
+    spo2,
+    fr,
+    glicemia: Math.round(riserve.glicemia),
+    dolore: Math.round(riserve.dolore),
+    coscienza: peggiore(s.coscienza, daGlicemia),
+    cute: s.cute,
+    refill: s.refill,
+    sete: s.sete,
+    polsoRadiale: c.polsoRadiale,
+    fase: c.fase,
+    perdita: c.perdita,
+  };
+}
