@@ -124,3 +124,36 @@ test('le voci senza giudizio non contano: una decisione non è un gesto', () => 
   assert.equal(r.secondi, 0);
   assert.deepEqual(r.voci, []);
 });
+
+/* ==================== il catalogo vero ============================== */
+
+import { INDICAZIONI } from '../assets/js/data/indicazioni.js';
+import { AZIONI } from '../assets/js/data/azioni.js';
+
+test('ogni indicazione parla di un\'azione che esiste', () => {
+  Object.keys(INDICAZIONI).forEach((id) => {
+    assert.ok(AZIONI[id], `${id}: indicazione per un'azione che non c'è`);
+  });
+});
+
+test('ogni indicazione dice perché, e da dove viene', () => {
+  Object.entries(INDICAZIONI).forEach(([id, r]) => {
+    assert.equal(typeof r.quando, 'function', `${id}: manca il predicato`);
+    assert.ok(r.perche?.length > 40, `${id}: il perché è troppo corto per insegnare qualcosa`);
+    assert.ok(r.fonte?.length, `${id}: manca la fonte`);
+  });
+});
+
+test('nessun predicato esplode su un contesto vuoto', () => {
+  /* Un contesto minimo capita davvero: primo secondo, niente misurato,
+     niente chiesto. */
+  const vuoto = { t: 0, coscienza: 'A', letture: {}, saputo: {}, tag: [], caso: { tipo: 'medico' } };
+  Object.entries(INDICAZIONI).forEach(([id, r]) => {
+    assert.doesNotThrow(() => r.quando(vuoto), `${id}: esplode sul contesto vuoto`);
+  });
+});
+
+test('si copre almeno la ventina di azioni su cui si sbaglia', () => {
+  assert.ok(Object.keys(INDICAZIONI).length >= 20,
+    `sono ${Object.keys(INDICAZIONI).length}`);
+});
