@@ -53,10 +53,12 @@ assets/js/
     suoni.js          sintesi Web Audio dei toni del monitor (IEC 60601-1-8)
     ecg12.js          12 derivazioni su carta millimetrata, stampabile
     cartellino.js     replica del cartellino di CO118
-    sim-engine.js     motore v2 a turni, logica pura, testato
+    sim-engine.js     motore a turni, logica pura, testato
+    fisiologia.js     riserve → compenso → parametri visibili. Logica pura
     manual.js markdown.js ribbon.js
   data/               solo dati, nessun DOM
-    casi.js           casi per il motore v2
+    casi.js           casi per il motore a tempo (formato 3: offese, non derive)
+    offese.js         catalogo delle offese: che cosa fa male al paziente
     scenari.js        i 12 scenari a domande (motore vecchio)
     scenari-arrivo.js arrivo/situazione/azioniSbagliate/deriva per ogni scenario
     azioni.js         catalogo azioni della palette
@@ -71,10 +73,28 @@ content/manuale.md    il manuale che il modulo Studio legge
 Due motori di simulazione convivono:
 
 - **`modules/simulazioni.js`** — il vecchio, a 8 passi con domande. Dodici scenari.
-- **`modules/intervento.js` + `core/sim-engine.js`** — il nuovo, a tempo, con
-  squadra di tre, palette di azioni, diario e debriefing. Due casi.
+- **`modules/intervento.js` + `core/sim-engine.js` + `core/fisiologia.js`** — il
+  nuovo, a tempo, con squadra di tre, palette di azioni, diario e debriefing.
+  Due casi, `shock-v3` e `toracico-v3`.
 
-La conversione degli altri dieci scenari sul motore v2 è lavoro ancora da fare.
+Nel motore nuovo il caso **non dichiara più di quanto peggiora**: dichiara la
+causa (`fisiologia.offese`) e le riserve nascoste — volemia, ossigenazione,
+glicemia, contrattilità, tono vascolare, dolore. I parametri che si vedono non
+sono memorizzati da nessuna parte: si calcolano a ogni lettura. Il compenso
+tiene la pressione mentre il sangue se ne va, e quando cede il paziente arriva
+all'arresto — col ritmo che dipende dalla causa: FV nell'ischemia (il DAE
+scarica), PEA nell'emorragia e nell'ipossia (non scarica).
+
+I segni del compenso — refill, colorito, sete — **non compaiono nel diario da
+soli**: ci sono le azioni che li cercano. Chi guarda solo il monitor non vede
+niente finché non è tardi, ed è la lezione del banco.
+
+Le costanti cliniche portano la fonte nel commento. Due sono **assunzione
+nostra** e vanno riviste se arriva il manuale: le soglie 15/30/40% della perdita
+(il Bolognin dà solo il 25% pediatrico, :7636 — servirebbe il PTC Base completo)
+e di quanto la RCP appiattisce la curva di sopravvivenza.
+
+La conversione degli altri dieci scenari sul motore nuovo è lavoro ancora da fare.
 
 ---
 
@@ -136,15 +156,16 @@ ricarica-e-svuota-cache, ma la cura è bumpare sempre tutti e tre i punti.
 
 ## Cosa resta da fare
 
-**In corso.** Il motore fisiologico a offese: il caso dichiara la causa e il
-decorso emerge da riserve nascoste e compenso, fino all'arresto e alla morte.
-Specifica e piano sono scritti e approvati:
+**Fatto in 1.7.0.** Il motore fisiologico a offese. Specifica e piano restano
+come storia della decisione:
 
 - `docs/superpowers/specs/2026-08-21-motore-fisiologico-offese-design.md`
 - `docs/superpowers/plans/2026-08-21-motore-fisiologico-offese.md`
 
-Il piano è in TDD, quindici task, e va eseguito da lì. Tutto il resto qui sotto
-viene dopo.
+**Il prossimo pezzo** è l'**anamnesi a domande**: la forma dei dati è già
+disegnata nella sezione 7 della specifica, manca il comportamento. È lì che il
+betabloccante di `shock-v3` si scopre facendo la domanda giusta — oggi agisce
+sul paziente senza che il soccorritore abbia modo di saperlo.
 
 - **BLS-D, triage, manovre**: moduli non ancora scritti. Le fonti ci sono tutte e gli
   agganci stanno in `tmp/testi/FONTI.md`: il BLS-D si scrive sul capitolo 4 delle ERC

@@ -102,14 +102,14 @@ const DETTAGLI = {
     data: '18/08/2026 15:36:27', persone: 'SOLA',
   },
   /* casi del motore in tempo simulato */
-  'toracico-v2': {
+  'toracico-v3': {
     patologia: 'CARDIOCIRCOLATORIA', luogo: 'ABITAZIONE',
     giudizio: 'DOLORE TORACICO DA 40 MIN', collaborativo: 'SI',
     note: 'SECONDO PIANO, SCALE STRETTE, NO ASCENSORE',
     coordinate: '[41.9027 12.4963]', operatore: '50412',
     data: '18/08/2026 07:42:11', persone: 'SOLA',
   },
-  'shock-v2': {
+  'shock-v3': {
     patologia: 'ALTRA PATOLOGIA', luogo: 'ABITAZIONE',
     giudizio: 'SI SENTE FIACCO', collaborativo: 'SI',
     note: 'CHIAMA LA MOGLIE — NIENTE ALTRO RIFERITO',
