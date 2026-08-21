@@ -1,0 +1,43 @@
+/* Controlli di integrità sul catalogo delle domande.
+   Esecuzione: node --test tests/ */
+
+import test from 'node:test';
+import assert from 'node:assert/strict';
+
+import { DOMANDE, DOMANDE_ELENCO } from '../assets/js/data/domande.js';
+
+test('ci sono le sei del SAMPLE e le sei dell\'OPQRST', () => {
+  const sample = DOMANDE_ELENCO.filter((d) => d.schema === 'SAMPLE');
+  const opqrst = DOMANDE_ELENCO.filter((d) => d.schema === 'OPQRST');
+  assert.equal(sample.length, 6, 'il SAMPLE ha sei lettere');
+  assert.equal(opqrst.length, 6, 'l\'OPQRST ne ha sei');
+  assert.deepEqual(sample.map((d) => d.lettera), ['S', 'A', 'M', 'P', 'L', 'E']);
+  assert.deepEqual(opqrst.map((d) => d.lettera), ['O', 'P', 'Q', 'R', 'S', 'T']);
+});
+
+test('ogni domanda è completa', () => {
+  DOMANDE_ELENCO.forEach((d) => {
+    assert.ok(d.id, 'manca l\'id');
+    assert.ok(d.testo && d.testo.length > 10, `${d.id}: la domanda è troppo corta`);
+    assert.ok(d.durata >= 15 && d.durata <= 25, `${d.id}: durata fuori scala`);
+    assert.ok(d.nonSo, `${d.id}: manca cosa succede se non lo sa`);
+    assert.ok(d.confuso, `${d.id}: manca la risposta del paziente confuso`);
+  });
+});
+
+test('gli id sono unici e l\'indice combacia con l\'elenco', () => {
+  const ids = DOMANDE_ELENCO.map((d) => d.id);
+  assert.equal(new Set(ids).size, ids.length, 'ci sono id ripetuti');
+  ids.forEach((id) => assert.equal(DOMANDE[id].id, id));
+});
+
+test('le domande sul dolore compaiono solo se il paziente ha male', () => {
+  const opqrst = DOMANDE_ELENCO.filter((d) => d.schema === 'OPQRST');
+  opqrst.forEach((d) => {
+    assert.ok(typeof d.richiede === 'function', `${d.id}: manca richiede()`);
+    assert.equal(d.richiede({ dolore: 0 }), false, `${d.id}: non deve comparire senza dolore`);
+    assert.equal(d.richiede({ dolore: 6 }), true, `${d.id}: deve comparire col dolore`);
+  });
+  DOMANDE_ELENCO.filter((d) => d.schema === 'SAMPLE')
+    .forEach((d) => assert.ok(!d.richiede, `${d.id}: il SAMPLE si chiede sempre`));
+});
