@@ -411,3 +411,38 @@ test('l\'esogeno è quello che il compenso da ipovolemia non copre già', () => 
 test('si può chiamare su riserve incomplete senza esplodere', () => {
   assert.doesNotThrow(() => allarme({ volemia: 5000, volemiaIniziale: 5000 }));
 });
+
+/* ============ la frequenza e la pressione dall'asse ================== */
+
+test('la cocaina fa correre il cuore senza che manchi niente', () => {
+  const p = parametriVisibili(riserveIniziali({ tonoAutonomo: 1.4 }), BASE, {});
+  assert.ok(p.fc > 130, `un normovolemico iperadrenergico deve correre: invece è ${p.fc}`);
+  assert.equal(p.perdita, 0, 'e non ha perso una goccia di sangue');
+});
+
+test('il tono vagale rallenta il cuore, che prima non sapeva scendere', () => {
+  const p = parametriVisibili(riserveIniziali({ tonoAutonomo: -0.4 }), BASE, {});
+  assert.ok(p.fc < BASE.fc, `deve scendere sotto la sua base: invece è ${p.fc}`);
+});
+
+test('il compenso bloccato ferma la tachicardia ma non la bradicardia', () => {
+  const su = parametriVisibili(riserveIniziali({ tonoAutonomo: 1.4 }), BASE, { compensoBloccato: true });
+  assert.equal(su.fc, BASE.fc, 'il betabloccante non lo fa accelerare');
+  const giu = parametriVisibili(riserveIniziali({ tonoAutonomo: -0.4 }), BASE, { compensoBloccato: true });
+  assert.ok(giu.fc < BASE.fc, 'ma un betabloccato può benissimo essere bradicardico');
+});
+
+test('la spinta pressoria prende solo l\'allarme esogeno', () => {
+  /* Il sostegno della vasocostrizione da ipovolemia è già dentro la
+     tenuta: se lo contassimo anche qui, un emorragico avrebbe una
+     pressione più alta di quella che ha. 4400 su 5000 è il 12% di
+     perdita, sotto la soglia in cui la tenuta comincia a cedere. */
+  const soloPerdita = { ...riserveIniziali({ volemia: 5000 }), volemia: 4400 };
+  const p = parametriVisibili(soloPerdita, BASE, {});
+  assert.equal(p.pas, BASE.pas, 'finché il compenso tiene, la sistolica è la sua');
+});
+
+test('il dolore alza la pressione come prima, non il doppio', () => {
+  const p = parametriVisibili(riserveIniziali({ dolore: 10 }), BASE, {});
+  assert.equal(p.pas, BASE.pas + 25, 'venticinque mmHg a dolore dieci, come prima');
+});

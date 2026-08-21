@@ -126,10 +126,19 @@ export function allarme(riserve = {}) {
   return fra(daPerdita + allarmeEsogeno(riserve), -1, 2);
 }
 
-/* Quanto sale la frequenza a fronte della perdita. Tarato perché a
-   metà del compenso (30%) un paziente da 72 arrivi intorno a 120, che
-   è quello che si vede sul mezzo. ASSUNZIONE NOSTRA. */
-const GUADAGNO_TACHICARDIA = 160;
+/* Quanto sale la frequenza per ogni punto di allarme.
+
+   48 non è scelto a occhio: è il numero per cui
+   `48 × (perdita / 0.30) ≡ 160 × perdita`, cioè esattamente il guadagno
+   che il motore aveva prima quando l'unico innesco era il sangue che
+   mancava. Passare all'asse non muove di un battito i casi che hanno
+   solo un'emorragia, e c'è un test che lo fissa. ASSUNZIONE NOSTRA,
+   ereditata. */
+const GUADAGNO_ALLARME = 48;
+
+/* Quanto l'allarme spinge la sistolica, per punto. Scelto allo stesso
+   modo: 25 × (dolore/10) ≡ 2,5 × dolore, il guadagno di prima. */
+const SPINTA_ALLARME_PAS = 25;
 
 /* Di quanta perdita in più la pressione si riduce a un terzo, una volta
    che il compenso ha ceduto. La caduta è esponenziale e non lineare per
@@ -194,9 +203,16 @@ export function circolo(riserve, base, modificatori = {}) {
      sulla sua frequenza mentre la pressione se ne va. È il quadro
      della lesione mielica (Bolognin :6487) e quello di chi prende un
      betabloccante. */
+  /* La frequenza segue l'allarme, non più la sola perdita: un
+     iperadrenergico corre senza aver perso niente, e un vagale scende
+     sotto la sua base — cosa che prima il motore non sapeva fare.
+
+     Il compenso bloccato blocca SOLO il lato positivo: un betabloccato
+     non diventa tachicardico, ma bradicardico sì, eccome. */
+  const a = allarme(riserve);
   const fc = bloccato
-    ? base.fc
-    : Math.round(base.fc + GUADAGNO_TACHICARDIA * perdita * riserve.contrattilita);
+    ? Math.round(base.fc + GUADAGNO_ALLARME * Math.min(0, a))
+    : Math.round(base.fc + GUADAGNO_ALLARME * a * riserve.contrattilita);
 
   /* La posizione agisce sulla TENUTA, non sulla pressione: alzare le
      gambe a chi non ha perso niente non lo fa diventare iperteso, ma a
@@ -274,12 +290,6 @@ export function segni(riserve, base, modificatori = {}) {
   };
 }
 
-/* Quanto il dolore alza frequenza e pressione, per punto di scala.
-   ASSUNZIONE NOSTRA: il Bolognin dice che succede (:6481), non di
-   quanto. */
-const SPINTA_DOLORE_FC = 3.5;
-const SPINTA_DOLORE_PAS = 2.5;
-
 const PESO_COSCIENZA = { A: 0, V: 1, P: 2, U: 3 };
 const SCALA_COSCIENZA = ['A', 'V', 'P', 'U'];
 
@@ -297,12 +307,20 @@ export function parametriVisibili(riserve, base, modificatori = {}) {
   const c = circolo(riserve, base, modificatori);
   const s = segni(riserve, base, modificatori);
 
-  /* Il dolore tira su frequenza e pressione per via adrenergica: è
-     compenso anche quello, e maschera l'ipovolemia. La scala arriva a
-     dieci: oltre, il paziente non ha modo di dirtelo. */
+  /* La scala del dolore arriva a dieci: oltre, il paziente non ha modo
+     di dirtelo. */
   const dolore = fra(riserve.dolore, 0, 10);
-  const fc = Math.round(c.fc + dolore * SPINTA_DOLORE_FC);
-  const pas = Math.round(c.pas + dolore * SPINTA_DOLORE_PAS);
+
+  /* La frequenza esce già dall'asse dentro `circolo`, e il dolore è uno
+     dei termini dell'asse: sommarlo di nuovo qui lo conterebbe due
+     volte. */
+  const fc = c.fc;
+
+  /* La pressione la spinge solo l'allarme che NON viene dal sangue
+     mancante: quello lì la sostiene già attraverso la tenuta, e
+     contarlo due volte darebbe a un emorragico una pressione che non
+     ha. */
+  const pas = Math.round(c.pas + SPINTA_ALLARME_PAS * Math.max(0, allarmeEsogeno(riserve)));
 
   const spo2 = Math.round(fra(riserve.ossigenazione * 100, 50, 100));
 
