@@ -146,7 +146,9 @@ ha perso un litro e mezzo di sangue. Il pavimento a −1 è il vago pieno.
 | `pas` | spinta di `25 × max(0, allarmeEsogeno)` | solo l'esogeno: il sostegno della vasocostrizione da ipovolemia è già dentro `tenuta`, contarlo due volte sarebbe un errore. `25 × 1` a dolore 10 è **identico a oggi** |
 | `cute` | soglie su `|allarme|` | il valore assoluto perché il capitolo 28 mette «sudorazione, pallore, offuscamento visivo» fra i **prodromi vagali**: le due forze opposte danno la stessa cute. Le soglie 0,33 e 0,67 riproducono le attuali 10% e 20% di perdita |
 | `pupille` | `allarme ≥ 0.8` → `'midriatiche'`, altrimenti `'normali'` | **campo nuovo**. Solo sul lato positivo: il vago non dà midriasi |
+| `fr` | tachipnea quando `allarme ≥ 0.5` | la soglia è equivalente a quella di oggi (perdita 15% ≡ allarme 0,5), e il capitolo 27 mette il respiro «più profondo e frequente» fra i segni. Senza, `cocaina-v3` dovrebbe dichiarare `base.fr: 26` a mano |
 | `refill`, `sete` | **invariati**, sulla perdita | misurano il volume, non l'allarme |
+| `coscienza` | **invariata** | l'agitazione da sostanze non è un'alterazione dell'AVPU |
 
 **Il lato negativo ha due volani, e non è un doppione.** Il vago
 rallenta il cuore *e* allarga i vasi, e nel motore sono due riserve
@@ -177,7 +179,7 @@ Il conto è dichiarato prima di scrivere il codice, e diventa test.
 |---|---|---|
 | `shock-v3` | **niente**, a nessun parametro | compenso bloccato, dolore 0, solo emorragia |
 | `ictus-v3` | **niente** | allarme 0 su tutti i termini |
-| `toracico-v3` | frequenza su di ~10, e la **cute diventa pallida-fredda-sudata** | ha dolore 7: il quadro classico dell'infarto è pallido e sudato (Bolognin :6481). Oggi ha cute normale, ed è sbagliato |
+| `toracico-v3` | frequenza su di ~10, **cute pallida-fredda-sudata**, **respiro da 16 a 26** | ha dolore 7: il quadro classico dell'infarto è pallido, sudato e dispnoico (Bolognin :6481). Oggi ha cute normale e respiro tranquillo, ed è sbagliato |
 | `incidente-v3` | frequenza su di ~5 | ha ipossia in corso. La lezione — sistolica che sale mentre sanguina, differenziale che si stringe — non cambia |
 | `ipoglicemia-v3` | **tachicardico e sudato da solo** | Bolognin :4287. Il buco noto si chiude, e i passanti che dicono «è ubriaco» adesso hanno davanti un paziente che gli somiglia davvero |
 | `sincope-v3` | la frequenza 58 finta **muore** | diventa `tonoAutonomo` negativo. La bradicardia e il pallore escono dal modello, e **un'assunzione nostra sparisce da CLAUDE.md** |
@@ -411,7 +413,7 @@ ERC 2025 capitolo 12 **:1125** — la soglia dei 70 mg/dl.
   questi fatti allarmano, non quanto ciascuno pesi;
 - **il guadagno 48 sulla frequenza e 25 sulla pressione** — scelti per
   riprodurre esattamente i numeri di oggi, non trovati in una fonte;
-- **le soglie 0,33 e 0,67 della cute** e **0,8 della midriasi**;
+- **le soglie 1/3 e 2/3 della cute**, **0,5 della tachipnea** e **1,2 della midriasi** — le prime tre scelte per riprodurre esattamente le soglie di perdita di oggi (10%, 20%, 15%), la midriasi messa **oltre l'1,0**, cioè oltre il compenso pieno, perché se comparisse a ogni dolore forte smetterebbe di essere un indizio;
 - **il tetto a 2 e il pavimento a −1** dell'asse;
 - **`picco`, `calmo` e `costante`** del simpaticomimetico: nessuna fonte
   dà una curva della cocaina in circolo, e il tempo di scena non arriva
