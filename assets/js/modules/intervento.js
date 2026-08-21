@@ -212,7 +212,11 @@ function aggiornaSquadra() {
 
 /* =============================== DIARIO ============================= */
 function aggiornaDiario() {
-  mount(n.diario, ...sim.diario.map((r) => el(`div.riga.${r.tipo}`, {}, [
+  /* In modalità esame nessuno ti corregge mentre lavori. Le righe del
+     giudizio il motore le scrive comunque: si vedono tutte alla fine,
+     nel debriefing, che il diario lo mostra per intero. */
+  const righe = sim.diario.filter((r) => !(modalitaEsame && r.tipo === 'giudizio'));
+  mount(n.diario, ...righe.map((r) => el(`div.riga.${r.tipo}`, {}, [
     el('span.ora', { text: formatSeconds(r.t) }),
     el('span.seg', { text: ICONA_RIGA[r.tipo] || '·' }),
     el('span.txt', { text: r.testo }),

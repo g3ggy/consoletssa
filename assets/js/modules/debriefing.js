@@ -22,7 +22,7 @@ import { DOMANDE } from '../data/domande.js';
    direzione sola: intervento importa dal debriefing, mai il contrario. */
 export const ICONA_RIGA = {
   osservazione: '👁', azione: '›', squadra: '»', evento: '!', allarme: '⚠', esito: '■',
-  risposta: '“',
+  risposta: '“', giudizio: '⚠', sospetto: '?',
 };
 
 /* ============================ DEBRIEFING ============================ */

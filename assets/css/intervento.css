@@ -78,6 +78,13 @@
 .riga.allarme .txt { color: var(--cri); font-weight: 600; }
 .riga.allarme .seg { color: var(--cri); }
 
+/* Il gesto che non serviva: ambra come gli eventi, perché non è un
+   errore che fa male al paziente — è tempo che se ne va. Il rosso resta
+   per le cose che gli fanno danno. */
+.riga.giudizio .txt { color: var(--amber); }
+.riga.giudizio .seg { color: var(--amber); }
+.riga.sospetto .txt { color: var(--ink-3); font-style: italic; }
+
 /* ----------------------------- decisione --------------------------- */
 .decisione {
   border: 1px solid var(--amber); background: var(--amber-soft);
