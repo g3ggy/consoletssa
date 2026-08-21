@@ -26,6 +26,11 @@ import {
   verificaArresto as arrestoDaRiserve,
 } from './fisiologia.js';
 import { applicaOffese, applicaTerapie, compensoBloccato } from '../data/offese.js';
+import {
+  PAZIENTE, interlocutoriDi, puoRispondere, rispostaA, domandeDisponibili,
+  revisioneAnamnesi,
+} from './anamnesi.js';
+import { DOMANDE } from '../data/domande.js';
 
 /* Chiavi che derivano nel tempo secondo `decorso`. */
 const DERIVATE = ['pas', 'pad', 'fc', 'spo2', 'temp', 'glicemia', 'fr', 'dolore'];
@@ -85,6 +90,9 @@ export function creaIntervento(caso, opzioni = {}) {
   const membri = opzioni.membri || ['tu', 'autista', 'infermiere'];
   const COSTO_DELEGA = opzioni.costoDelega ?? 5;
 
+  /* Voltarsi verso un'altra persona costa quanto voltarsi. */
+  const COSTO_VOLTARSI = opzioni.costoVoltarsi ?? 10;
+
   /* ------------------------------ stato ---------------------------- */
   /* Un caso di formato 3 porta le sue riserve: da lì escono i parametri.
      I casi vecchi non hanno il blocco `fisiologia` e continuano a
@@ -119,6 +127,12 @@ export function creaIntervento(caso, opzioni = {}) {
   let decisionePendente = null;
   let arrestoA = null;
   let storico = [];                 // { t, pas, fc, spo2 } per il grafico finale
+
+  /* Con chi stai parlando adesso. Ti giri una volta e da lì tutte le
+     domande vanno a lui, finché non ti giri di nuovo. */
+  let interlocutore = PAZIENTE.id;
+  let raccolte = [];                // { domanda, interlocutore, qualita, rivela, ripiego, t }
+  let saputo = {};                  // { chiave: { da, t } } — quello che hai scoperto
   const ascoltatori = new Set();
 
   /* Il paziente di formato 3 non dichiara i parametri: all'arrivo si
@@ -523,6 +537,64 @@ export function creaIntervento(caso, opzioni = {}) {
     return l ? t - l.t : null;
   }
 
+  /* ----------------------------- anamnesi -------------------------- */
+  const etichettaInterlocutore = (id) => interlocutoriDi(caso).find((i) => i.id === id)?.label || id;
+
+  /** Ti giri verso un'altra persona presente sulla scena. */
+  function rivolgitiA(id) {
+    if (decisionePendente) return { ok: false, motivo: 'Prima rispondi a quello che sta succedendo.' };
+    if (ancora.esito !== 'in-corso') return { ok: false, motivo: 'L\'intervento è chiuso.' };
+    if (!interlocutoriDi(caso).some((i) => i.id === id)) {
+      return { ok: false, motivo: 'Qui non c\'è nessuno con cui parlare.' };
+    }
+    if (id === interlocutore) return { ok: true };
+    if (squadra.tu?.liberoA > t) return { ok: false, motivo: 'Sei occupato.' };
+
+    interlocutore = id;
+    avanza(COSTO_VOLTARSI);
+    scrivi('azione', `Ti giri verso ${etichettaInterlocutore(id)}.`, `interlocutore:${id}`);
+    notifica();
+    return { ok: true };
+  }
+
+  /**
+   * Fai una domanda a chi hai davanti. La risposta arriva alla fine
+   * della domanda, non all'inizio: se nel frattempo il paziente
+   * peggiora, ti risponde com'è adesso.
+   */
+  function chiedi(idDomanda) {
+    const d = DOMANDE[idDomanda];
+    if (!d) return { ok: false, motivo: 'Domanda sconosciuta.' };
+    if (decisionePendente) return { ok: false, motivo: 'Prima rispondi a quello che sta succedendo.' };
+    if (ancora.esito !== 'in-corso') return { ok: false, motivo: 'L\'intervento è chiuso.' };
+    if (squadra.tu?.liberoA > t) return { ok: false, motivo: 'Sei occupato.' };
+    if (!domandeDisponibili(proietta()).some((x) => x.id === d.id)) {
+      return { ok: false, motivo: 'Non è una domanda che ha senso adesso.' };
+    }
+    const permesso = puoRispondere(interlocutore, proietta().coscienza);
+    if (!permesso.ok) return { ok: false, motivo: permesso.motivo };
+
+    squadra = { ...squadra, tu: { liberoA: t + d.durata, azione: `domanda:${d.id}` } };
+    scrivi('azione', `Chiedi a ${etichettaInterlocutore(interlocutore)}: ${d.testo}`, `domanda:${d.id}`);
+    avanza(d.durata);
+
+    const r = rispostaA({
+      domanda: d,
+      anamnesi: caso.anamnesi,
+      interlocutore,
+      coscienza: proietta().coscienza,
+    });
+
+    fatte = [...fatte, { id: `domanda:${d.id}`, chi: 'tu', t }];
+    raccolte = [...raccolte, { domanda: d.id, interlocutore, qualita: r.qualita, rivela: r.rivela, ripiego: r.ripiego, t }];
+    r.rivela.forEach((chiave) => { saputo = { ...saputo, [chiave]: { da: interlocutore, t } }; });
+
+    scrivi('risposta', r.testo, `risposta:${d.id}`);
+    squadra = { ...squadra, tu: { ...squadra.tu, azione: null } };
+    notifica();
+    return { ok: true, risposta: r };
+  }
+
   /* ------------------------------ pagella -------------------------- */
   function pagella() {
     const s = proietta();
@@ -606,6 +678,13 @@ export function creaIntervento(caso, opzioni = {}) {
     get squadra() { return squadra; },
     get decisionePendente() { return decisionePendente; },
     get storico() { return storico; },
+    get interlocutore() { return interlocutore; },
+    get interlocutori() { return interlocutoriDi(caso); },
+    get saputo() { return saputo; },
+    get raccolte() { return raccolte; },
+    domandeDisponibili: () => domandeDisponibili(proietta()),
+    chiedi,
+    rivolgitiA,
     avanza,
     esegui,
     azioniDisponibili,

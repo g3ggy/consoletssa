@@ -486,3 +486,98 @@ test('nel formato 3 un effetto su una riserva agisce sulla riserva, non sul nume
   assert.equal(i.stato.dolore, 5, 'il dolore è sceso davvero, non per finta');
   assert.ok(i.stato.fc < prima, 'e con lui la frequenza, perché la spinta adrenergica cala');
 });
+
+/* ============= l'anamnesi dentro il motore ========================== */
+
+function casoConAnamnesi(extra = {}) {
+  return {
+    id: 'prova-anamnesi', titolo: 'Caso con anamnesi', motore: 3,
+    fisiologia: {
+      base: { fc: 72, pas: 135, pad: 82, spo2: 98, fr: 14, glicemia: 96 },
+      riserve: { volemia: 5000 },
+      offese: [],
+      modificatori: {},
+    },
+    anamnesi: {
+      interlocutori: [{ id: 'moglie', label: 'la moglie' }],
+      risposte: {
+        terapia: {
+          paziente: { t: '«Quella per la pressione, mi pare.»', qualita: 'vaga' },
+          moglie: { t: '«Il Cardicor.»', qualita: 'buona', rivela: ['betabloccante'] },
+        },
+      },
+    },
+    eventi: [], soglie: [],
+    azioni: { necessarie: [], utili: [], dannose: [] },
+    ...extra,
+  };
+}
+
+test('si parte parlando col paziente', () => {
+  const i = avvia(casoConAnamnesi());
+  assert.equal(i.interlocutore, 'paziente');
+  assert.deepEqual(i.interlocutori.map((x) => x.id), ['paziente', 'moglie']);
+});
+
+test('la domanda costa il suo tempo e finisce nel diario', () => {
+  const i = avvia(casoConAnamnesi());
+  const esito = i.chiedi('terapia');
+  assert.equal(esito.ok, true);
+  assert.equal(i.t, 25, 'venticinque secondi, quelli del catalogo');
+  const testi = i.diario.map((r) => r.testo);
+  assert.ok(testi.some((t) => /Quali farmaci/.test(t)), 'la domanda si legge nel diario');
+  assert.ok(testi.some((t) => /Quella per la pressione/.test(t)), 'e la risposta pure');
+});
+
+test('la domanda si registra fra le cose fatte, per la pagella', () => {
+  const i = avvia(casoConAnamnesi());
+  i.chiedi('terapia');
+  assert.ok(i.fatte.some((f) => f.id === 'domanda:terapia'));
+});
+
+test('voltarsi verso un altro costa dieci secondi', () => {
+  const i = avvia(casoConAnamnesi());
+  const esito = i.rivolgitiA('moglie');
+  assert.equal(esito.ok, true);
+  assert.equal(i.interlocutore, 'moglie');
+  assert.equal(i.t, 10);
+});
+
+test('la stessa domanda a due persone dà due risposte diverse', () => {
+  const i = avvia(casoConAnamnesi());
+  i.chiedi('terapia');
+  i.rivolgitiA('moglie');
+  i.chiedi('terapia');
+  const testi = i.diario.map((r) => r.testo);
+  assert.ok(testi.some((t) => /Quella per la pressione/.test(t)));
+  assert.ok(testi.some((t) => /Cardicor/.test(t)));
+});
+
+test('non si può parlare con chi non c\'è', () => {
+  const i = avvia(casoConAnamnesi());
+  const esito = i.rivolgitiA('cugino');
+  assert.equal(esito.ok, false);
+  assert.equal(i.interlocutore, 'paziente');
+});
+
+test('a coscienza P il paziente non risponde e la domanda è rifiutata', () => {
+  const i = avvia(casoConAnamnesi({
+    fisiologia: {
+      base: { fc: 72, pas: 135, pad: 82, spo2: 98, fr: 14, glicemia: 96 },
+      riserve: { volemia: 5000, glicemia: 25 },      // ipoglicemia: coscienza a terra
+      offese: [],
+      modificatori: {},
+    },
+  }));
+  assert.equal(i.stato.coscienza, 'P', 'controllo: il caso parte con la coscienza alterata');
+  const esito = i.chiedi('terapia');
+  assert.equal(esito.ok, false);
+  assert.match(esito.motivo, /chiedi a chi c/i);
+  assert.equal(i.t, 0, 'una domanda rifiutata non consuma tempo');
+});
+
+test('le domande sul dolore non si possono fare a chi non ha male', () => {
+  const i = avvia(casoConAnamnesi());
+  const esito = i.chiedi('irradiazione');
+  assert.equal(esito.ok, false);
+});
