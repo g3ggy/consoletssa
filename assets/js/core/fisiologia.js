@@ -286,3 +286,28 @@ export function verificaArresto(riserve, base, modificatori, offese = []) {
     || 'ischemia-miocardica';
   return { causa, ...RITMO_PER_CAUSA[causa] };
 }
+
+/* Quanto cala la probabilità di farcela, per ogni minuto che passa.
+
+   Il numero senza RCP è delle linee guida: «ogni minuto di ritardo alla
+   defibrillazione è associato a un incremento del 6% di probabilità di
+   fallire l'interruzione della FV e a un 3-6% di riduzione della
+   probabilità di sopravvivenza alla dimissione» — ERC 2025 cap. 4 :961.
+   Si prende il 6%, il caso peggiore.
+
+   Il numero CON la RCP in corso è ASSUNZIONE NOSTRA: le linee guida
+   dicono che la rianimazione da parte degli astanti aumenta la
+   sopravvivenza, ma un coefficiente al minuto non lo danno. Se si trova
+   una fonte che lo quantifichi, si corregge qui. */
+const CALO_SENZA_RCP = 0.06;
+const CALO_CON_RCP = 0.02;      // assunzione nostra
+
+/**
+ * Probabilità di farcela, da 1 a 0, dopo `secondi` dall'arresto.
+ * @param {string[]} tag   se contiene 'rcp' le compressioni sono in corso
+ */
+export function sopravvivenza(secondi, tag = []) {
+  const minuti = Math.max(0, secondi / 60);
+  const calo = tag.includes('rcp') ? CALO_CON_RCP : CALO_SENZA_RCP;
+  return Math.max(0, (1 - calo) ** minuti);
+}

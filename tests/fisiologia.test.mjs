@@ -248,3 +248,34 @@ test('la tabella dei ritmi copre tutte le offese che possono uccidere', () => {
     assert.ok(RITMO_PER_CAUSA[causa], `manca il ritmo per ${causa}`);
   }
 });
+
+import { sopravvivenza } from '../assets/js/core/fisiologia.js';
+
+test('al momento dell\'arresto la probabilità è piena', () => {
+  assert.equal(sopravvivenza(0, []), 1);
+});
+
+test('senza RCP crolla del sei per cento al minuto', () => {
+  // ERC 2025 cap. 4 :961
+  assert.ok(Math.abs(sopravvivenza(60, []) - 0.94) < 0.005, 'un minuto: 94%');
+  assert.ok(Math.abs(sopravvivenza(300, []) - 0.94 ** 5) < 0.01, 'cinque minuti');
+});
+
+/* Quanti minuti passano prima che la probabilità scenda sotto la soglia. */
+function minutiUtili(soglia, tag) {
+  let m = 0;
+  while (m < 120 && sopravvivenza(m * 60, tag) > soglia) m += 1;
+  return m;
+}
+
+test('con la RCP in corso la curva è più piatta', () => {
+  const senza = sopravvivenza(300, []);
+  const con = sopravvivenza(300, ['rcp']);
+  assert.ok(con > senza, `la RCP deve contare: ${con} contro ${senza}`);
+  assert.ok(minutiUtili(0.5, ['rcp']) > 2 * minutiUtili(0.5, []),
+    'chi comprime raddoppia abbondantemente il tempo che resta agli altri per arrivare');
+});
+
+test('la probabilità non va sotto zero per quanto si aspetti', () => {
+  assert.ok(sopravvivenza(3600, []) >= 0);
+});
