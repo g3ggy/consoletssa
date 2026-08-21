@@ -8,7 +8,6 @@
   --lp-hr: #3BD44A;
   --lp-spo2: #41A9F0;
   --lp-nibp: #FFFFFF;
-  --lp-co2: #F2A03D;
   background: #000; color: #E8EEF2;
   border: 1px solid #2A3038; border-radius: var(--r-md);
   overflow: hidden; font-family: var(--mono);
@@ -65,7 +64,6 @@
 .lp-hr .lp-nome, .lp-hr .lp-num { color: var(--lp-hr); }
 .lp-spo2 .lp-nome, .lp-spo2 .lp-num { color: var(--lp-spo2); }
 .lp-nibp .lp-nome, .lp-nibp .lp-num { color: var(--lp-nibp); }
-.lp-co2 .lp-nome, .lp-co2 .lp-num { color: var(--lp-co2); }
 
 /* parametro senza cavo collegato: tutto grigio, come sul dispositivo */
 .lp-spento .lp-num, .lp-spento .lp-nome { color: #5A6771 !important; }
@@ -188,8 +186,8 @@
 .lp-audio.muto { opacity: .45; filter: grayscale(1); }
 .lp-audio:focus-visible { outline: 1px solid var(--lp-hr); outline-offset: 2px; }
 
-/* cinque riquadri come sul dispositivo */
-.lp-parametri { grid-template-rows: repeat(5, 1fr); }
+/* tre riquadri: quelli che il monitor misura davvero */
+.lp-parametri { grid-template-rows: repeat(3, 1fr); }
 .lp-corpo { min-height: 232px; }
 .lp-num { font-size: 26px; }
 .lp-campana { font-size: 8px; line-height: 1; opacity: .55; filter: grayscale(1); }
@@ -197,10 +195,10 @@
 .lp-nibp .lp-piede { font-size: 12px; }
 
 @media (max-width: 900px) {
-  /* su telefono restano i tre che contano: CO2 e temperatura sono
-     quasi sempre senza cavo, e occuperebbero spazio per dei trattini */
-  .lp-co2, .lp-temp { display: none; }
-  .lp-parametri { grid-template-columns: repeat(3, 1fr); }
+  /* Su telefono i tre riquadri stanno in fila: `grid-template-rows` va
+     spento qui, se no la regola qui sopra tiene tre righe e due restano
+     vuote — sono ottanta pixel di nero in mezzo allo schermo. */
+  .lp-parametri { grid-template-rows: none; grid-template-columns: repeat(3, 1fr); }
   .lp-corpo { min-height: 0; }
 }
 

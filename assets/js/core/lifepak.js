@@ -26,16 +26,17 @@ import { getState } from './store.js';
 export const LP_COLORI = {
   hr: '#3BD44A',
   spo2: '#41A9F0',
-  co2: '#F2A03D',
   nibp: '#FFFFFF',
 };
 
+/* Tre riquadri, non cinque: il LIFEPAK vero ha anche CO2 e temperatura,
+   ma qui nessuno le misura col monitor — la capnografia non c'è e la
+   temperatura si prende col timpanico, e finisce nelle tessere sotto.
+   Due riquadri fermi a trattini insegnavano solo a non guardarli. */
 const LIMITI = {
   hr: [50, 150],
   spo2: [90, 100],
   nibp: [90, 160],
-  co2: [30, 45],
-  temp: [35, 38],
 };
 
 const trattini = '- - -';
@@ -76,8 +77,6 @@ export function creaLifepak(opzioni = {}) {
 
   const hr = riquadro('hr', 'HR', '');
   const spo2 = riquadro('spo2', 'SpO2', '%');
-  const co2 = riquadro('co2', 'CO2', 'mmHg');
-  const temp = riquadro('temp', 'Temp', '°C');
   const nibp = riquadro('nibp', 'NIBP', 'mmHg');
 
   const orologio = el('span.lp-clock', { text: '--:--:--' });
@@ -102,7 +101,7 @@ export function creaLifepak(opzioni = {}) {
       derivazione,
     ]),
     el('div.lp-corpo', {}, [
-      el('div.lp-parametri', {}, [hr.box, spo2.box, co2.box, temp.box, nibp.box]),
+      el('div.lp-parametri', {}, [hr.box, spo2.box, nibp.box]),
       el('div.lp-canali', {}, [canvasEcg, canvasPleth]),
     ]),
     messaggio,
@@ -227,8 +226,6 @@ export function creaLifepak(opzioni = {}) {
       if (typeof d.spo2 === 'number') spo2Corrente = d.spo2;
       scriviRiquadro(hr, 'hr', conScarto('hr', d.hr), { attivo: collegato });
       scriviRiquadro(spo2, 'spo2', conScarto('spo2', d.spo2), { attivo: Boolean(plethScope) });
-      scriviRiquadro(co2, 'co2', d.co2, { attivo: d.co2 !== undefined, extra: d.rr ? `${d.rr} RR` : '' });
-      scriviRiquadro(temp, 'temp', d.temp, { attivo: d.temp !== undefined });
       /* Sul dispositivo la sistolica è grande e la diastolica sta sotto:
          "92/56" su una riga sola non ci sta e veniva tagliato. */
       const [sist, dia] = String(d.pa || '').split('/');

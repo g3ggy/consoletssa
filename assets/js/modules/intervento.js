@@ -94,7 +94,17 @@ function costruisciMonitor() {
     ]),
   ]);
 
-  return { pannello, lp, griglia, cronometro, precedenti: {} };
+  return { pannello, lp, griglia, cronometro, precedenti: {}, letturaVista: {} };
+}
+
+/* La riga piccola della tessera. Finché il numero non c'è dice quanto
+   dovrebbe valere — che è quello che serve a decidere se misurarlo; una
+   volta che ce l'hai dice anche da quanto, perché è da lì che si capisce
+   se va rifatto. */
+function rigaSotto(p, val, eta, scaduta) {
+  if (val === undefined || val === null) return p.rif;
+  if (scaduta) return `${formatSeconds(eta)} fa · rifai`;
+  return eta === 0 ? `${p.rif} · ora` : `${p.rif} · ${formatSeconds(eta)} fa`;
 }
 
 function aggiornaMonitor() {
@@ -147,6 +157,16 @@ function aggiornaMonitor() {
     if (stato && !scaduta) cls.push(stato);
     if (scaduta && val !== undefined) cls.push('vecchia');
 
+    /* Una rilevazione ripetuta va vista anche quando il numero non
+       cambia: senza il lampeggio sembra che il tocco sia andato perso,
+       e la temperatura di prima e quella di adesso si somigliano quasi
+       sempre. Il confronto è sull'ora della lettura, non sul valore. */
+    const lettura = sim.letture[p.k];
+    if (lettura && n.mon.letturaVista[p.k] !== lettura.t) {
+      n.mon.letturaVista[p.k] = lettura.t;
+      cls.push('appena');
+    }
+
     const azione = AZIONE_PER_PARAMETRO[p.k];
     /* "pallida, fredda, sudata" non sta nello spazio di un numero a tre
        cifre: la tessera cambia corpo invece di sbordare. */
@@ -161,7 +181,7 @@ function aggiornaMonitor() {
     }, [
       el('div.k', {}, [p.label]),
       el('div.v', { html: (val === undefined || val === null) ? '— —' : `${val}<span class="u">${p.unita}</span>` }),
-      el('div.ref', { text: scaduta && val !== undefined ? `${formatSeconds(eta)} fa · rifai` : p.rif }),
+      el('div.ref', { text: rigaSotto(p, val, eta, scaduta) }),
     ]);
   }));
 

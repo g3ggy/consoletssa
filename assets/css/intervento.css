@@ -229,3 +229,17 @@
   color: var(--phos); font-size: inherit; font-weight: 700;
 }
 .pal-riga.gia-chiesta { opacity: .55; }
+
+/* Una rilevazione appena presa lampeggia, anche se il numero è identico
+   a quello di prima: senza, ripetere la temperatura sembra non fare
+   niente e si smette di ripeterla. */
+@keyframes vitAppena {
+  0%   { background: var(--phos); }
+  100% { background: var(--surface-2); }
+}
+.rilevazioni .vit.appena { animation: vitAppena .7s var(--ease); }
+.rilevazioni .vit.appena .v { animation: vitAppenaTesto .7s var(--ease); }
+@keyframes vitAppenaTesto {
+  0%   { color: #06210F; }
+  100% { color: var(--ink); }
+}
