@@ -54,7 +54,7 @@ assets/js/
     ecg12.js          12 derivazioni su carta millimetrata, stampabile
     cartellino.js     replica del cartellino di CO118
     sim-engine.js     motore a turni, logica pura, testato
-    fisiologia.js     riserve → compenso → parametri visibili. Logica pura
+    fisiologia.js     riserve → allarme → compenso → parametri visibili. Pura
     anamnesi.js       chi risponde, cosa dice, cosa rivela. Logica pura
     ragguaglio.js     quanto del ragguaglio modello sai davvero sostenere
     manual.js markdown.js ribbon.js
@@ -79,8 +79,8 @@ Due motori di simulazione convivono:
   sei: bpco, arresto, anticoagulante, anafilassi, cocaina, schiacciamento.
 - **`modules/intervento.js` + `core/sim-engine.js` + `core/fisiologia.js`** — il
   nuovo, a tempo, con squadra di tre, palette di azioni, diario e debriefing.
-  Sei casi: `shock-v3`, `toracico-v3`, `ipoglicemia-v3`, `incidente-v3`,
-  `sincope-v3`, `ictus-v3`.
+  Sette casi: `shock-v3`, `toracico-v3`, `ipoglicemia-v3`, `incidente-v3`,
+  `sincope-v3`, `ictus-v3`, `cocaina-v3`.
 
 **Convertire uno scenario significa toglierlo dal vecchio**, da `scenari.js` e
 da `scenari-arrivo.js`: se resta di là compare due volte nella pagina
@@ -106,17 +106,23 @@ quale vale**. A coscienza V il paziente risponde in modo confuso senza che nient
 lo segnali; da P in giù la domanda è rifiutata. Le voci `domanda:<id>` si mettono
 in `azioni.necessarie` come le azioni, e la pagella le pesa allo stesso modo.
 
-Le costanti cliniche portano la fonte nel commento. Due sono **assunzione
-nostra** e vanno riviste se arriva il manuale: le soglie 15/30/40% della perdita
-(il Bolognin dà solo il 25% pediatrico, :7636 — servirebbe il PTC Base completo)
-e di quanto la RCP appiattisce la curva di sopravvivenza. Due stanno dentro
-`sincope-v3`: la frequenza a 58 dichiarata come base (il motore muove la
-frequenza col compenso e col dolore, mai verso il basso, quindi la
-bradicardia vagale non è modellabile) e il tono vascolare a 0,80, che dà i
-90/56 supina e i 72/45 seduta. Vanno riviste quando arriverà il tono
-autonomo, che si progetta col gruppo A.
+Dal 1.11.0 il motore ha un **asse dell'allarme**: `allarme()` somma quanto
+sangue, ossigeno e zucchero mancano, quanto fa male, e un `tonoAutonomo` che il
+caso dichiara per quello che viene da fuori — una sostanza lo alza, il vago lo
+abbassa. Da quell'unico numero escono **frequenza, spinta pressoria, cute,
+respiro e pupille**. È il capitolo 27: gli stessi segni per cause diverse.
 
-La conversione degli altri sei scenari sul motore nuovo è lavoro ancora da fare.
+Le costanti cliniche portano la fonte nel commento. Sono **assunzione nostra** e
+vanno riviste se arriva il manuale: le soglie 15/30/40% della perdita (il
+Bolognin dà solo il 25% pediatrico, :7636 — servirebbe il PTC Base completo), di
+quanto la RCP appiattisce la curva di sopravvivenza, e i pesi dell'asse — i
+guadagni 48 e 25 (scelti per riprodurre i numeri di prima, non trovati in una
+fonte), le soglie 1/3 e 2/3 della cute, 0,5 della tachipnea e 1,2 della
+midriasi, il tetto a 2 e il pavimento a −1, e `picco`/`calmo`/`costante` del
+simpaticomimetico. La sola ancorata è la glicemia: i 70 mg/dl sono le ERC 2025
+cap. 12 :1125.
+
+La conversione degli altri cinque scenari sul motore nuovo è lavoro ancora da fare.
 
 ---
 
@@ -181,6 +187,13 @@ ricarica-e-svuota-cache, ma la cura è bumpare sempre tutti e tre i punti.
 - **`base.glicemia` e `base.spo2` non si vedono.** Quei due numeri escono dalle
   riserve (`riserve.glicemia`, `riserve.ossigenazione * 100`), non dalla base: un
   caso che li scrive solo nella base mostra i valori di `RISERVE_ADULTO`.
+- **`fc`, `cute`, `fr` e `pupille` escono dall'asse dell'allarme**, non più dalla
+  sola perdita di sangue: un caso che tocca `dolore`, `glicemia`, `ossigenazione`
+  o `tonoAutonomo` muove anche quelli. E il dolore **non va sommato due volte**:
+  entra nell'asse dentro `circolo`, non in `parametriVisibili`.
+- **Un'offesa può tendere a un bersaglio invece di consumare** (è il caso del
+  `simpaticomimetico`). Un caso così non peggiora da solo e lo dichiara con
+  `peggioraDaSolo: false`, se no il collaudo lo dà per rotto.
 - I parametri di un caso convertito **si calibrano, non si copiano** dal vecchio:
   si chiama `parametriVisibili` da uno script e si guardano i numeri. Quelli
   scritti a mano nel motore a domande spesso non stanno in piedi con la
@@ -225,16 +238,28 @@ ed è la lezione. Specifica e piano restano come storia della decisione:
 - `docs/superpowers/specs/2026-08-21-casi-senza-fisiologia-design.md`
 - `docs/superpowers/plans/2026-08-21-casi-senza-fisiologia.md`
 
-**Il prossimo pezzo** sono i sei scenari che restano, in due gruppi: **A**
-cocaina, anafilassi, anticoagulante (tre offese nuove, più il tono autonomo);
-**B** bpco, schiacciamento, arresto (tre meccanismi che il motore non ha).
-Ognuno ha la sua specifica da scrivere.
+**Fatto in 1.11.0.** L'asse dell'allarme e la prima metà del **gruppo A**,
+`cocaina-v3`: un iperadrenergico a cui non manca niente — 152 di frequenza, 153
+di massima, midriasi, cute sudata e saturazione 98, che è la prova contraria
+all'ipossia e bisogna andarsela a prendere. Nessun antidoto da dare: l'ambiente
+calmo è il trattamento e si vede scendere il numero. La domanda sulle sostanze
+rende solo **in disparte**: le risposte dell'anamnesi possono avere varianti
+condizionate dai tag. Specifica e piano restano come storia della decisione:
+
+- `docs/superpowers/specs/2026-08-21-tono-autonomo-design.md`
+- `docs/superpowers/plans/2026-08-21-tono-autonomo.md`
+
+**Il prossimo pezzo** sono i cinque scenari che restano: la seconda metà del
+gruppo **A** — anafilassi, anticoagulante — e il gruppo **B** — bpco,
+schiacciamento, arresto (tre meccanismi che il motore non ha). Ognuno ha la sua
+specifica da scrivere.
 
 - **BLS-D, triage, manovre**: moduli non ancora scritti. Le fonti ci sono tutte e gli
   agganci stanno in `tmp/testi/FONTI.md`: il BLS-D si scrive sul capitolo 4 delle ERC
   2025, il triage START sul Bolognin (:8630-8660, le quattro domande per esteso).
 - **Arresto durante lo scenario** nel motore vecchio (nel v2 c'è già).
-- **Sei scenari legacy** ancora da portare sul motore a tempo, gruppi A e B.
+- **Cinque scenari legacy** ancora da portare sul motore a tempo: mezzo gruppo A
+  (anafilassi, anticoagulante) e il gruppo B.
 - **`ragguaglioVoci` sui quattro casi già scritti**: chi non le dichiara non vede
   il riquadro del confronto, e va bene così. Si aggiungono toccando quel caso.
 
