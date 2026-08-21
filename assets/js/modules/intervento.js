@@ -40,10 +40,11 @@ const AZIONE_PER_PARAMETRO = {
   refill: 'refill',
   cute: 'colorito',
   sete: 'chiedi-sete',
+  pupille: 'pupille',
 };
 
 /* --------------------------- valutazioni --------------------------- */
-function allarme(k, valore, stato) {
+function gravitaTessera(k, valore, stato) {
   if (valore === undefined || valore === null) return '';
   const num = parseFloat(String(valore));
   if (k === 'pa') {
@@ -63,6 +64,7 @@ function allarme(k, valore, stato) {
   if (k === 'refill') { if (num > 3) return 'alarm'; if (num > 2) return 'warn'; return ''; }
   if (k === 'cute') return String(valore) === 'normale' ? '' : 'warn';
   if (k === 'sete') return String(valore) === 'no' ? '' : 'warn';
+  if (k === 'pupille') return String(valore) === 'normali' ? '' : 'warn';
   return stato ? '' : '';
 }
 
@@ -77,6 +79,7 @@ const MANUALI = [
   { k: 'refill', label: 'Refill', unita: '', rif: 'sotto 2 s' },
   { k: 'cute', label: 'Cute', unita: '', rif: 'colorito e temperatura' },
   { k: 'sete', label: 'Sete', unita: '', rif: 'glielo chiedi tu' },
+  { k: 'pupille', label: 'Pupille', unita: '', rif: 'isocoriche, reattive' },
 ];
 
 function costruisciMonitor() {
@@ -153,7 +156,7 @@ function aggiornaMonitor() {
     const eta = sim.etaLettura(p.k);
     const cls = ['vit'];
     if (val !== undefined && val !== null) cls.push('on');
-    const stato = allarme(p.k, val, s);
+    const stato = gravitaTessera(p.k, val, s);
     if (stato && !scaduta) cls.push(stato);
     if (scaduta && val !== undefined) cls.push('vecchia');
 
