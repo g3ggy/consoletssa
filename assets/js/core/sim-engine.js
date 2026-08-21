@@ -19,6 +19,13 @@
    ANCORA — l'ultimo stato certo — e si proietta linearmente da lì.
    ===================================================================== */
 
+/* `verificaArresto` si chiama come una funzione che sim-engine ha già:
+   si importa sotto altro nome per non coprirla. */
+import {
+  riserveIniziali, parametriVisibili, verificaArresto as arrestoDaRiserve,
+} from './fisiologia.js';
+import { applicaOffese, compensoBloccato } from '../data/offese.js';
+
 /* Chiavi che derivano nel tempo secondo `decorso`. */
 const DERIVATE = ['pas', 'pad', 'fc', 'spo2', 'temp', 'glicemia', 'fr', 'dolore'];
 
@@ -78,7 +85,26 @@ export function creaIntervento(caso, opzioni = {}) {
   const COSTO_DELEGA = opzioni.costoDelega ?? 5;
 
   /* ------------------------------ stato ---------------------------- */
-  let ancora = normalizza(caso.iniziale);
+  /* Un caso di formato 3 porta le sue riserve: da lì escono i parametri.
+     I casi vecchi non hanno il blocco `fisiologia` e continuano a
+     derivare per rette, finché non saranno convertiti tutti. */
+  const fis = caso.fisiologia || null;
+  let riserve = fis ? riserveIniziali(fis.riserve) : null;
+
+  /* `gia` sono i millilitri già persi quando la squadra arriva: è così
+     che si sceglie la gravità all'arrivo, invece di scrivere a mano i
+     parametri. */
+  if (fis) {
+    const giaPersi = (fis.offese || []).reduce((s, o) => s + (o.gia || 0), 0);
+    riserve = { ...riserve, volemia: riserve.volemia - giaPersi };
+  }
+
+  const modFis = fis
+    ? { ...fis.modificatori, compensoBloccato: compensoBloccato(fis.offese, fis.modificatori) }
+    : null;
+
+  const statoIniziale = normalizza(caso.iniziale || contornoFisiologico());
+  let ancora = statoIniziale;
   let ancoraT = 0;
   let t = 0;
 
@@ -93,6 +119,29 @@ export function creaIntervento(caso, opzioni = {}) {
   let arrestoA = null;
   let storico = [];                 // { t, pas, fc, spo2 } per il grafico finale
   const ascoltatori = new Set();
+
+  /* Il paziente di formato 3 non dichiara i parametri: all'arrivo si
+     calcolano dalle riserve che le offese hanno già consumato. Quello
+     che resta — le vie aeree, la temperatura — è il contorno che la
+     fisiologia non modella, e un caso può sempre dichiararlo a parte
+     con un suo `iniziale`. */
+  function contornoFisiologico() {
+    const p = parametriVisibili(riserve, fis.base, modFis);
+    return {
+      ...p,
+      viePervie: true,
+      respiro: { tipo: 'normale', fr: p.fr },
+      ritmo: ritmoDa(p),
+      temp: fis.base.temp ?? 36.5,
+      esito: 'in-corso',
+      tag: [],
+    };
+  }
+
+  /* Il monitor non sa perché il cuore corre: mostra quello che vede. */
+  function ritmoDa(p) {
+    return p.fc > 100 ? 'tachicardia' : 'sinusale';
+  }
 
   function normalizza(src) {
     const s = { ...src, tag: [...(src.tag || [])], esito: src.esito || 'in-corso' };
@@ -122,6 +171,8 @@ export function creaIntervento(caso, opzioni = {}) {
 
   /** Stato proiettato all'istante corrente, senza toccare l'ancora. */
   function proietta() {
+    if (fis) return proiettaFisiologico(t - ancoraT);
+
     const minuti = (t - ancoraT) / 60;
     const ritmi = ritmiAttivi();
     const s = { ...ancora, tag: [...ancora.tag], respiro: { ...ancora.respiro } };
@@ -136,9 +187,33 @@ export function creaIntervento(caso, opzioni = {}) {
     return s;
   }
 
+  /* Il paziente di formato 3 non ha parametri memorizzati: si calcolano
+     dalle riserve, che nel frattempo le offese hanno consumato. */
+  function proiettaFisiologico(dt) {
+    const base = { ...ancora, tag: [...ancora.tag], respiro: { ...ancora.respiro } };
+
+    /* A cuore fermo non si proietta più niente: i parametri sono quelli
+       che `entraInArresto` ha scritto, e restano lì finché non torna un
+       circolo. Ricalcolarli dalle riserve rimetterebbe in piedi una
+       frequenza che il paziente non ha. */
+    if (ancora.tag.includes('arresto')) return { ...base, riserve };
+
+    const r = dt > 0 ? applicaOffese(riserve, fis.offese, dt, ancora.tag) : riserve;
+    const p = parametriVisibili(r, fis.base, modFis);
+    return {
+      ...base,
+      ...p,
+      respiro: { ...ancora.respiro, fr: p.fr },
+      ritmo: ritmoDa(p),
+      riserve: r,
+    };
+  }
+
   /** Fissa l'ancora al valore proiettato adesso: da qui riparte il calcolo. */
   function ancoraOra() {
-    ancora = proietta();
+    const s = proietta();
+    if (fis && s.riserve) riserve = s.riserve;
+    ancora = s;
     ancoraT = t;
   }
 
@@ -177,7 +252,7 @@ export function creaIntervento(caso, opzioni = {}) {
     if (eff.arresto) entraInArresto();
   }
 
-  function entraInArresto() {
+  function entraInArresto(ritmoDellaCausa) {
     const conf = caso.arresto || {};
     ancoraOra();
     ancora = {
@@ -185,7 +260,8 @@ export function creaIntervento(caso, opzioni = {}) {
       coscienza: 'U',
       polsoRadiale: false,
       fc: 0, pas: 0, pad: 0,
-      ritmo: conf.ritmo || 'fv',
+      /* nel formato 3 il ritmo lo decide la causa, non il copione */
+      ritmo: ritmoDellaCausa || conf.ritmo || 'fv',
       respiro: { tipo: 'gasping', fr: 4 },
       fr: 4,
       tag: ancora.tag.includes('arresto') ? ancora.tag : [...ancora.tag, 'arresto'],
@@ -218,6 +294,19 @@ export function creaIntervento(caso, opzioni = {}) {
       sogliePassate = [...sogliePassate, chiave];
       scrivi('osservazione', sg.testo, chiave);
     });
+  }
+
+  /* Nei casi di formato 3 all'arresto ci si arriva consumando le
+     riserve, non per evento scritto a mano: è il paziente che muore
+     perché nessuno ha fatto la cosa giusta in tempo. */
+  function verificaArrestoFisiologico() {
+    if (!fis || arrestoA !== null || ancora.esito !== 'in-corso') return;
+    const s = proietta();
+    const a = arrestoDaRiserve(s.riserve, fis.base, fis.modificatori, fis.offese);
+    if (!a) return;
+    ancoraOra();
+    ancora = { ...ancora, arrestoDefibrillabile: a.defibrillabile };
+    entraInArresto(a.ritmo);
   }
 
   function verificaArresto() {
@@ -284,6 +373,7 @@ export function creaIntervento(caso, opzioni = {}) {
       t += 1;
       restanti -= 1;
       completaPendenti();
+      verificaArrestoFisiologico();
       verificaArresto();
       verificaSoglie();
       scattaEventi();
@@ -435,7 +525,7 @@ export function creaIntervento(caso, opzioni = {}) {
         penalita: d.penalita ?? 2,
       }));
 
-    const gIniziale = gravita(normalizza(caso.iniziale));
+    const gIniziale = gravita(statoIniziale);
     const gFinale = gravita(s);
     let esitoPaziente = 'stabile';
     if (s.esito === 'morto') esitoPaziente = 'morto';
