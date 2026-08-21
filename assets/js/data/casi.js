@@ -229,6 +229,55 @@ export const CASI = [
       modificatori: { eta: 68, terapia: [] },
     },
 
+    anamnesi: {
+      interlocutori: [{ id: 'figlio', label: 'il figlio' }],
+      risposte: {
+        disturbi: {
+          paziente: { t: '«Un peso qui in mezzo. Come se ci fosse qualcuno seduto sopra.»', qualita: 'buona' },
+          figlio: { t: '«Dice che è il petto. È tutto sudato, guardi.»', qualita: 'buona' },
+        },
+        allergie: {
+          paziente: { t: '«Nessuna.»', qualita: 'buona' },
+          figlio: { t: '«Che io sappia no.»', qualita: 'vaga' },
+        },
+        terapia: {
+          paziente: { t: '«Una per la pressione e una per il colesterolo.»', qualita: 'buona' },
+          figlio: { t: '«Ramipril e atorvastatina. Le scatole sono di là.»', qualita: 'buona' },
+        },
+        patologie: {
+          paziente: { t: '«Pressione alta, colesterolo. Fumo da quando avevo vent\'anni.»', qualita: 'buona', rivela: ['fumatore'] },
+          figlio: { t: '«Il medico gli dice sempre di smettere di fumare.»', qualita: 'vaga' },
+        },
+        'ultimo-pasto': {
+          paziente: { t: '«Ho pranzato verso l\'una.»', qualita: 'buona' },
+        },
+        evento: {
+          paziente: { t: '«È cominciato mentre portavo su la spesa. Mi sono dovuto fermare.»', qualita: 'buona', rivela: ['esordio-da-sforzo'] },
+          figlio: { t: '«L\'ho trovato seduto sulle scale, bianco.»', qualita: 'buona' },
+        },
+        esordio: {
+          paziente: { t: '«Così, tutto insieme. Non mi era mai capitato.»', qualita: 'buona', rivela: ['prima-volta'] },
+        },
+        allevia: {
+          paziente: { t: '«Niente. Mi sono seduto e non è passato.»', qualita: 'buona', rivela: ['non-passa-a-riposo'] },
+        },
+        'qualita-dolore': {
+          paziente: { t: '«Un peso, una morsa. Non è una fitta.»', qualita: 'buona' },
+        },
+        /* Il dolore lo sente lui: al figlio non si può chiedere, e il
+           ripiego del catalogo lo dice senza che il caso scriva niente. */
+        irradiazione: {
+          paziente: { t: '«Adesso arriva anche qui, alla mascella. E dentro il braccio.»', qualita: 'buona', rivela: ['dolore-irradiato'] },
+        },
+        intensita: {
+          paziente: { t: '«Otto. Forse nove.»', qualita: 'buona' },
+        },
+        'durata-dolore': {
+          paziente: { t: '«Da quaranta minuti buoni, e non molla.»', qualita: 'buona' },
+        },
+      },
+    },
+
     /* Sdraiare un cardiopatico gli manda addosso il sangue che il cuore
        non riesce già a spingere: respira peggio e ha più male. Non è una
        penalità dichiarata, è quello che gli succede. */
@@ -296,6 +345,8 @@ export const CASI = [
         { id: ['o2-maschera', 'o2-reservoir'], entro: 240, peso: 2, label: 'Ossigeno a flusso adeguato' },
         { id: 'monitor', entro: 240, peso: 2 },
         { id: 'misura-pa', entro: 300, peso: 2 },
+        { id: 'domanda:durata-dolore', entro: 300, peso: 2 },
+        { id: 'domanda:terapia', entro: 420, peso: 1 },
         { id: 'ecg-elettrodi', entro: 420, peso: 2 },
         { id: 'ecg-esegui', entro: 480, peso: 2 },
         { id: 'riferisci-infermiere', entro: 420, peso: 2 },

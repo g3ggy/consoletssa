@@ -222,3 +222,23 @@ test('quello che la moglie rivela è la stessa chiave che agisce sul paziente', 
       `${farmaco} agisce sul paziente ma nessuno può dirtelo: l'anamnesi non lo copre`);
   });
 });
+
+test('toracico-v3 ha il figlio sulla scena e le domande sul dolore', () => {
+  const caso = CASI.find((c) => c.id === 'toracico-v3');
+  assert.ok(caso.anamnesi, 'manca il blocco anamnesi');
+  assert.ok(caso.anamnesi.interlocutori.some((i) => i.id === 'figlio'));
+
+  const i = avvia(caso);
+  assert.ok(i.domandeDisponibili().some((d) => d.id === 'irradiazione'),
+    'ha dolore: l\'OPQRST deve essere disponibile');
+  assert.equal(i.chiedi('irradiazione').ok, true);
+});
+
+test('nel toracico l\'irradiazione la sa solo il paziente', () => {
+  const caso = CASI.find((c) => c.id === 'toracico-v3');
+  const i = avvia(caso);
+  i.rivolgitiA('figlio');
+  const esito = i.chiedi('irradiazione');
+  assert.equal(esito.ok, true);
+  assert.equal(esito.risposta.ripiego, 'nonSo', 'il dolore lo sente lui, non il figlio');
+});
