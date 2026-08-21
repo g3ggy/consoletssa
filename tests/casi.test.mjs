@@ -473,3 +473,82 @@ test('le domande che escludono il quadro grave sono nel caso', () => {
   assert.match(disturbi.t, /male|dolore|respir/i);
   assert.ok(disturbi.rivela?.includes('nessun-segno-grave'));
 });
+
+/* ==================== ictus-v3 ====================================== */
+
+const ict = () => CASI.find((c) => c.id === 'ictus-v3');
+
+test('ictus-v3 ha i parametri quasi normali, e non peggiora', () => {
+  const caso = ict();
+  assert.ok(caso, 'manca ictus-v3');
+  const i = avvia(caso);
+  assert.equal(i.stato.pas, 178, 'l\'ipertensione in fase acuta è attesa');
+  assert.equal(i.stato.fc, 88);
+  assert.equal(i.stato.glicemia, 118, 'la glicemia va nelle riserve');
+  assert.equal(i.stato.spo2, 96, 'e la saturazione pure');
+  assert.equal(i.stato.coscienza, 'A');
+
+  lasciaPassare(i, 20);
+  assert.equal(i.stato.pas, 178, 'venti minuti dopo è tutto uguale: il danno corre in ospedale');
+  assert.equal(i.stato.coscienza, 'A');
+});
+
+test('è afasica, non confusa: capisce e risponde giusto', () => {
+  const caso = ict();
+  const i = avvia(caso);
+  const r = i.chiedi('disturbi');
+  assert.equal(r.ok, true);
+  assert.equal(r.risposta.ripiego, null, 'la coscienza è A: niente ripiego da confuso');
+  assert.equal(r.risposta.qualita, 'buona', 'fatica a dirlo, ma quello che dice è giusto');
+});
+
+test('l\'ora la sa il marito, lei no', () => {
+  const caso = ict();
+  assert.ok(caso.anamnesi.interlocutori.some((x) => x.id === 'marito'));
+  const i = avvia(caso);
+
+  i.chiedi('evento');
+  assert.deepEqual(i.saputo, {}, 'lei non è in grado di dirti l\'ora');
+
+  i.rivolgitiA('marito');
+  i.chiedi('evento');
+  assert.ok(i.saputo['esordio-9-40'], 'lui l\'ha vista bene alle 9:40');
+});
+
+test('l\'esame neurologico trova i tre segni', () => {
+  const caso = ict();
+  assert.ok(caso.diarioAzioni?.['esame-neurologico'], 'il caso deve dire cosa trovi');
+  const i = avvia(caso);
+  i.esegui('esame-neurologico', 'tu');
+  assert.ok(i.diario.some((r) => /braccio|sorrid|parola/i.test(r.testo)));
+});
+
+test('il conto del tempo parte da trentacinque minuti', () => {
+  const i = avvia(ict());
+  i.avanza(300);
+  const p = i.chiudi();
+  assert.equal(p.esordio.primaDiVoi, 2100);
+  assert.equal(p.esordio.allaPartenza, 2100 + p.esordio.vostro);
+});
+
+test('senza chiedere l\'ora il ragguaglio non è tuo', () => {
+  const i = avvia(ict());
+  const p = i.chiudi();
+  const ora = p.ragguaglio.voci.find((v) => /9:40|vista bene/i.test(v.t));
+  assert.ok(ora, 'l\'ora deve essere una voce del ragguaglio');
+  assert.equal(ora.tuo, false);
+});
+
+test('chiedendola al marito, quella voce diventa tua', () => {
+  const i = avvia(ict());
+  i.rivolgitiA('marito');
+  i.chiedi('evento');
+  const p = i.chiudi();
+  const ora = p.ragguaglio.voci.find((v) => /9:40|vista bene/i.test(v.t));
+  assert.equal(ora.tuo, true);
+});
+
+test('dare zucchero per bocca a un\'afasica è un errore', () => {
+  const caso = ict();
+  assert.ok(caso.azioni.dannose.some((d) => d.id === 'zucchero-os'));
+});

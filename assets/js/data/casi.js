@@ -849,6 +849,165 @@ export const CASI = [
     ],
   },
 
+  /* ================================================================= */
+  {
+    id: 'ictus-v3',
+    ecg: { pattern: 'normale' },
+    titolo: 'Non parla bene e non muove il braccio',
+    tipo: 'medico',
+    difficolta: 1,
+    motore: 3,
+    capitoli: ['cap-22', 'cap-25'],
+
+    dispatch: {
+      codice: 'ROSSO',
+      testo: 'Donna di 71 anni, "non parla bene e non muove il braccio destro".',
+      luogo: 'Abitazione, cucina',
+    },
+    scena: {
+      testo: 'Cucina ordinata, il marito vi apre e racconta con precisione. Nessun rischio.',
+      sicura: true,
+    },
+    colpoOcchio: {
+      testo: 'Seduta al tavolo, vigile, bocca asimmetrica, non solleva il braccio destro. Ti segue con gli occhi e capisce quello che le dici, ma fatica a rispondere.',
+      vitale: true,
+    },
+
+    /* Trentacinque minuti dall'ultimo momento in cui è stata vista bene:
+       le 9:40 riferite dal marito, e sono le 10:15. */
+    esordio: 35,
+
+    fisiologia: {
+      /* La pressione a 178/95 è la sua di adesso, in fase acuta, e sul
+         territorio non si abbassa: sta nella base perché è quello che
+         ha, non qualcosa che sta peggiorando. */
+      base: { fc: 88, pas: 178, pad: 95, spo2: 96, fr: 16, glicemia: 118, temp: 36.6 },
+      /* Glicemia e ossigenazione stanno nelle riserve: è da lì che
+         escono i numeri che si vedono, non dalla base. */
+      riserve: { volemia: 5000, ossigenazione: 0.96, glicemia: 118 },
+      /* Nessuna offesa, e non è una dimenticanza: il danno cerebrale
+         non si consuma sul mezzo e la paziente non peggiora mentre
+         siete lì. Quello che si consuma è la finestra del trattamento,
+         e quella si vede nel conto del tempo. */
+      offese: [],
+      modificatori: { eta: 71, terapia: [] },
+    },
+
+    /* I tre segni del Bolognin :4112-4125, addosso a lei. */
+    diarioAzioni: {
+      'esame-neurologico': 'Il lato destro della bocca non si solleva quando le chiedi di sorridere. Chiude gli occhi e il braccio destro le cade dopo due secondi. Prova a ripetere la frase, non le viene la parola, e ti guarda scuotendo la testa. Tre segni su tre.',
+    },
+
+    anamnesi: {
+      interlocutori: [{ id: 'marito', label: 'il marito' }],
+      risposte: {
+        /* Afasia produttiva: capisce e sa la risposta, ma le parole non
+           escono. Le risposte sono BUONE — quello che dice è giusto —
+           solo brevi e faticate. Chi la scambia per confusa sbaglia
+           paziente, ed è la trappola dichiarata del caso. */
+        disturbi: {
+          paziente: { t: '«Il braccio… non va. E la… la bocca.»', qualita: 'buona', rivela: ['deficit-riferito'] },
+          marito: { t: '«Non riesce a parlare bene e il braccio destro non lo alza. È cominciato tutto insieme.»', qualita: 'buona' },
+        },
+        allergie: {
+          paziente: { t: '«No.»', qualita: 'buona' },
+          marito: { t: '«Nessuna allergia.»', qualita: 'buona' },
+        },
+        terapia: {
+          paziente: { t: '«La… quella per la… non mi viene.»', qualita: 'vaga' },
+          marito: { t: '«Amlodipina, una la mattina. Solo quella.»', qualita: 'buona', rivela: ['amlodipina'] },
+        },
+        patologie: {
+          paziente: { t: '«La pressione.»', qualita: 'buona' },
+          marito: { t: '«Ha la pressione alta da anni, tenuta bene. Nient\'altro.»', qualita: 'buona', rivela: ['ipertensione'] },
+        },
+        'ultimo-pasto': {
+          paziente: { t: '«Il caffè… stamattina.»', qualita: 'buona' },
+          marito: { t: '«Ha fatto colazione alle otto.»', qualita: 'buona' },
+        },
+        /* Il dato che decide il trattamento, e non ce l'ha lei. */
+        evento: {
+          paziente: { t: 'Ti guarda, apre la bocca e non le esce la frase. Scuote la testa.', qualita: 'vaga' },
+          marito: {
+            t: '«L\'ho lasciata che stava benissimo alle nove e quaranta, sono sceso a prendere il pane. Sono tornato alle dieci e un quarto e l\'ho trovata così.»',
+            qualita: 'buona',
+            rivela: ['esordio-9-40'],
+          },
+        },
+      },
+    },
+
+    eventi: [
+      {
+        id: 'parlano-di-lei', t: 180,
+        testo: 'Il marito, a voce alta davanti a lei: «Ma capisce quello che diciamo? Secondo me non capisce più niente».',
+        decisione: {
+          domanda: 'Cosa fai?',
+          opzioni: [
+            {
+              t: 'Mi rivolgo a lei e le spiego cosa stiamo facendo, poi rispondo a lui',
+              ok: true,
+              w: 'Afasia produttiva: capisce e sente tutto, non riesce a rispondere. Parlare di lei come se non ci fosse è una crudeltà, e le fa perdere fiducia proprio adesso.',
+            },
+            {
+              t: 'Rispondo a lui e continuo a lavorare',
+              ok: false,
+              w: 'Lei ha sentito. L\'udito e la comprensione sono intatti: è il linguaggio in uscita che è rotto.',
+            },
+          ],
+        },
+      },
+      {
+        id: 'niente-cambia', t: 480,
+        testo: 'Il quadro è identico a dieci minuti fa: la bocca storta, il braccio fermo. Non peggiora e non migliora — quello che si consuma non si vede da qui.',
+      },
+    ],
+
+    arresto: { finestraRcp: 60 },
+
+    soglie: [
+      { id: 's-pressione', se: (p) => p.pas > 170, testo: 'La pressione resta alta: in fase acuta è attesa e sul territorio non si tocca.' },
+    ],
+
+    azioni: {
+      necessarie: [
+        { id: 'valuta-scena', entro: 60, peso: 1 },
+        { id: 'avpu', entro: 120, peso: 1 },
+        { id: 'esame-neurologico', entro: 180, peso: 4 },
+        { id: 'misura-glicemia', entro: 240, peso: 3 },
+        { id: 'domanda:evento', entro: 300, peso: 4 },
+        { id: 'misura-pa', entro: 300, peso: 2 },
+        { id: 'allerta-co', entro: 360, peso: 3 },
+        { id: 'carica', entro: 480, peso: 3 },
+      ],
+      utili: ['dpi', 'rassicura', 'monitor', 'conta-fr', 'pupille', 'domanda:terapia', 'domanda:patologie', 'riferisci-infermiere'],
+      dannose: [
+        {
+          id: 'zucchero-os', penalita: 3,
+          perche: 'La glicemia è 118 e non c\'è niente da correggere. E a una paziente con un deficit neurologico acuto non si dà niente per bocca: la deglutizione può essere compromessa senza che si veda.',
+        },
+        {
+          id: 'spinale',
+          perche: 'Nessun trauma e nessuna caduta: il marito l\'ha trovata seduta al tavolo. Tre minuti di finestra bruciati.',
+        },
+      ],
+    },
+
+    chiave: 'L\'ora esatta dell\'ultimo momento in cui è stata vista bene è il dato che decide il trattamento in ospedale, e non ce l\'ha lei: ce l\'ha chi c\'era. Qui sono trentacinque minuti, la finestra è aperta, e ogni minuto che passi sulla scena è finestra che si chiude.',
+    trappola: 'Afasia produttiva: capisce tutto e non riesce a rispondere. Non trattarla da confusa e non parlare di lei come se non ci fosse — l\'udito e la comprensione sono intatti. E misura la glicemia: l\'ipoglicemia imita l\'ictus in tutto, e la sola cosa che le distingue è quel numero.',
+    ragguaglio: 'Donna di 71 anni, ipertesa in terapia con amlodipina. Ultimo momento in cui è stata vista bene: ore 9:40, riferito dal marito. Afasia produttiva ed emiparesi destra, tre segni su tre all\'esame neurologico. PA 178/95, FC 88, SpO₂ 96%, glicemia 118. Vigile e orientata. Trasportata con preallerta per sospetto ictus in finestra temporale.',
+    ragguaglioVoci: [
+      { t: 'Donna di 71 anni, ipertesa in terapia', da: 'sapere:ipertensione' },
+      { t: 'In terapia con amlodipina', da: 'sapere:amlodipina' },
+      { t: 'Vista bene l\'ultima volta alle 9:40, riferito dal marito', da: 'sapere:esordio-9-40' },
+      { t: 'Afasia produttiva ed emiparesi destra, tre segni su tre', da: 'azione:esame-neurologico' },
+      { t: 'PA 178/95', da: 'lettura:pa' },
+      { t: 'Glicemia 118: non è un\'ipoglicemia', da: 'lettura:glicemia' },
+      { t: 'Vigile e orientata', da: 'azione:avpu' },
+      { t: 'Preallertata la centrale per sospetto ictus', da: 'azione:allerta-co' },
+    ],
+  },
+
 ];
 
 export const CASI_INDICE = Object.fromEntries(CASI.map((c) => [c.id, c]));
