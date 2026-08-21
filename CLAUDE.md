@@ -136,6 +136,16 @@ ricarica-e-svuota-cache, ma la cura è bumpare sempre tutti e tre i punti.
 
 ## Cosa resta da fare
 
+**In corso.** Il motore fisiologico a offese: il caso dichiara la causa e il
+decorso emerge da riserve nascoste e compenso, fino all'arresto e alla morte.
+Specifica e piano sono scritti e approvati:
+
+- `docs/superpowers/specs/2026-08-21-motore-fisiologico-offese-design.md`
+- `docs/superpowers/plans/2026-08-21-motore-fisiologico-offese.md`
+
+Il piano è in TDD, quindici task, e va eseguito da lì. Tutto il resto qui sotto
+viene dopo.
+
 - **BLS-D, triage, manovre**: moduli non ancora scritti. Le fonti ci sono tutte e gli
   agganci stanno in `tmp/testi/FONTI.md`: il BLS-D si scrive sul capitolo 4 delle ERC
   2025, il triage START sul Bolognin (:8630-8660, le quattro domande per esteso).
