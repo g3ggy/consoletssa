@@ -56,6 +56,21 @@ export function rispostaA({ domanda, anamnesi, interlocutore, coscienza }) {
     return { testo: domanda.nonSo, qualita: 'vaga', rivela: [], ripiego: 'nonSo' };
   }
 
+  /* Un paziente a coscienza V risponde: solo che quello che dice non
+     vale. È una regola sola e non una scala — qualunque fosse la qualità
+     scritta nel caso, da confuso esce il testo di ripiego e non rivela
+     niente. Chi già mentiva continua a mentire: un bugiardo confuso non
+     diventa sincero, e il debriefing deve poterlo dire.
+
+     ASSUNZIONE NOSTRA: che un confuso sia inattendibile lo dice la
+     clinica, dove si fermi esattamente l'attendibilità no. */
+  const confuso = interlocutore === PAZIENTE.id
+    && coscienza === 'V'
+    && scritta.qualita !== 'falsa';
+  if (confuso) {
+    return { testo: domanda.confuso, qualita: 'vaga', rivela: [], ripiego: 'confuso' };
+  }
+
   return {
     testo: scritta.t,
     qualita: scritta.qualita || 'buona',

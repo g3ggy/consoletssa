@@ -102,3 +102,45 @@ test('una risposta senza rivelazioni non rompe niente', () => {
   assert.equal(r.qualita, 'buona');
   assert.deepEqual(r.rivela, []);
 });
+
+/* ==================== il paziente confuso =========================== */
+
+test('a coscienza V il paziente risponde, ma non vale niente', () => {
+  const r = chiedi('terapia', 'paziente', 'V');
+  assert.equal(r.testo, DOMANDE.terapia.confuso);
+  assert.equal(r.ripiego, 'confuso');
+  assert.deepEqual(r.rivela, []);
+});
+
+test('il confuso non contagia gli altri presenti', () => {
+  const r = chiedi('terapia', 'moglie', 'V');
+  assert.equal(r.qualita, 'buona', 'la moglie è lucida anche se lui non lo è');
+  assert.deepEqual(r.rivela, ['betabloccante', 'anticoagulante']);
+});
+
+test('una risposta buona che diventa confusa perde le rivelazioni', () => {
+  const lucido = rispostaA({
+    domanda: DOMANDE.allergie,
+    anamnesi: { risposte: { allergie: { paziente: { t: '«Alla penicillina.»', qualita: 'buona', rivela: ['allergia-penicillina'] } } } },
+    interlocutore: 'paziente',
+    coscienza: 'A',
+  });
+  const confuso = rispostaA({
+    domanda: DOMANDE.allergie,
+    anamnesi: { risposte: { allergie: { paziente: { t: '«Alla penicillina.»', qualita: 'buona', rivela: ['allergia-penicillina'] } } } },
+    interlocutore: 'paziente',
+    coscienza: 'V',
+  });
+  assert.deepEqual(lucido.rivela, ['allergia-penicillina']);
+  assert.deepEqual(confuso.rivela, [], 'da un confuso non porti via niente di sicuro');
+});
+
+test('chi mente continua a mentire anche da confuso', () => {
+  const anamnesi = {
+    risposte: { terapia: { paziente: { t: '«Non prendo niente.»', qualita: 'falsa' } } },
+  };
+  const r = rispostaA({ domanda: DOMANDE.terapia, anamnesi, interlocutore: 'paziente', coscienza: 'V' });
+  assert.equal(r.testo, '«Non prendo niente.»', 'la bugia resta la sua');
+  assert.equal(r.qualita, 'falsa');
+  assert.equal(r.ripiego, null);
+});
