@@ -25,8 +25,11 @@ test('ogni scenario ha un arrivo tutto suo', () => {
 test('gli arrivi non sono copie l\'uno dell\'altro', () => {
   const testi = SCENARI.map((c) => c.arrivo.testo);
   assert.equal(new Set(testi).size, testi.length, 'ci sono arrivi identici');
+  /* Tutte diverse fra loro, quante che siano: il numero scende a ogni
+     scenario convertito sul motore a tempo, e un conto fisso qui
+     fallirebbe alla prossima conversione senza dire niente di utile. */
   const domande = SCENARI.map((c) => c.arrivo.domanda);
-  assert.ok(new Set(domande).size >= 6, 'le domande d\'arrivo si somigliano troppo');
+  assert.equal(new Set(domande).size, domande.length, 'le domande d\'arrivo si somigliano troppo');
 });
 
 test('ogni azione immediata dice che cosa hai davanti', () => {

@@ -124,30 +124,6 @@ export const DETTAGLI_ARRIVO = {
   },
 
   /* ------------------------------------------------------------------ */
-  cocaina: {
-    deriva: { FC: +1.1, SpO2: -0.05, PA: +0.8 },
-    arrivo: {
-      testo: "Vi apre un ragazzo che resta sulla porta e vi guarda senza dire niente. Appartamento in disordine, musica ancora accesa, sul tavolo del salotto bicchieri e una carta di credito.",
-      domanda: "Come imposti la scena?",
-      scelte: [
-        { t: "Chiedo all'amico di restare, ma parlo col paziente in disparte", ok: true,
-          w: "Certe informazioni nessuno te le dà davanti a terzi. E l'amico serve: è l'unico che sa davvero cosa è successo stanotte." },
-        { t: "Faccio uscire tutti e resto solo con il paziente", ok: false,
-          w: "Restare solo in un appartamento con un paziente agitato non è una buona idea, e perdi l'unico testimone." },
-        { t: "Chiedo subito all'amico cosa hanno preso, davanti a tutti", ok: false,
-          w: "Domanda giusta, momento sbagliato: davanti agli altri la risposta sarà «niente»." },
-      ],
-    },
-    situazione: "Uomo di 30 anni seduto, vigile, sudato, agitato, con le pupille dilatate; parla velocemente e non riesce a stare fermo. Riferisce cardiopalmo e un senso di oppressione al torace. Ha trent'anni e nessuna patologia nota: un quadro iperadrenergico a quell'età ha quasi sempre una causa esterna, e quella causa nessuno te la dirà spontaneamente.",
-    azioniSbagliate: [
-      { t: "Lo tranquillizzo dicendogli che gli passerà da solo",
-        w: "Rassicurare sì, minimizzare no: quel torace va monitorato, il dolore in questi casi è ischemico fino a prova contraria." },
-      { t: "Chiamo le forze dell'ordine perché ha usato droghe",
-        w: "Non è compito tuo e distrugge il rapporto. La domanda serve a curarlo, non a denunciarlo." },
-    ],
-  },
-
-  /* ------------------------------------------------------------------ */
   schiacciamento: {
     deriva: { FC: +1.3, SpO2: -0.2, PA: -1.1 },
     arrivo: {
