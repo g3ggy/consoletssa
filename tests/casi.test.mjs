@@ -242,3 +242,89 @@ test('nel toracico l\'irradiazione la sa solo il paziente', () => {
   assert.equal(esito.ok, true);
   assert.equal(esito.risposta.ripiego, 'nonSo', 'il dolore lo sente lui, non il figlio');
 });
+
+/* ==================== ipoglicemia-v3 ================================ */
+
+const ipo = () => CASI.find((c) => c.id === 'ipoglicemia-v3');
+
+/* Il tempo si ferma su una decisione aperta: per farne passare davvero
+   bisogna rispondere man mano, non alla fine. */
+function lasciaPassare(i, minuti) {
+  for (let giro = 0; giro < minuti; giro += 1) {
+    i.avanza(60);
+    rispondiSeServe(i);
+  }
+}
+
+test('ipoglicemia-v3 arriva sotto la soglia ERC ma ancora vigile', () => {
+  const caso = ipo();
+  assert.ok(caso, 'manca ipoglicemia-v3');
+  const i = avvia(caso);
+  /* Sotto i 70 mg/dl è ipoglicemia — ERC 2025 cap. 12 :1125. Ma finché
+     sta sopra i 50 è vigile, e finché è vigile può deglutire. */
+  assert.ok(i.stato.glicemia < 70, `deve essere ipoglicemico: invece è ${i.stato.glicemia}`);
+  assert.ok(i.stato.glicemia >= 50, `ma non ancora crollato: invece è ${i.stato.glicemia}`);
+  assert.equal(i.stato.coscienza, 'A', 'arriva vigile: è la finestra che si può ancora usare');
+});
+
+test('la finestra dello zucchero per bocca si chiude da sola', () => {
+  const i = avvia(ipo());
+  i.esegui('misura-glicemia', 'tu');
+  assert.equal(i.esegui('zucchero-os', 'tu').ok, true, 'misurata subito, si può ancora dare');
+
+  const tardi = avvia(ipo());
+  lasciaPassare(tardi, 8);
+  tardi.esegui('misura-glicemia', 'tu');
+  const esito = tardi.esegui('zucchero-os', 'tu');
+  assert.equal(esito.ok, false, 'otto minuti dopo non è più in grado di deglutire');
+  assert.match(esito.motivo, /deglutire/i);
+});
+
+test('lo zucchero lo tira su, e con lui la coscienza', () => {
+  const i = avvia(ipo());
+  i.esegui('misura-glicemia', 'tu');
+  i.esegui('zucchero-os', 'tu');
+  const prima = i.stato.glicemia;
+  lasciaPassare(i, 5);
+  assert.ok(i.stato.glicemia > prima, 'la glicemia risale');
+  assert.equal(i.stato.coscienza, 'A');
+});
+
+test('senza far niente scivola nel coma ipoglicemico', () => {
+  const i = avvia(ipo());
+  lasciaPassare(i, 20);
+  assert.ok(['P', 'U'].includes(i.stato.coscienza),
+    `venti minuti senza zucchero e non risponde più: invece è ${i.stato.coscienza}`);
+});
+
+test('i passanti dicono la cosa sbagliata, e nessuno te lo segnala', () => {
+  const caso = ipo();
+  assert.ok(caso.anamnesi.interlocutori.some((x) => x.id === 'passanti'));
+  const risposta = caso.anamnesi.risposte.patologie.passanti;
+  assert.equal(risposta.qualita, 'sbagliata', 'l\'ubriachezza è una risposta sbagliata, non vaga');
+  const i = avvia(caso);
+  i.rivolgitiA('passanti');
+  const esito = i.chiedi('patologie');
+  assert.equal(esito.ok, true);
+  assert.deepEqual(esito.risposta.rivela, [], 'una risposta sbagliata non rivela niente');
+});
+
+test('quando torna lucido racconta lui cosa è successo', () => {
+  const caso = ipo();
+  /* Da confuso il paziente non è attendibile: il diabete lo dice solo
+     dopo che lo zucchero l'ha rimesso in sesto. */
+  assert.ok(caso.anamnesi.risposte.patologie.paziente.rivela?.includes('diabete'));
+  const i = avvia(caso);
+  lasciaPassare(i, 8);
+  const daConfuso = i.chiedi('patologie');
+  assert.equal(daConfuso.risposta.ripiego, 'confuso');
+  assert.deepEqual(i.saputo, {});
+});
+
+test('i documenti dicono quello che il paziente non può dire', () => {
+  const caso = ipo();
+  assert.ok(caso.diarioAzioni?.['cerca-documenti'], 'il caso deve dire cosa c\'è nel portafogli');
+  const i = avvia(caso);
+  i.esegui('cerca-documenti', 'tu');
+  assert.ok(i.diario.some((r) => /diabet/i.test(r.testo)), 'la tessera dice che è diabetico');
+});

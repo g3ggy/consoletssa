@@ -363,6 +363,151 @@ export const CASI = [
     trappola: 'Il quadro sembra stabile perché parla e la pressione è alta. Ma il dolore sale da solo e a un certo punto il ritmo si rompe. E non farlo camminare: due rampe di scale sono uno sforzo massimale.',
     ragguaglio: 'Uomo di 68 anni, iperteso e dislipidemico, fumatore, nessun anticoagulante. Dolore oppressivo retrosternale irradiato a mandibola e braccio sinistro, insorto sotto sforzo circa 40 minuti prima del nostro arrivo, con sudorazione algida. PA 152/92, FC 96, SpO₂ 95% poi 98 in ossigeno. ECG a dodici derivazioni eseguito sul posto. Trasportato seduto, senza fargli fare scale. Sospetta sindrome coronarica acuta.',
   },
+
+  /* ================================================================= */
+  {
+    id: 'ipoglicemia-v3',
+    ecg: { pattern: 'normale' },
+    titolo: 'Confuso e aggressivo in strada',
+    tipo: 'medico',
+    difficolta: 2,
+    motore: 3,
+    capitoli: ['cap-22', 'cap-33'],
+
+    dispatch: {
+      codice: 'VERDE',
+      testo: 'Uomo di 52 anni trovato confuso e aggressivo in strada. I passanti riferiscono che "è ubriaco".',
+      luogo: 'Marciapiede, zona centrale',
+    },
+    scena: {
+      testo: 'Marciapiede con un crocchio di persone attorno. Il paziente è agitato e non collabora: valuta se servono le forze dell\'ordine.',
+      sicura: false,
+      rischio: 'persone potenzialmente aggressive',
+    },
+    colpoOcchio: {
+      testo: 'Seduto a terra, sudato, agitato, eloquio impastato. Alito che sa di alcol. Ti risponde male ma ti risponde.',
+      vitale: true,
+    },
+
+    fisiologia: {
+      /* Il suo normale: cinquantadue anni, nessuna ipertensione. */
+      base: { fc: 72, pas: 128, pad: 78, spo2: 97, fr: 16, glicemia: 96, temp: 35.8 },
+      /* Arriva a 55: sotto la soglia di ipoglicemia delle ERC 2025
+         cap. 12 (:1125, sotto i 70 mg/dl) ma ancora sopra i 50, cioè
+         ancora vigile e in grado di deglutire. È il punto del caso: lo
+         zucchero per bocca si può ancora dare, e fra pochi minuti no.
+
+         La temperatura è 35.8 perché è a terra da un pezzo. Nel motore
+         è un numero fermo: l'ipotermia non è ancora un'offesa. */
+      riserve: { glicemia: 55 },
+      /* Un mg/dl e mezzo al minuto: da 55 scende sotto i 50 in tre
+         minuti e mezzo, e sotto i 30 — il coma — in diciotto.
+         ASSUNZIONE NOSTRA: il ritmo di caduta non sta nei manuali. */
+      offese: [
+        { tipo: 'ipoglicemia', intensita: 1.4 },
+      ],
+      modificatori: { eta: 52, terapia: [] },
+    },
+
+    /* Il portafogli dice quello che lui non è in grado di dire: è il
+       Bolognin :4299 — per strada si cercano targhette e cartellini. */
+    diarioAzioni: {
+      'cerca-documenti': 'Nel portafogli, dietro la carta d\'identità: tessera di esenzione per diabete mellito insulino-dipendente, e uno schema di terapia con l\'insulina della sera.',
+    },
+
+    anamnesi: {
+      interlocutori: [{ id: 'passanti', label: 'i passanti' }],
+      risposte: {
+        disturbi: {
+          paziente: { t: '«Mi gira la testa. E ho fame, ho una fame che non vi dico.»', qualita: 'buona' },
+          passanti: { t: '«Urlava. Poi si è seduto per terra e non si è più alzato.»', qualita: 'buona' },
+        },
+        allergie: {
+          paziente: { t: '«Nessuna.»', qualita: 'buona' },
+        },
+        terapia: {
+          paziente: { t: '«L\'insulina. Ieri sera me la sono fatta e poi non ho cenato.»', qualita: 'buona', rivela: ['insulina'] },
+        },
+        /* La risposta che manda fuori strada. Non è vaga: è sbagliata, e
+           detta con la sicurezza di chi ha visto. Nessuna etichetta lo
+           dice — per accorgersene bisogna chiedere anche a lui, o
+           misurare la glicemia. */
+        patologie: {
+          paziente: { t: '«Il diabete. Da vent\'anni, con le punture.»', qualita: 'buona', rivela: ['diabete'] },
+          passanti: { t: '«Guardi, quello è ubriaco. Passa di qui tutti i giorni.»', qualita: 'sbagliata' },
+        },
+        'ultimo-pasto': {
+          paziente: { t: '«Ieri a pranzo. Poi ho bevuto e basta.»', qualita: 'buona', rivela: ['digiuno'] },
+          passanti: { t: '«E che ne so io.»', qualita: 'vaga' },
+        },
+        evento: {
+          paziente: { t: '«Stavo camminando e mi sono sentito mancare.»', qualita: 'buona' },
+          passanti: { t: '«Era già così quando siamo arrivati.»', qualita: 'vaga' },
+        },
+      },
+    },
+
+    eventi: [
+      {
+        id: 'crocchio', t: 90,
+        testo: 'Uno del crocchio si avvicina troppo e alza la voce: «Ma lo volete portare via o no?».',
+        decisione: {
+          domanda: 'Cosa fai?',
+          opzioni: [
+            {
+              t: 'Allontano le persone e continuo a lavorare',
+              ok: true,
+              w: 'La scena la governi tu. Un capannello attorno a un paziente agitato è il modo più semplice per farlo agitare di più.',
+            },
+            {
+              t: 'Lascio perdere, tanto non danno fastidio',
+              ok: false,
+              w: 'Non è maleducazione: è sicurezza. Il crocchio è una variabile che non controlli.',
+            },
+          ],
+        },
+      },
+      {
+        id: 'sudore', t: 240, se: (p) => p.glicemia < 50,
+        testo: 'La camicia è bagnata sulla schiena e le mani sono fredde e umide. Fatica a tenere il filo del discorso.',
+      },
+      {
+        id: 'non-risponde', t: 420, se: (p) => p.coscienza !== 'A',
+        testo: 'Smette di rispondere alle domande: reagisce solo se lo chiami forte e lo scuoti.',
+      },
+    ],
+
+    arresto: { finestraRcp: 60 },
+
+    soglie: [
+      { id: 's-vigile', se: (p) => p.coscienza === 'V', testo: 'L\'eloquio si impasta: risponde a mezze parole e perde il filo.' },
+      { id: 's-coma', se: (p) => p.coscienza === 'P' || p.coscienza === 'U', testo: 'Non risponde più: ora le vie aeree sono un problema tuo, e c\'è saliva in bocca.' },
+      { id: 's-risalita', se: (p) => p.glicemia > 70, testo: 'Si rischiara: ti guarda negli occhi e si scusa per come vi ha trattati.' },
+    ],
+
+    azioni: {
+      necessarie: [
+        { id: 'valuta-scena', entro: 60, peso: 2 },
+        { id: 'chiedi-ffoo', entro: 120, peso: 1 },
+        { id: 'avpu', entro: 120, peso: 1 },
+        { id: 'misura-glicemia', entro: 180, peso: 4 },
+        { id: 'zucchero-os', entro: 240, peso: 4 },
+        { id: 'cerca-documenti', entro: 360, peso: 2 },
+        { id: 'domanda:terapia', entro: 480, peso: 1 },
+        { id: 'allerta-co', entro: 480, peso: 1 },
+        { id: 'carica', entro: 720, peso: 2 },
+      ],
+      utili: ['dpi', 'allontana-curiosi', 'misura-pa', 'rassicura', 'copri', 'domanda:ultimo-pasto', 'conta-fr'],
+      dannose: [
+        { id: 'sposta-sicurezza', perche: 'Non c\'è un pericolo che lo giustifichi: spostare di peso un paziente agitato serve solo a farsi male in due.' },
+        { id: 'spinale', perche: 'Nessun trauma e nessuna caduta riferita: tre minuti buttati mentre la glicemia scende.' },
+      ],
+    },
+
+    chiave: 'Confusione, aggressività, sudorazione e incoordinazione sono identiche in un\'ubriacatura e in un\'ipoglicemia. Sotto i 70 mg/dl è ipoglicemia e va trattata; e finché è vigile e deglutisce, bastano venti grammi di zucchero per bocca. Quella finestra si chiude da sola mentre parli.',
+    trappola: '"Tanto è ubriaco" è il modo migliore per far arrivare in coma un ipoglicemico. L\'etilista cronico tende all\'ipoglicemia perché l\'alcol blocca la gluconeogenesi: le due cose convivono spesso, e l\'alito che sa di alcol non esclude niente. Per strada non c\'è un familiare a cui chiedere — la risposta ce l\'ha lui in tasca, e il crocchio ti dirà la cosa sbagliata con la faccia di chi sa.',
+    ragguaglio: 'Uomo di 52 anni, diabetico in terapia insulinica, abuso alcolico cronico. Trovato in strada confuso, agitato e sudato, scambiato dai presenti per un ubriaco. Glicemia capillare 55 mg/dl all\'arrivo, cosciente e in grado di deglutire: somministrati venti grammi di zucchero per via orale, con risalita a 78 e ripresa del sensorio. Riferisce insulina serale senza cena. FC 72, PA 128/78, SpO₂ 97%, T 35.8.',
+  },
 ];
 
 export const CASI_INDICE = Object.fromEntries(CASI.map((c) => [c.id, c]));
