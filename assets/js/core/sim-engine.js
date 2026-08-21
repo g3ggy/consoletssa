@@ -30,6 +30,25 @@ const CONTINUE = ['fc', 'spo2', 'ritmo'];
 
 const COSCIENZA_PESO = { A: 0, V: 1, P: 2, U: 3 };
 
+/* Estremi oltre i quali il numero non è più un dato clinico ma un errore di
+   calcolo. Non sono valori "normali" — quelli stanno nel manuale — sono il
+   confine del possibile: sotto zero non si scende, e una frequenza a quattro
+   cifre vuol dire che la proiezione è scappata di mano.
+
+   I pavimenti stanno a zero di proposito: l'arresto è uno stato legittimo del
+   paziente, deve poterci arrivare. Un caso che vuole limiti più stretti li
+   dichiara in `decorso.limiti` e quelli hanno la precedenza. */
+const LIMITI_FISIOLOGICI = {
+  fc: [0, 220],
+  pas: [0, 300],
+  pad: [0, 200],
+  spo2: [0, 100],
+  fr: [0, 60],
+  temp: [20, 43],
+  glicemia: [5, 700],
+  dolore: [0, 10],
+};
+
 const arrotonda = (v, cifre = 4) => {
   const k = 10 ** cifre;
   return Math.round(v * k) / k;
@@ -96,7 +115,7 @@ export function creaIntervento(caso, opzioni = {}) {
   }
 
   function limita(chiave, valore) {
-    const l = caso.decorso?.limiti?.[chiave];
+    const l = caso.decorso?.limiti?.[chiave] || LIMITI_FISIOLOGICI[chiave];
     if (!l) return valore;
     return Math.min(l[1], Math.max(l[0], valore));
   }

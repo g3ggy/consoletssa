@@ -13,11 +13,12 @@
    (e la stessa stringa in cima a sw.js).
    ===================================================================== */
 
-export const VERSIONE = '1.6.0';
-export const DATA_VERSIONE = '18 agosto 2026';
+export const VERSIONE = '1.6.1';
+export const DATA_VERSIONE = '21 agosto 2026';
 
 /** Cosa è cambiato, dalla più recente. Le prime tre finiscono nel pannello. */
 export const NOVITA = [
+  { v: '1.6.1', t: 'Il monitor non impazzisce più. L\'orologio dello scenario si ferma quando lasci la console in secondo piano, e i parametri non possono uscire dai valori compatibili con la vita: niente più frequenze a quattro cifre se ti dimentichi la scheda aperta.' },
   { v: '1.6.0', t: 'Monitor a cinque parametri come il LIFEPAK 15. Frequenza e saturazione non stanno più ferme: oscillano e derivano nel tempo, gli allarmi scattano da soli quando il valore esce dalle soglie. La pressione mostra da quanto è stata rilevata e va ripetuta.' },
   { v: '1.5.1', t: 'Toni del monitor tarati sulle frequenze reali, con banco di prova nel Monitor: battito, allarmi, carica, metronomo a 104.' },
   { v: '1.4.0', t: 'Monitor in stile LIFEPAK 15, ECG a 12 derivazioni stampabile, ragguaglio per esteso.' },

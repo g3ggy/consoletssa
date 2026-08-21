@@ -12,7 +12,7 @@ import { navigate } from '../core/router.js';
 import { creaLifepak } from '../core/lifepak.js';
 import { setRibbonRhythm } from '../core/ribbon.js';
 import { saveRun } from '../core/store.js';
-import { SCENARI, OPZIONI, VITAL_META, DIFFICOLTA } from '../data/scenari.js';
+import { SCENARI, OPZIONI, VITAL_META, DIFFICOLTA, LIMITI_VITALI } from '../data/scenari.js';
 import { cartellino, badgeCriticita } from '../core/cartellino.js';
 import { CASI } from '../data/casi.js';
 
@@ -35,7 +35,24 @@ let host = null;      // riferimenti ai nodi che aggiorniamo dal vivo
 let filtro = { tipo: 'tutti', difficolta: 0, esame: false };
 
 /* ============================ utilità ================================ */
-const nowSec = () => (S?.t0 ? (Date.now() - S.t0) / 1000 : 0);
+
+const entro = (k, v) => {
+  const l = LIMITI_VITALI[k];
+  return l ? Math.min(l[1], Math.max(l[0], v)) : v;
+};
+
+/* L'orologio dello scenario non è quello da parete: si ferma quando la scheda
+   passa in secondo piano. Senza, una scheda lasciata aperta una notte faceva
+   derivare i parametri per centinaia di minuti, e al ritorno il monitor
+   sputava tutto insieme una frequenza a quattro cifre. */
+function trascorsoMs() {
+  if (!S?.t0) return 0;
+  const fermoOra = S.fermoDa ? Date.now() - S.fermoDa : 0;
+  return Math.max(0, Date.now() - S.t0 - S.pausa - fermoOra);
+}
+
+const nowSec = () => trascorsoMs() / 1000;
+const trascorsoMin = () => trascorsoMs() / 60000;
 
 function log(text, kind = '') {
   S.log.push({ t: nowSec(), text, kind });
@@ -129,11 +146,7 @@ function valoreDerivato(k, dato) {
   const deriva = S.caso.deriva?.[k];
   const base = parseFloat(String(dato.v));
   if (!deriva || Number.isNaN(base) || S.t0 === null) return dato.v;
-  const minuti = Math.max(0, (Date.now() - S.t0) / 60000);
-  const v = base + deriva * minuti;
-  if (k === 'SpO2') return Math.round(Math.max(50, Math.min(100, v)));
-  if (k === 'FC') return Math.round(Math.max(0, v));
-  return Math.round(v);
+  return Math.round(entro(k, base + deriva * trascorsoMin()));
 }
 
 /** La pressione derivata mantiene il rapporto fra sistolica e diastolica. */
@@ -142,9 +155,11 @@ function pressioneDerivata(dato) {
   const testo = String(dato.v);
   if (!deriva || !testo.includes('/') || S.t0 === null) return testo;
   const [sist, dia] = testo.split('/').map(Number);
-  const minuti = Math.max(0, (Date.now() - S.t0) / 60000);
-  const s2 = Math.round(Math.max(40, sist + deriva * minuti));
-  const d2 = Math.round(Math.max(20, dia + deriva * 0.6 * minuti));
+  const minuti = trascorsoMin();
+  const s2 = Math.round(entro('PA', sist + deriva * minuti));
+  /* la diastolica deriva più piano della sistolica: senza un tetto legato a
+     lei le due finirebbero per incrociarsi, e 80/95 non esiste */
+  const d2 = Math.round(Math.max(0, Math.min(s2 - 5, dia + deriva * 0.6 * minuti)));
   return `${s2}/${d2}`;
 }
 
@@ -167,9 +182,7 @@ function scriviValore(k, dato, opzioni = {}) {
      vere: lo scarto arriva dal LIFEPAK così curve e numeri respirano
      insieme. La pressione no: è una misura singola, resta al suo valore. */
   if (typeof grezzo === 'number' && SUL_MONITOR[k] && k !== 'PA') {
-    grezzo = grezzo + host.lp.scarto(SUL_MONITOR[k]);
-    if (k === 'SpO2') grezzo = Math.max(50, Math.min(100, grezzo));
-    if (k === 'FC') grezzo = Math.max(0, grezzo);
+    grezzo = Math.round(entro(k, grezzo + host.lp.scarto(SUL_MONITOR[k])));
   }
   const testo = String(grezzo);
   const sulMonitor = Boolean(SUL_MONITOR[k]);
@@ -414,6 +427,8 @@ function renderBody() {
       s.append(avanti('Agisci', () => {
         S.step = 2;
         S.t0 = Date.now();
+        S.pausa = 0;
+        S.fermoDa = document.hidden ? Date.now() : null;
         startTimer();
         renderBody();
       }));
@@ -658,13 +673,27 @@ function debrief() {
 }
 
 /* ============================ ciclo di vita ========================== */
+/* Chrome strozza i timer nelle schede nascoste ma `Date.now()` continua a
+   correre: è il motivo per cui l'orologio dello scenario va fermato a mano. */
+function onVisibilita() {
+  if (!S || S.t0 === null) return;
+  if (document.hidden) {
+    if (S.fermoDa === null) S.fermoDa = Date.now();
+  } else if (S.fermoDa !== null) {
+    S.pausa += Date.now() - S.fermoDa;
+    S.fermoDa = null;
+  }
+}
+
 function startTimer() {
   stopTimer();
   timerId = setInterval(tick, 250);
+  document.addEventListener('visibilitychange', onVisibilita);
 }
 function stopTimer() {
   if (timerId) clearInterval(timerId);
   timerId = null;
+  document.removeEventListener('visibilitychange', onVisibilita);
 }
 
 function attaccaMonitor() {
@@ -692,6 +721,8 @@ function nuovoCaso(forceId) {
     step: 0,
     punti: [],
     t0: null,
+    pausa: 0,          // millisecondi passati con la scheda in secondo piano
+    fermoDa: null,     // da quando è ferma, se lo è adesso
     tPrimaria: null,
     misurati: {},
     misuratiA: {},

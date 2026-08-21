@@ -108,6 +108,29 @@ test('i valori restano dentro i limiti', () => {
   assert.equal(i.stato.spo2, 55);
 });
 
+/* Un caso può scordarsi di dichiarare `limiti`: prima bastava questo per
+   vedere una frequenza a quattro cifre sul monitor. I limiti fisiologici
+   non sono più facoltativi. */
+test('senza limiti dichiarati valgono comunque quelli fisiologici', () => {
+  const i = avvia(casoProva({
+    decorso: { base: { fc: +60, pas: -20, spo2: -3, temp: +1, glicemia: -20 } },
+  }));
+  i.avanza(60 * 600);                // dieci ore: la scheda lasciata aperta
+  assert.ok(i.stato.fc <= 220, `frequenza fuori scala: ${i.stato.fc}`);
+  assert.ok(i.stato.pas >= 0, `pressione negativa: ${i.stato.pas}`);
+  assert.ok(i.stato.spo2 >= 0 && i.stato.spo2 <= 100, `saturazione impossibile: ${i.stato.spo2}`);
+  assert.ok(i.stato.temp <= 43, `temperatura fuori scala: ${i.stato.temp}`);
+  assert.ok(i.stato.glicemia >= 0, `glicemia negativa: ${i.stato.glicemia}`);
+});
+
+test('i limiti del caso hanno la meglio su quelli fisiologici', () => {
+  const i = avvia(casoProva({
+    decorso: { base: { fc: +60 }, limiti: { fc: [20, 150] } },
+  }));
+  i.avanza(60 * 60);
+  assert.equal(i.stato.fc, 150);
+});
+
 test('un freno attivo somma il suo delta alla base', () => {
   const i = avvia(casoProva());
   i.esegui('antishock', 'tu');      // 30 s: mezzo decorso, poi il freno è attivo

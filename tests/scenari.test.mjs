@@ -4,7 +4,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { SCENARI, OPZIONI } from '../assets/js/data/scenari.js';
+import { SCENARI, OPZIONI, VITAL_META, LIMITI_VITALI } from '../assets/js/data/scenari.js';
+import { DETTAGLI_ARRIVO as ARRIVI } from '../assets/js/data/scenari-arrivo.js';
 
 test('ogni scenario ha un arrivo tutto suo', () => {
   SCENARI.forEach((c) => {
@@ -47,4 +48,45 @@ test('arrivo e descrizione della scena non si contraddicono', () => {
     const diceCheNonCe = /niente ascensore|senza ascensore/.test(testo);
     assert.ok(!(diceCheCe && diceCheNonCe), `${c.id}: l'ascensore c'è e non c'è insieme`);
   });
+});
+
+/* =================== tetto ai parametri del monitor ===================
+   Una scheda lasciata aperta tutta la notte faceva derivare i parametri per
+   centinaia di minuti: sul monitor comparivano frequenze a quattro cifre.
+   Il tetto non è più facoltativo, e deve coprire ogni chiave che deriva. */
+
+const entro = (k, v) => {
+  const l = LIMITI_VITALI[k];
+  return l ? Math.min(l[1], Math.max(l[0], v)) : v;
+};
+
+test('ogni parametro del monitor ha il suo tetto', () => {
+  for (const k of Object.keys(VITAL_META)) {
+    assert.ok(LIMITI_VITALI[k], `${k} è sul monitor ma non ha limiti: può scappare`);
+  }
+});
+
+test('ogni parametro che deriva ha il suo tetto', () => {
+  const chiavi = new Set();
+  Object.values(ARRIVI).forEach((a) => Object.keys(a.deriva || {}).forEach((k) => chiavi.add(k)));
+  assert.ok(chiavi.size > 0, 'nessuna deriva trovata: il test non sta guardando niente');
+  for (const k of chiavi) {
+    assert.ok(LIMITI_VITALI[k], `${k} deriva nel tempo ma non ha limiti`);
+  }
+});
+
+test('nessuno scenario esce dai limiti, nemmeno a ventiquattr\'ore', () => {
+  for (const s of SCENARI) {
+    const deriva = ARRIVI[s.id]?.deriva || {};
+    for (const [k, ritmo] of Object.entries(deriva)) {
+      const base = parseFloat(String(s.vitali[k]?.v ?? ''));
+      if (Number.isNaN(base)) continue;
+      for (const minuti of [10, 60, 600, 1440]) {
+        const v = entro(k, base + ritmo * minuti);
+        const [min, max] = LIMITI_VITALI[k];
+        assert.ok(v >= min && v <= max,
+          `${s.id}/${k} a ${minuti} minuti vale ${v}, fuori da [${min}, ${max}]`);
+      }
+    }
+  }
 });

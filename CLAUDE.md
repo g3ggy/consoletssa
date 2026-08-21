@@ -19,8 +19,14 @@ spiegano *perché*, non *cosa*: il lettore è un volontario che studia, non un
 programmatore.
 
 **Il contenuto clinico viene dai manuali**, non dalla memoria. Le fonti stanno in
-`content/manuale.md` (appunti dell'autore) e nei PDF in `tmp/` (manuale Bolognin
-TSSA 2022, manuale LIFEPAK 15). `tmp/` è fuori da git.
+`content/manuale.md` (appunti dell'autore) e nei PDF dentro `tmp/`, che è fuori da git:
+manuale Bolognin TSSA 2022, linee guida ERC 2021 in traduzione IRC (dieci capitoli in
+`tmp/lineeguicaerc/`), manuale LIFEPAK 15.
+
+Il testo estratto sta in `tmp/testi/`, e **`tmp/testi/FONTI.md` è la mappa**: dice quale
+capitolo tratta cosa e a che riga, e raccoglie i numeri che finiscono nel motore con
+il rimando alla fonte. Si parte sempre da lì. Se `tmp/testi/` è vuoto si riestrae con
+`pdftotext -layout`, il comando è in cima a FONTI.md.
 
 **Immutabilità**: si creano oggetti nuovi, non si muta in-place (vale soprattutto per
 `store.js` e per lo stato del motore di simulazione).
@@ -129,9 +135,9 @@ ricarica-e-svuota-cache, ma la cura è bumpare sempre tutti e tre i punti.
 
 ## Cosa resta da fare
 
-- **BLS-D, triage, manovre**: moduli non ancora scritti. Fonte: manuale Bolognin
-  (in `tmp/`, testo estratto in `/tmp/bolognin.txt` — BLSD ~6357, P-BLSD ~6646,
-  ostruzione ~6760, PLS ~6807, triage ~9436, immobilizzazioni ~9677).
+- **BLS-D, triage, manovre**: moduli non ancora scritti. Le fonti ci sono tutte e gli
+  agganci stanno in `tmp/testi/FONTI.md`: il BLS-D si scrive sul capitolo 4 delle ERC
+  2021, il triage START sul Bolognin (:8630-8660, le quattro domande per esteso).
 - **Anamnesi a domande**: raccogliere informazioni facendo *la domanda giusta*,
   con risposte che possono essere incomplete o false. Disegnato, mai costruito.
 - **Arresto durante lo scenario** nel motore vecchio (nel v2 c'è già).

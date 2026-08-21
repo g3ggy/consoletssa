@@ -16,6 +16,19 @@ export const VITAL_META = {
   Gly: { label: 'Glicemia', unit: 'mg/dl', ref: '70-110', tempo: 1600 },
 };
 
+/* Estremi oltre i quali il numero non è più un dato clinico ma un errore di
+   calcolo: nessun paziente ha una frequenza di quattromila. Sopra ci sono i
+   valori *normali*, qui c'è il confine del *possibile*. La saturazione si
+   ferma a 50 perché sotto quella soglia il saturimetro non legge più. */
+export const LIMITI_VITALI = {
+  FC: [0, 220],
+  PA: [0, 300],        // sistolica: la diastolica la insegue e le resta sotto
+  FR: [0, 60],
+  SpO2: [50, 100],
+  T: [20, 43],
+  Gly: [5, 700],
+};
+
 export const SCENARI = [
   {
     id: 'toracico',
