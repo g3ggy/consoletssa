@@ -372,6 +372,12 @@ export function creaIntervento(caso, opzioni = {}) {
     if (chiave === 'avpu') return s.coscienza;
     if (chiave === 'ritmo') return s.ritmo;
     if (chiave === 'polso') return s.polsoRadiale ? 'presente' : 'assente';
+    if (chiave === 'refill') return `${s.refill} s`;
+    if (chiave === 'cute') return ({
+      normale: 'normale', pallida: 'pallida',
+      'pallida-fredda-sudata': 'pallida, fredda, sudata',
+    })[s.cute] || s.cute;
+    if (chiave === 'sete') return s.sete ? 'ha sete' : 'no';
     const v = s[chiave];
     if (typeof v !== 'number') return v;
     const d = DECIMALI[chiave] ?? 0;

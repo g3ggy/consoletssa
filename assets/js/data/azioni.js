@@ -174,6 +174,28 @@ const ELENCO = [
     spiega: 'La sistolica sotto 100 orienta, sotto 90 è shock conclamato.',
   },
   {
+    id: 'refill', cat: 'valutazione', label: 'Test del riempimento capillare',
+    durata: 15, chi: ['tu'], rileva: 'refill',
+    /* Quindici secondi per un segno che arriva molto prima che la
+       pressione si muova. Si preme sull'unghia cinque secondi tenendo
+       la mano più in alto del cuore, e si conta quanto ci mette a
+       tornare il colore. Normale sotto i due secondi — Bolognin :6489. */
+    diario: (p) => `Riempimento capillare ${p.refill} secondi.`,
+    spiega: 'Sopra i due secondi la periferia è vasocostretta: il paziente sta compensando, anche se la pressione è ancora buona.',
+  },
+  {
+    id: 'colorito', cat: 'valutazione', label: 'Guarda il colorito e tocca la cute',
+    durata: 10, chi: ['tu'], rileva: 'cute',
+    diario: 'Guardi il colorito e tocchi la fronte e le mani.',
+    spiega: 'Pallore, cute fredda e sudorazione algida sono vasocostrizione: il sangue viene tolto alla pelle per darlo agli organi nobili.',
+  },
+  {
+    id: 'chiedi-sete', cat: 'valutazione', label: 'Chiedigli se ha sete',
+    durata: 10, chi: ['tu'], rileva: 'sete',
+    diario: (p) => (p.sete ? 'Dice che ha sete.' : 'Dice di no.'),
+    spiega: 'Il senso di sete è un segno di shock che il paziente riferisce da solo, se glielo chiedi.',
+  },
+  {
     id: 'polso-radiale', cat: 'valutazione', label: 'Cerca il polso radiale', durata: 15,
     chi: ['tu'], rileva: 'polso',
     diario: (p) => (p.polsoRadiale ? 'Polso radiale presente.' : 'Polso radiale assente: cerco il carotideo.'),

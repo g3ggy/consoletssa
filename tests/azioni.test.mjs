@@ -94,3 +94,16 @@ test('la posizione del paziente mette il tag che il ritorno venoso legge', () =>
   assert.equal(AZIONI.antishock.applica({ tag: [] }, {}).tag, 'antishock');
   assert.equal(AZIONI['posizione-seduta'].applica({ tag: [] }, {}).tag, 'seduta');
 });
+
+test('ci sono le azioni per cercare i segni del compenso', () => {
+  for (const id of ['refill', 'colorito', 'chiedi-sete']) {
+    const az = AZIONI[id];
+    assert.ok(az, `manca l'azione ${id}`);
+    assert.ok(az.rileva, `${id}: deve rilevare qualcosa`);
+    assert.ok(az.durata > 0 && az.durata <= 30, `${id}: deve costare poco tempo`);
+  }
+});
+
+test('il refill è più veloce di una pressione: è per questo che si fa prima', () => {
+  assert.ok(AZIONI.refill.durata < AZIONI['misura-pa'].durata);
+});

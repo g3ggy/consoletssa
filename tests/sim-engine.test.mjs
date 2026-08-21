@@ -436,3 +436,22 @@ test('i liquidi comprano tempo, e si vede nei parametri', () => {
   assert.ok(con.stato.pas > senza.stato.pas,
     `con la flebo ${con.stato.pas}, senza ${senza.stato.pas}`);
 });
+
+test('i segni del compenso si leggono solo se qualcuno li va a cercare', () => {
+  const AZIONI_SEGNI = {
+    ...AZIONI_FIS,
+    refill: { id: 'refill', cat: 'valutazione', label: 'Refill', durata: 15, chi: ['tu'], rileva: 'refill', spiega: 'prova' },
+    colorito: { id: 'colorito', cat: 'valutazione', label: 'Colorito', durata: 10, chi: ['tu'], rileva: 'cute', spiega: 'prova' },
+    'chiedi-sete': { id: 'chiedi-sete', cat: 'valutazione', label: 'Sete', durata: 10, chi: ['tu'], rileva: 'sete', spiega: 'prova' },
+  };
+  const i = avvia(casoFisiologico(), AZIONI_SEGNI);
+  i.avanza(60 * 18);                       // 1080 ml, in pieno compenso
+  assert.equal(i.valore('refill'), undefined, 'finché non lo fai non sai niente');
+
+  i.esegui('refill', 'tu');
+  i.esegui('colorito', 'tu');
+  i.esegui('chiedi-sete', 'tu');
+  assert.match(String(i.valore('refill')), /^[2-9](\.\d)? s$/, 'il refill è allungato');
+  assert.equal(i.valore('cute'), 'pallida, fredda, sudata');
+  assert.equal(i.valore('sete'), 'ha sete');
+});
