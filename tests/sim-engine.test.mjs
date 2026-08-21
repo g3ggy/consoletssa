@@ -455,3 +455,10 @@ test('i segni del compenso si leggono solo se qualcuno li va a cercare', () => {
   assert.equal(i.valore('cute'), 'pallida, fredda, sudata');
   assert.equal(i.valore('sete'), 'ha sete');
 });
+
+test('in arresto il saturimetro non legge più niente', () => {
+  const i = avvia(casoFisiologico(), AZIONI_FIS);
+  i.avanza(60 * 50);
+  assert.equal(i.stato.spo2, null,
+    'senza circolo la sonda al dito non ha niente da misurare: il riquadro resta a trattini');
+});

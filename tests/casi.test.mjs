@@ -20,9 +20,11 @@ function rispondiSeServe(i) {
 
 test('ogni caso dichiara le chiavi che il motore si aspetta', () => {
   CASI.forEach((c) => {
-    assert.equal(c.motore, 2, `${c.id}: manca motore 2`);
-    assert.ok(c.iniziale && typeof c.iniziale.pas === 'number', `${c.id}: iniziale incompleto`);
-    assert.ok(c.decorso?.base, `${c.id}: manca il decorso`);
+    assert.ok([2, 3].includes(c.motore), `${c.id}: motore ${c.motore} sconosciuto`);
+    if (c.motore === 2) {
+      assert.ok(c.iniziale && typeof c.iniziale.pas === 'number', `${c.id}: iniziale incompleto`);
+      assert.ok(c.decorso?.base, `${c.id}: manca il decorso`);
+    }
     assert.ok(c.azioni?.necessarie?.length, `${c.id}: nessuna azione necessaria`);
     assert.ok(c.chiave && c.trappola && c.ragguaglio, `${c.id}: manca il testo del debriefing`);
     (c.azioni.necessarie || []).forEach((n) => {
@@ -76,11 +78,11 @@ test('facendo le azioni necessarie il paziente non peggiora e il punteggio è pi
 });
 
 test('nello shock la posizione seduta fa scendere ancora la pressione', () => {
-  const caso = CASI.find((c) => c.id === 'shock-v2');
+  const caso = CASI.find((c) => c.id === 'shock-v3');
   const i = avvia(caso);
   const prima = i.stato.pas;
   i.esegui('posizione-seduta', 'tu');
-  assert.ok(i.stato.pas < prima - 5, 'la sistolica doveva scendere per l\'effetto del caso');
+  assert.ok(i.stato.pas < prima, 'togliere ritorno venoso a un ipoteso si paga in fisiologia');
   assert.equal(i.chiudi().dannose.length, 1);
 });
 
@@ -95,7 +97,7 @@ test('nel dolore toracico chi non trasporta arriva all\'arresto', () => {
 });
 
 test('l\'infermiere non somministra finché non gli hai riferito il quadro', () => {
-  const caso = CASI.find((c) => c.id === 'shock-v2');
+  const caso = CASI.find((c) => c.id === 'shock-v3');
   const i = avvia(caso);
   const rifiuto = i.esegui('inf-adrenalina', 'infermiere');
   assert.equal(rifiuto.ok, false);
@@ -105,4 +107,30 @@ test('l\'infermiere non somministra finché non gli hai riferito il quadro', () 
   rispondiSeServe(i);
   const ora = i.esegui('inf-adrenalina', 'infermiere');
   assert.equal(ora.ok, true, 'dopo il ragguaglio l\'infermiere procede');
+});
+
+/* ==================== i casi di formato 3 =========================== */
+
+test('i casi di formato 3 dichiarano offese, non derive', () => {
+  CASI.filter((c) => c.motore === 3).forEach((c) => {
+    assert.ok(c.fisiologia, `${c.id}: manca il blocco fisiologia`);
+    assert.ok(c.fisiologia.base, `${c.id}: manca la base`);
+    assert.ok(c.fisiologia.offese?.length, `${c.id}: nessuna offesa dichiarata`);
+    assert.ok(!c.decorso, `${c.id}: ha ancora il decorso vecchio`);
+    assert.ok(!c.iniziale, `${c.id}: ha ancora i parametri iniziali scritti a mano`);
+  });
+});
+
+/* Il piano chiedeva qui una frequenza sopra 100. Non può esserci: il
+   caso dichiara un betabloccante, e il betabloccante il compenso lo
+   blocca. La trappola è esattamente questa — ipoteso, freddo, e con una
+   frequenza che sembra tranquilla. */
+test('shock-v3 arriva già scompensato, ma senza tachicardia', () => {
+  const caso = CASI.find((c) => c.id === 'shock-v3');
+  assert.ok(caso, 'manca shock-v3');
+  const i = avvia(caso);
+  assert.ok(i.stato.pas < 100, `la pressione ha già ceduto, invece è ${i.stato.pas}`);
+  assert.ok(i.stato.fc < 90, `e la frequenza non sale: invece è ${i.stato.fc}`);
+  assert.notEqual(i.stato.cute, 'normale', 'ma la cute lo dice');
+  assert.ok(i.stato.refill > 2, 'e il refill pure');
 });

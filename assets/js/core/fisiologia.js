@@ -83,6 +83,11 @@ const GUADAGNO_TACHICARDIA = 160;
    ASSUNZIONE NOSTRA. */
 const CADUTA_PRESSORIA = 0.10;
 
+/* Di quanto la vasocostrizione avvicina la diastolica alla sistolica,
+   per punto di perdita. ASSUNZIONE NOSTRA: il Bolognin :6481 dice che
+   il differenziale si stringe, non di quanto. */
+const STRETTA_DIFFERENZIALE = 0.5;
+
 /* Sotto questa sistolica il polso radiale non si sente più.
    Bolognin :8650, dentro l'algoritmo START. */
 const PAS_POLSO_RADIALE = 80;
@@ -145,11 +150,15 @@ export function circolo(riserve, base, modificatori = {}) {
   const tenuta = fra(tenutaPressoria(perdita, !bloccato) * (modificatori.ritornoVenoso ?? 1), 0, 1);
   const pas = Math.round(base.pas * tenuta * riserve.tonoVascolare);
 
-  /* La diastolica non segue la sistolica: durante il compenso la
-     vasocostrizione la alza, e il differenziale si stringe. È un segno
-     precoce, e si legge prima che la sistolica si muova. */
-  const differenziale = Math.max(12, (base.pas - base.pad) * (1 - perdita));
-  const pad = Math.round(Math.max(0, Math.min(pas - 8, pas - differenziale)));
+  /* La diastolica si tiene in rapporto alla sistolica, e il rapporto si
+     alza col compenso: è così che il differenziale si stringe, ed è un
+     segno precoce — si legge prima che la sistolica si muova.
+
+     Il rapporto e non la sottrazione, perché sottrarre un differenziale
+     fisso a una sistolica che crolla darebbe diastoliche a zero: un
+     «40 su 0» non è un paziente grave, è un errore di aritmetica. */
+  const rapporto = fra(base.pad / base.pas + STRETTA_DIFFERENZIALE * perdita, 0.4, 0.85);
+  const pad = Math.round(Math.max(0, Math.min(pas - 8, pas * rapporto)));
 
   return {
     fc: fra(fc, 0, 220),
@@ -179,7 +188,7 @@ export function segni(riserve, base, modificatori = {}) {
   /* Il refill si allunga con la vasocostrizione periferica: è il segno
      più precoce che si possa misurare, e costa quindici secondi.
      Normale sotto i due secondi — Bolognin :6489. */
-  const refill = Number((1.4 + 7 * Math.max(0, perdita - 0.08)).toFixed(1));
+  const refill = Number((1.4 + 12 * Math.max(0, perdita - 0.08)).toFixed(1));
 
   let cute = 'normale';
   if (perdita >= 0.20) cute = 'pallida-fredda-sudata';
@@ -244,6 +253,12 @@ export function parametriVisibili(riserve, base, modificatori = {}) {
      sangue: è il quadro che si confonde con l'ictus e con l'ubriaco. */
   const daGlicemia = riserve.glicemia < 30 ? 'P' : (riserve.glicemia < 50 ? 'V' : 'A');
 
+  /* Al cervello non interessa quanto sangue è uscito: interessa quanto
+     gliene arriva. Chi non ha compenso diventa ipoteso avendo perso
+     poco, e la coscienza segue la pressione, non i millilitri. Le
+     soglie sono ASSUNZIONE NOSTRA. */
+  const daPerfusione = pas < 45 ? 'U' : (pas < 55 ? 'P' : (pas < 75 ? 'V' : 'A'));
+
   return {
     fc: fra(fc, 0, 220),
     pas: fra(pas, 0, 300),
@@ -253,7 +268,7 @@ export function parametriVisibili(riserve, base, modificatori = {}) {
     fr,
     glicemia: Math.round(riserve.glicemia),
     dolore: Math.round(riserve.dolore),
-    coscienza: peggiore(s.coscienza, daGlicemia),
+    coscienza: peggiore(peggiore(s.coscienza, daGlicemia), daPerfusione),
     cute: s.cute,
     refill: s.refill,
     sete: s.sete,

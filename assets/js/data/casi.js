@@ -5,12 +5,21 @@
    oggetto, non si scrive codice. Le condizioni sono funzioni normali
    che ricevono lo stato del paziente.
 
-   Chiavi principali
-   -----------------
+   Due formati convivono.
+
+   Formato 2 — il caso dichiara i parametri e di quanto peggiorano:
    iniziale        i parametri all'arrivo della squadra
    decorso.base    variazione AL MINUTO se non si fa nulla di utile
    decorso.freni   variazioni aggiuntive quando un tag è attivo
    effettiAzioni   effetto tutto del caso su un'azione generica
+
+   Formato 3 — il caso dichiara la CAUSA e il decorso viene da sé:
+   fisiologia.base       i suoi parametri da sano, la base dei calcoli
+   fisiologia.riserve    quanto sangue, quanto zucchero: non si vedono mai
+   fisiologia.offese     che cosa gli sta facendo male, e a che ritmo
+   fisiologia.modificatori   età, terapia cronica
+
+   In comune:
    eventi          cose che succedono a un certo istante, con condizione
    soglie          righe di diario quando un parametro passa un confine
    azioni          necessarie / utili / dannose per la pagella
@@ -19,12 +28,12 @@
 export const CASI = [
   /* ================================================================= */
   {
-    id: 'shock-v2',
+    id: 'shock-v3',
     ecg: { pattern: 'normale' },
     titolo: '"Si sente fiacco"',
     tipo: 'medico',
     difficolta: 3,
-    motore: 2,
+    motore: 3,
     capitoli: ['cap-29', 'cap-27'],
 
     dispatch: {
@@ -41,30 +50,21 @@ export const CASI = [
       vitale: true,
     },
 
-    iniziale: {
-      coscienza: 'A',
-      viePervie: true,
-      respiro: { tipo: 'normale', fr: 24 },
-      fc: 118, pas: 96, pad: 58, ritmo: 'tachicardia',
-      polsoRadiale: true,
-      spo2: 97, glicemia: 96, temp: 36.1,
-      cute: 'pallida-fredda', dolore: 0,
-    },
-
-    decorso: {
-      base: { pas: -2.5, pad: -1.5, fc: +1.6, spo2: -0.1 },
-      freni: {
-        antishock: { pas: +1.6, fc: -0.9 },
-        liquidi: { pas: +3.5, fc: -2 },
-        coperta: { temp: +0.1 },
-        'in-viaggio': { pas: +0.5 },
-      },
-      limiti: { pas: [40, 200], pad: [25, 130], fc: [30, 190], spo2: [70, 100], temp: [34, 40] },
-    },
-
-    /* la posizione seduta qui è un errore: toglie ancora precarico */
-    effettiAzioni: {
-      'posizione-seduta': { pas: -9, fc: +6 },
+    fisiologia: {
+      /* Il suo normale: un iperteso di settantaquattro anni in terapia. */
+      base: { fc: 72, pas: 145, pad: 85, spo2: 98, fr: 14, glicemia: 96, temp: 36.1 },
+      riserve: { volemia: 4800 },
+      /* Sanguina nello stomaco da ore: quando arrivate ha già perso quasi
+         un litro, ed è per questo che "si sente fiacco". Il laccio non
+         serve, la compressione nemmeno: qui l'unica cosa che conta è
+         arrivare in ospedale prima che il compenso finisca. */
+      offese: [
+        { tipo: 'emorragia', sede: 'interna', portata: 20, gia: 980 },
+      ],
+      /* Il betabloccante gli tiene la frequenza bassa: il compenso non
+         si vede. È la trappola del caso, e si scopre solo chiedendo la
+         terapia. */
+      modificatori: { eta: 74, terapia: ['betabloccante'] },
     },
 
     eventi: [
@@ -82,13 +82,13 @@ export const CASI = [
             {
               t: 'Lo accompagno, tanto ci sono io a reggerlo',
               ok: false,
-              effetto: { pas: -14, coscienza: 'V' },
+              effetto: { tag: 'in-piedi' },
               w: 'Si è quasi accasciato fra le tue braccia: il ritorno venoso è crollato di colpo.',
             },
             {
               t: 'Lo lascio fare, è casa sua',
               ok: false,
-              effetto: { pas: -18, coscienza: 'V' },
+              effetto: { tag: 'in-piedi' },
               w: 'Un paziente ipoteso che si alza da solo è un paziente che cade. Non è maleducazione: è clinica.',
             },
           ],
@@ -96,30 +96,27 @@ export const CASI = [
       },
       {
         id: 'moglie-terapia', t: 200,
-        testo: 'La moglie, senza che tu chieda: «Ma è normale che sia così bianco? Stamattina la pastiglia gliel\'ho data io, e forse se l\'era già presa lui».',
+        testo: 'La moglie, senza che tu chieda: «Ma è normale che sia così bianco? La pastiglia per il cuore gliel\'ho data io stamattina, quella che gli tiene giù il battito».',
       },
+      /* Da qui in giù gli eventi raccontano e basta: la coscienza e il
+         respiro li decide la fisiologia, e l'arresto arriva quando le
+         riserve sono finite — non a un minuto scritto nel copione. */
       {
-        id: 'coscienza', t: 300, se: (p) => p.pas < 85,
-        effetto: { coscienza: 'V' },
+        id: 'coscienza', t: 300, se: (p) => p.coscienza !== 'A',
         testo: 'Fatica a seguire il discorso: risponde solo se lo chiami per nome.',
       },
       {
         id: 'peggio', t: 480, se: (p) => p.pas < 72,
-        effetto: { coscienza: 'P', respiro: { tipo: 'dispnea', fr: 30 } },
+        effetto: { respiro: { tipo: 'dispnea', fr: 30 } },
         testo: 'Non risponde più alla voce, reagisce solo se lo stimoli. Il respiro si fa superficiale e frequente.',
-      },
-      {
-        id: 'arresto', t: 660, se: (p) => p.pas < 60,
-        effetto: { arresto: true },
-        testo: 'Il paziente si affloscia e smette di rispondere.',
       },
     ],
 
-    arresto: { ritmo: 'pea', finestraRcp: 60 },
+    arresto: { finestraRcp: 60 },
 
     soglie: [
       { id: 's-pallore', se: (p) => p.pas < 88, testo: 'Le ginocchia si marezzano, le labbra perdono colore.' },
-      { id: 's-tachi', se: (p) => p.fc > 130, testo: 'Il polso si fa piccolo e frequente, difficile da contare al radiale.' },
+      { id: 's-radiale', se: (p) => p.polsoRadiale === false, testo: 'Al polso non senti più niente: cerchi il carotideo, e c\'è.' },
       { id: 's-antishock', se: (p) => p.tag.includes('antishock') && p.pas > 95, testo: 'Riprende un po\' di colore in viso.' },
     ],
 
@@ -128,6 +125,7 @@ export const CASI = [
         { id: 'valuta-scena', entro: 60, peso: 1 },
         { id: 'misura-pa', entro: 150, peso: 3 },
         { id: 'monitor', entro: 210, peso: 2 },
+        { id: 'refill', entro: 180, peso: 3 },
         { id: 'antishock', entro: 300, peso: 3 },
         { id: 'coperta', entro: 420, peso: 1 },
         { id: 'riferisci-infermiere', entro: 360, peso: 2 },
@@ -137,7 +135,7 @@ export const CASI = [
         { id: 'inf-liquidi', entro: 540, peso: 2 },
         { id: 'carica', entro: 780, peso: 2 },
       ],
-      utili: ['misura-glicemia', 'rassicura', 'polso-radiale', 'conta-fr', 'coperta'],
+      utili: ['misura-glicemia', 'rassicura', 'polso-radiale', 'conta-fr', 'coperta', 'colorito', 'chiedi-sete'],
       dannose: [
         { id: 'posizione-seduta', penalita: 3, perche: 'In un paziente ipoteso la posizione seduta toglie ritorno venoso: la pressione scende ancora.' },
         { id: 'spinale', perche: 'Nessun trauma: sono tre minuti persi e un paziente scomodo.' },
@@ -145,9 +143,9 @@ export const CASI = [
       ],
     },
 
-    chiave: 'Il parametro che comanda non è la frequenza: è la sistolica. La tachicardia è il compenso, e il compenso regge finché regge. Cute pallida e fredda, polso piccolo, codice verde dalla centrale — ed è uno shock.',
-    trappola: 'Il paziente parla, la moglie è tranquilla, la centrale ha detto verde. Se non misuri la pressione presto non hai nessun motivo per allarmarti, e quando te ne accorgi hai perso quattro minuti. Chiedi sempre delle doppie assunzioni della terapia cronica.',
-    ragguaglio: 'Uomo di 74 anni, iperteso in terapia, riferita probabile doppia assunzione dell\'antipertensivo stamattina. Astenia ingravescente da alcune ore, nessun dolore. All\'arrivo PA 96/58 poi in discesa, FC 118, cute pallida e fredda, coscienza conservata. Posizione antishock, ossigeno, coperta, accesso venoso reperito dall\'infermiere. Sospetto stato di shock.',
+    chiave: 'Sta sanguinando dentro, e non si vede. Il parametro che comanda non è la frequenza: è la sistolica, e prima ancora sono la cute e il refill. Cute pallida e fredda, riempimento capillare lungo, codice verde dalla centrale — ed è uno shock.',
+    trappola: 'Il paziente parla, la moglie è tranquilla, la centrale ha detto verde. Il betabloccante gli impedisce di tachicardizzare: la frequenza che leggi non ti dice niente, e chi si fida della frequenza qui sbaglia paziente. Guardagli la cute, fai il refill, e chiedi sempre la terapia cronica.',
+    ragguaglio: 'Uomo di 74 anni, iperteso in terapia con betabloccante. Astenia ingravescente da alcune ore, nessun dolore, nessun trauma. All\'arrivo PA 84/60, FC 72, cute pallida fredda e sudata, riempimento capillare oltre i due secondi, coscienza conservata. Sospetto sanguinamento gastroenterico in atto. Posizione antishock, ossigeno, coperta, accesso venoso e liquidi dall\'infermiere.',
   },
 
   /* ================================================================= */

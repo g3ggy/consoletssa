@@ -302,3 +302,32 @@ test('il ritorno venoso si vede sulla sistolica, non sulla frequenza', () => {
   assert.ok(piatto.pas > seduto.pas, 'in antishock la pressione tiene meglio');
   assert.equal(piatto.fc, seduto.fc, 'la frequenza dipende dalla perdita, non dalla posizione');
 });
+
+/* ==================== quel che si vede addosso ====================== */
+
+test('il differenziale si STRINGE: la diastolica non si stacca dalla sistolica', () => {
+  const sano = circolo(riserveIniziali({ volemia: 5000 }), BASE, {});
+  const r = { ...riserveIniziali({ volemia: 5000 }), volemia: 4000 };
+  const compensato = circolo(r, BASE, {});
+  assert.ok(compensato.pas - compensato.pad < sano.pas - sano.pad,
+    'la vasocostrizione avvicina la diastolica alla sistolica');
+
+  /* Anche quando la pressione crolla il rapporto regge: un 40 su 0 non
+     è un paziente, è un errore di aritmetica. */
+  const crollato = circolo({ ...r, volemia: 3300 }, BASE, { compensoBloccato: true });
+  assert.ok(crollato.pad > crollato.pas * 0.4, `esce ${crollato.pas}/${crollato.pad}`);
+});
+
+test('il refill si allunga sul serio quando il sangue manca', () => {
+  const r = { ...riserveIniziali({ volemia: 5000 }), volemia: 3500 };   // 30%
+  assert.ok(segni(r, BASE, {}).refill > 3.5, 'a un terzo di volemia in meno il colore non torna');
+});
+
+test('chi non perfonde il cervello non resta vigile, per poco sangue che abbia perso', () => {
+  /* Betabloccato: la pressione cade presto, e la coscienza la segue.
+     È la perfusione che decide, non i millilitri. */
+  const r = { ...riserveIniziali({ volemia: 5000 }), volemia: 3900 };
+  const p = parametriVisibili(r, BASE, { compensoBloccato: true });
+  assert.ok(p.pas < 75, `controllo: doveva essere ipoteso, è ${p.pas}`);
+  assert.notEqual(p.coscienza, 'A', 'con quella pressione non è più vigile');
+});

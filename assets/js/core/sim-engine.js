@@ -268,6 +268,10 @@ export function creaIntervento(caso, opzioni = {}) {
       coscienza: 'U',
       polsoRadiale: false,
       fc: 0, pas: 0, pad: 0,
+      /* Il saturimetro legge il polso: senza circolo non legge niente, e
+         il riquadro va a trattini invece di mostrare l'ultimo numero
+         buono come se il paziente stesse ancora respirando. */
+      spo2: null,
       /* nel formato 3 il ritmo lo decide la causa, non il copione */
       ritmo: ritmoDellaCausa || conf.ritmo || 'fv',
       respiro: { tipo: 'gasping', fr: 4 },
