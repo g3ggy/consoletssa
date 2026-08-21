@@ -13,9 +13,10 @@ import { creaLifepak } from '../core/lifepak.js';
 import { setRibbonRhythm } from '../core/ribbon.js';
 import { saveRun } from '../core/store.js';
 import { creaIntervento } from '../core/sim-engine.js';
+import { daChi } from '../core/anamnesi.js';
 import { AZIONI, CATEGORIE, azioniDi } from '../data/azioni.js';
 import { CASI, CASI_INDICE } from '../data/casi.js';
-import { DOMANDE_ELENCO } from '../data/domande.js';
+import { DOMANDE } from '../data/domande.js';
 import { cartellino, badgeCriticita } from '../core/cartellino.js';
 import { foglioEcg12 } from '../core/ecg12.js';
 
@@ -602,6 +603,25 @@ function mostraDebriefing() {
         el('span.p', { text: `${r.punti}/${r.peso}` }),
       ]))),
     ]),
+
+    p.anamnesi.voci.length ? el('div.dbox', {}, [
+      el('div.t', { text: 'quello che hai raccolto' }),
+      el('div.pagella', {}, p.anamnesi.voci.map((v) => el(`div.voce.${v.qualita === 'buona' ? 'ok' : 'tardi'}`, {}, [
+        el('span.m'),
+        el('span.l', {}, [
+          el('b', { text: DOMANDE[v.domanda]?.testo || v.domanda }),
+          el('span', {
+            text: v.rivela.length
+              ? `${daChi(v.da)}: ${v.rivela.join(', ')}`
+              : daChi(v.da),
+          }),
+        ]),
+        el('span.p', { text: formatSeconds(v.t) }),
+      ]))),
+      ...p.anamnesi.avvisi.map((testo) => el('p', {
+        style: { margin: '10px 0 0', color: 'var(--amber)' }, text: testo,
+      })),
+    ]) : null,
 
     p.dannose.length ? el('div.dbox.warn', {}, [
       el('div.t', { text: 'quello che ha fatto danno' }),

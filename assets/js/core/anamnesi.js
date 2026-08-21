@@ -21,21 +21,32 @@ import { DOMANDE_ELENCO } from '../data/domande.js';
 /* Il paziente c'è sempre e non va dichiarato dal caso. */
 export const PAZIENTE = { id: 'paziente', label: 'il paziente' };
 
-/* In italiano «a» e l'articolo si fondono, e «chiedi a il paziente» non
-   si legge. Gli interlocutori si dichiarano con l'articolo davanti — «la
-   moglie», «il figlio» — così restano leggibili anche da soli, nella
-   barra della palette. Qui si articola la preposizione per il diario. */
-const PREPOSIZIONE = [
-  [/^il /, 'al '], [/^lo /, 'allo '], [/^la /, 'alla '],
-  [/^l'/, 'all\''], [/^i /, 'ai '], [/^gli /, 'agli '], [/^le /, 'alle '],
-];
+/* In italiano la preposizione e l'articolo si fondono, e «chiedi a il
+   paziente» non si legge. Gli interlocutori si dichiarano con l'articolo
+   davanti — «la moglie», «il figlio» — così restano leggibili anche da
+   soli, nella barra della palette; qui si articola la preposizione per
+   il diario e per il debriefing. */
+const ARTICOLI = [/^il /, /^lo /, /^la /, /^l'/, /^i /, /^gli /, /^le /];
+const FUSIONE = {
+  a: ['al ', 'allo ', 'alla ', 'all\'', 'ai ', 'agli ', 'alle '],
+  da: ['dal ', 'dallo ', 'dalla ', 'dall\'', 'dai ', 'dagli ', 'dalle '],
+};
 
-/** «il paziente» → «al paziente»; un nome proprio resta «a Marco». */
-export function aChi(label) {
+/* Un nome proprio non ha articolo e la preposizione resta staccata:
+   «a Marco», non «al Marco». */
+function articolata(preposizione, label) {
   const testo = String(label);
-  const regola = PREPOSIZIONE.find(([quale]) => quale.test(testo));
-  return regola ? testo.replace(regola[0], regola[1]) : `a ${testo}`;
+  const i = ARTICOLI.findIndex((quale) => quale.test(testo));
+  return i < 0
+    ? `${preposizione} ${testo}`
+    : testo.replace(ARTICOLI[i], FUSIONE[preposizione][i]);
 }
+
+/** «il paziente» → «al paziente». */
+export const aChi = (label) => articolata('a', label);
+
+/** «il paziente» → «dal paziente». */
+export const daChi = (label) => articolata('da', label);
 
 /** Chi si può interrogare in questo caso, col paziente per primo. */
 export function interlocutoriDi(caso) {

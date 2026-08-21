@@ -219,7 +219,7 @@ test('quello che non hai chiesto non compare fra le voci', () => {
 
 /* ==================== come si nomina chi hai davanti ================ */
 
-import { aChi } from '../assets/js/core/anamnesi.js';
+import { aChi, daChi } from '../assets/js/core/anamnesi.js';
 
 test('«a» e l\'articolo si fondono, come si parla', () => {
   assert.equal(aChi('il paziente'), 'al paziente');
@@ -235,4 +235,13 @@ test('«a» e l\'articolo si fondono, come si parla', () => {
 test('senza articolo resta com\'è, con la preposizione davanti', () => {
   assert.equal(aChi('Marco'), 'a Marco');
   assert.equal(aChi('un passante'), 'a un passante');
+});
+
+test('vale anche per «da», che nel debriefing dice chi te l\'ha detto', () => {
+  assert.equal(daChi('il paziente'), 'dal paziente');
+  assert.equal(daChi('la moglie'), 'dalla moglie');
+  assert.equal(daChi('lo zio'), 'dallo zio');
+  assert.equal(daChi('l\'amica'), 'dall\'amica');
+  assert.equal(daChi('gli agenti'), 'dagli agenti');
+  assert.equal(daChi('Marco'), 'da Marco');
 });
