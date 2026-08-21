@@ -55,10 +55,12 @@ assets/js/
     cartellino.js     replica del cartellino di CO118
     sim-engine.js     motore a turni, logica pura, testato
     fisiologia.js     riserve → compenso → parametri visibili. Logica pura
+    anamnesi.js       chi risponde, cosa dice, cosa rivela. Logica pura
     manual.js markdown.js ribbon.js
   data/               solo dati, nessun DOM
     casi.js           casi per il motore a tempo (formato 3: offese, non derive)
     offese.js         catalogo delle offese: che cosa fa male al paziente
+    domande.js        le dodici domande dell'anamnesi: sei SAMPLE, sei OPQRST
     scenari.js        i 12 scenari a domande (motore vecchio)
     scenari-arrivo.js arrivo/situazione/azioniSbagliate/deriva per ogni scenario
     azioni.js         catalogo azioni della palette
@@ -88,6 +90,13 @@ scarica), PEA nell'emorragia e nell'ipossia (non scarica).
 I segni del compenso — refill, colorito, sete — **non compaiono nel diario da
 soli**: ci sono le azioni che li cercano. Chi guarda solo il monitor non vede
 niente finché non è tardi, ed è la lezione del banco.
+
+L'**anamnesi** funziona allo stesso modo: le domande stanno nel catalogo, le
+risposte nei casi. Ci si gira verso una persona e da lì tutte le domande vanno a
+lei; la stessa domanda a due persone dà due risposte, e **nessuna etichetta dice
+quale vale**. A coscienza V il paziente risponde in modo confuso senza che niente
+lo segnali; da P in giù la domanda è rifiutata. Le voci `domanda:<id>` si mettono
+in `azioni.necessarie` come le azioni, e la pagella le pesa allo stesso modo.
 
 Le costanti cliniche portano la fonte nel commento. Due sono **assunzione
 nostra** e vanno riviste se arriva il manuale: le soglie 15/30/40% della perdita
@@ -151,6 +160,11 @@ ricarica-e-svuota-cache, ma la cura è bumpare sempre tutti e tre i punti.
 - `window.confirm` blocca l'automazione del browser: conferme a due tocchi inline.
 - Le tessere dei parametri si rompono con valori lunghi ("non rilevabile", "gasping"):
   c'è l'attributo `data-lungo` con gli scalini di font-size, va usato.
+- `.az-testo span` è `display: block`: uno `span` inline dentro una riga della
+  palette va scavalcato per specificità, altrimenti va a capo da solo.
+- In italiano la preposizione si fonde con l'articolo: gli interlocutori si
+  dichiarano con l'articolo davanti ("la moglie") e i testi passano da `aChi()` /
+  `daChi()` in `anamnesi.js`, se no si legge "chiedi a il paziente".
 
 ---
 
@@ -162,16 +176,16 @@ come storia della decisione:
 - `docs/superpowers/specs/2026-08-21-motore-fisiologico-offese-design.md`
 - `docs/superpowers/plans/2026-08-21-motore-fisiologico-offese.md`
 
-**Il prossimo pezzo** è l'**anamnesi a domande**: la forma dei dati è già
-disegnata nella sezione 7 della specifica, manca il comportamento. È lì che il
-betabloccante di `shock-v3` si scopre facendo la domanda giusta — oggi agisce
-sul paziente senza che il soccorritore abbia modo di saperlo.
+**Fatto in 1.8.0.** L'anamnesi a domande: il betabloccante di `shock-v3` si
+scopre chiedendo la terapia **alla moglie**, che dal paziente esce solo una
+risposta vaga. Specifica e piano restano come storia della decisione:
+
+- `docs/superpowers/specs/2026-08-21-anamnesi-a-domande-design.md`
+- `docs/superpowers/plans/2026-08-21-anamnesi-a-domande.md`
 
 - **BLS-D, triage, manovre**: moduli non ancora scritti. Le fonti ci sono tutte e gli
   agganci stanno in `tmp/testi/FONTI.md`: il BLS-D si scrive sul capitolo 4 delle ERC
   2025, il triage START sul Bolognin (:8630-8660, le quattro domande per esteso).
-- **Anamnesi a domande**: raccogliere informazioni facendo *la domanda giusta*,
-  con risposte che possono essere incomplete o false. Disegnato, mai costruito.
 - **Arresto durante lo scenario** nel motore vecchio (nel v2 c'è già).
 - **Dieci scenari legacy** da portare sul motore v2.
 
