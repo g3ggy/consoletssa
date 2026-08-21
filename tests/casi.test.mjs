@@ -588,3 +588,15 @@ test('shock-v3 non si muove nemmeno dopo cinque minuti', () => {
   assert.equal(i.stato.pas, 69);
   assert.equal(i.stato.cute, 'pallida-fredda-sudata');
 });
+
+test('la bradicardia della sincope viene dal vago, non da una base finta', () => {
+  const caso = sinc();
+  assert.ok(caso.fisiologia.riserve.tonoAutonomo < 0, 'il tono vagale va dichiarato nelle riserve');
+  assert.ok(caso.fisiologia.base.fc > 65, 'e la base torna a essere la sua frequenza da riposo vera');
+  const i = avvia(caso);
+  assert.ok(i.stato.fc < 62, `arriva bradicardica: invece è ${i.stato.fc}`);
+  /* Il colpo d'occhio dice «pallida e sudata»: adesso lo dice anche la
+     tessera. Prima leggeva «normale», ed era il buco lasciato aperto
+     da 1.10.0. */
+  assert.notEqual(i.stato.cute, 'normale', `deve essere pallida: è ${i.stato.cute}`);
+});

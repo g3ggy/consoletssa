@@ -716,17 +716,25 @@ export const CASI = [
     },
 
     fisiologia: {
-      /* Il suo normale: ventiquattro anni, sportiva, nessuna patologia.
-         La frequenza a 58 è ASSUNZIONE NOSTRA e copre una lacuna: il
-         motore muove la frequenza col compenso e col dolore, mai verso
-         il basso, quindi la bradicardia vagale del manuale non è
-         modellabile e si dichiara come se fosse la sua di base. */
-      base: { fc: 58, pas: 112, pad: 70, spo2: 99, fr: 14, glicemia: 84, temp: 36.3 },
-      /* Il vago ha ancora la mano sul freno: il letto vascolare è
-         allargato e la pressione sta bassa. Il sangue c'è tutto.
+      /* Il suo normale: ventiquattro anni, nessuna patologia. La
+         frequenza qui è quella che ha da sana, e non c'è più niente di
+         finto: la bradicardia esce dal tono vagale qui sotto. */
+      base: { fc: 77, pas: 112, pad: 70, spo2: 99, fr: 14, glicemia: 84, temp: 36.3 },
+      /* Il vago ha ancora la mano sul freno, e la tiene su due cose
+         diverse: rallenta il cuore (`tonoAutonomo`, negativo) e allarga
+         il letto vascolare (`tonoVascolare`, sotto 1). Non è un
+         doppione: sono due grandezze, e il vago le muove tutte e due.
+
+         Dal tono autonomo escono anche il pallore e la sudorazione che
+         il colpo d'occhio promette — il capitolo 28 li mette fra i
+         prodromi. Il sangue c'è tutto.
+
          Glicemia e ossigenazione stanno QUI e non nella base: è dalle
          riserve che escono i numeri che si vedono. */
-      riserve: { volemia: 5000, tonoVascolare: 0.80, ossigenazione: 0.99, glicemia: 84 },
+      riserve: {
+        volemia: 5000, tonoVascolare: 0.80, tonoAutonomo: -0.40,
+        ossigenazione: 0.99, glicemia: 84,
+      },
       /* Nessuna offesa: la sincope è già finita quando arrivate, e se
          il quadro peggiorasse non sarebbe più una sincope. */
       offese: [],
