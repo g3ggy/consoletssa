@@ -581,3 +581,37 @@ test('le domande sul dolore non si possono fare a chi non ha male', () => {
   const esito = i.chiedi('irradiazione');
   assert.equal(esito.ok, false);
 });
+
+test('una domanda necessaria si conta come le altre cose da fare', () => {
+  const i = avvia(casoConAnamnesi({
+    azioni: {
+      necessarie: [{ id: 'domanda:terapia', entro: 120, peso: 2 }],
+      utili: [], dannose: [],
+    },
+  }));
+  i.chiedi('terapia');
+  const p = i.chiudi();
+  assert.equal(p.punti, 2, 'fatta in tempo, punteggio pieno');
+  assert.match(p.necessarie[0].label, /farmaci/i, 'l\'etichetta viene dal catalogo delle domande');
+});
+
+test('la domanda non fatta pesa come un\'azione non fatta', () => {
+  const i = avvia(casoConAnamnesi({
+    azioni: {
+      necessarie: [{ id: 'domanda:terapia', entro: 120, peso: 2 }],
+      utili: [], dannose: [],
+    },
+  }));
+  const p = i.chiudi();
+  assert.equal(p.punti, 0);
+  assert.equal(p.necessarie[0].fatta, false);
+});
+
+test('la pagella porta quello che hai raccolto e cosa ti sei perso', () => {
+  const i = avvia(casoConAnamnesi());
+  i.chiedi('terapia');                       // al paziente: vaga
+  const p = i.chiudi();
+  assert.equal(p.anamnesi.voci.length, 1);
+  assert.equal(p.anamnesi.voci[0].da, 'il paziente');
+  assert.equal(p.anamnesi.avvisi.length, 1, 'la moglie sapeva il nome del farmaco');
+});

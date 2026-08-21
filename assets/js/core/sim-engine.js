@@ -604,9 +604,14 @@ export function creaIntervento(caso, opzioni = {}) {
     const combacia = (voce, idAzione) => (Array.isArray(voce.id)
       ? voce.id.includes(idAzione)
       : voce.id === idAzione);
+    /* Una voce può essere un'azione o una domanda dell'anamnesi: il
+       nome si va a prendere nel catalogo giusto. */
+    const nome = (x) => (String(x).startsWith('domanda:')
+      ? DOMANDE[String(x).slice('domanda:'.length)]?.testo
+      : catalogo[x]?.label) || x;
     const etichetta = (voce) => (Array.isArray(voce.id)
-      ? voce.id.map((x) => catalogo[x]?.label || x).join(' oppure ')
-      : catalogo[voce.id]?.label || voce.id);
+      ? voce.id.map((x) => nome(x)).join(' oppure ')
+      : nome(voce.id));
 
     const necessarie = (conf.necessarie || []).map((n) => {
       const fatto = fatte.find((f) => combacia(n, f.id));
@@ -648,6 +653,7 @@ export function creaIntervento(caso, opzioni = {}) {
     return {
       necessarie,
       dannose,
+      anamnesi: revisioneAnamnesi(caso, raccolte),
       esitoPaziente,
       gravitaIniziale: gIniziale,
       gravitaFinale: gFinale,
