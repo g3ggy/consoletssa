@@ -15,6 +15,8 @@
    cedere, non la prima. Vedi Bolognin :6481 e :7636.
    ===================================================================== */
 
+const fra = (v, min, max) => Math.min(max, Math.max(min, v));
+
 /* Il punto di partenza di un adulto sano. Un caso dichiara solo quello
    che gli serve: il resto viene da qui. */
 export const RISERVE_ADULTO = {
@@ -24,6 +26,10 @@ export const RISERVE_ADULTO = {
   contrattilita: 1,       // quanto pompa il cuore, 1 = normale
   tonoVascolare: 1,       // quanto tengono i vasi, 1 = normale
   dolore: 0,              // 0-10
+  /* Quello che viene da FUORI: una sostanza simpaticomimetica lo alza,
+     il tono vagale lo abbassa. È l'unico termine dell'allarme che un
+     caso dichiara: gli altri si calcolano da quello che manca. */
+  tonoAutonomo: 0,
 };
 
 /** Le riserve all'arrivo della squadra, coi predefiniti per quelle non
@@ -69,6 +75,57 @@ export function faseCompenso(perdita) {
   return 'nessuna';
 }
 
+/* =====================================================================
+   L'allarme.
+
+   «Quando l'organismo percepisce un problema — QUALUNQUE problema —
+   attiva la risposta di allarme e rilascia adrenalina. I segni
+   d'allarme sono aspecifici: dicono che c'è un problema, NON quale.»
+   È il capitolo 27 degli appunti, ed è la parte di lezione che l'autore
+   segnala come la più preziosa.
+
+   Il motore prima conosceva un solo innesco — il sangue che manca — e
+   da lì calcolava la frequenza. Qui gli inneschi sono quattro, più
+   quello che arriva da fuori, e sommano su un asse solo: positivo verso
+   l'adrenalina, negativo verso il vago.
+
+   Le quattro normalizzazioni sono ASSUNZIONE NOSTRA. Il manuale dice
+   che questi fatti allarmano il corpo, non quanto ciascuno pesi
+   rispetto agli altri. La sola ancorata è la glicemia: i 70 mg/dl sono
+   la soglia di ipoglicemia delle ERC 2025 cap. 12 :1125.
+   ===================================================================== */
+
+/* Sotto questa saturazione il corpo comincia a preoccuparsi. */
+const OSSIGENAZIONE_TRANQUILLA = 0.95;
+const PESO_IPOSSIA = 4;              // ossigenazione 0,70 → un allarme pieno
+const SOGLIA_IPOGLICEMIA = 70;       // ERC 2025 cap. 12 :1125
+const AMPIEZZA_IPOGLICEMIA = 40;     // glicemia 30 → un allarme pieno
+
+/** L'allarme che NON viene dal sangue che manca.
+
+    Serve separato perché la vasocostrizione da ipovolemia sostiene già
+    la pressione dentro `tenutaPressoria`: contarla una seconda volta
+    come spinta pressoria sarebbe un doppione. */
+export function allarmeEsogeno(riserve = {}) {
+  const ossigenazione = riserve.ossigenazione ?? RISERVE_ADULTO.ossigenazione;
+  const glicemia = riserve.glicemia ?? RISERVE_ADULTO.glicemia;
+  return Math.max(0, OSSIGENAZIONE_TRANQUILLA - ossigenazione) * PESO_IPOSSIA
+    + Math.max(0, (SOGLIA_IPOGLICEMIA - glicemia) / AMPIEZZA_IPOGLICEMIA)
+    + fra(riserve.dolore || 0, 0, 10) / 10
+    + (riserve.tonoAutonomo || 0);
+}
+
+/** Quanto il corpo è in allarme, da −1 (vago pieno) a +2.
+
+    Il tetto non è arbitrario: 1 è il compenso che sta per cedere, e una
+    scarica simpaticomimetica piena sta più in alto — è il motivo per cui
+    un trentenne che ha tirato ha una frequenza più alta di un uomo che
+    ha perso un litro e mezzo di sangue. */
+export function allarme(riserve = {}) {
+  const daPerdita = perditaVolemica(riserve) / SOGLIE_PERDITA.scompenso;
+  return fra(daPerdita + allarmeEsogeno(riserve), -1, 2);
+}
+
 /* Quanto sale la frequenza a fronte della perdita. Tarato perché a
    metà del compenso (30%) un paziente da 72 arrivi intorno a 120, che
    è quello che si vede sul mezzo. ASSUNZIONE NOSTRA. */
@@ -91,8 +148,6 @@ const STRETTA_DIFFERENZIALE = 0.5;
 /* Sotto questa sistolica il polso radiale non si sente più.
    Bolognin :8650, dentro l'algoritmo START. */
 const PAS_POLSO_RADIALE = 80;
-
-const fra = (v, min, max) => Math.min(max, Math.max(min, v));
 
 /** Quanto regge la pressione, da 1 (intatta) a 0 (niente).
 

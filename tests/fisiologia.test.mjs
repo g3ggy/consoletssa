@@ -358,3 +358,56 @@ test('il dolore alza la pressione senza slargare il differenziale', () => {
   assert.ok(b.pad > a.pad, 'e la diastolica la segue, invece di restare indietro');
   assert.ok(b.pad > b.pas * 0.45, `esce ${b.pas}/${b.pad}`);
 });
+
+/* ==================== l'asse dell'allarme =========================== */
+
+import { allarme, allarmeEsogeno } from '../assets/js/core/fisiologia.js';
+
+const sano = () => riserveIniziali({});
+
+test('un adulto sano non è in allarme', () => {
+  assert.equal(allarme(sano()), 0);
+});
+
+test('il sangue che manca alza l\'allarme, e a un terzo di perdita vale uno', () => {
+  /* 0,30 è la soglia in cui il compenso cede: è lì che l'asse vale 1. */
+  const r = { ...riserveIniziali({ volemia: 5000 }), volemia: 3500 };
+  assert.ok(Math.abs(allarme(r) - 1) < 0.001, `vale ${allarme(r)}`);
+});
+
+test('l\'ossigeno che manca allarma', () => {
+  assert.ok(allarme(riserveIniziali({ ossigenazione: 0.85 })) > 0.3);
+  assert.equal(allarme(riserveIniziali({ ossigenazione: 0.98 })), 0, 'sopra 0,95 non allarma nessuno');
+});
+
+test('lo zucchero che manca allarma sotto i settanta', () => {
+  assert.equal(allarme(riserveIniziali({ glicemia: 90 })), 0);
+  assert.ok(Math.abs(allarme(riserveIniziali({ glicemia: 50 })) - 0.5) < 0.001);
+  assert.ok(Math.abs(allarme(riserveIniziali({ glicemia: 30 })) - 1) < 0.001);
+});
+
+test('il dolore allarma, e a dieci vale uno', () => {
+  assert.ok(Math.abs(allarme(riserveIniziali({ dolore: 10 })) - 1) < 0.001);
+});
+
+test('il tono autonomo è l\'unico termine che il caso dichiara', () => {
+  assert.equal(allarme(riserveIniziali({ tonoAutonomo: 1.4 })), 1.4);
+  assert.equal(allarme(riserveIniziali({ tonoAutonomo: -0.4 })), -0.4);
+});
+
+test('l\'asse ha un tetto e un pavimento', () => {
+  assert.equal(allarme(riserveIniziali({ tonoAutonomo: 9 })), 2);
+  assert.equal(allarme(riserveIniziali({ tonoAutonomo: -9 })), -1);
+});
+
+test('l\'esogeno è quello che il compenso da ipovolemia non copre già', () => {
+  /* La vasocostrizione da ipovolemia sostiene già la pressione dentro
+     `tenuta`: la spinta pressoria dell'asse deve prendere solo il resto. */
+  const r = { ...riserveIniziali({ volemia: 5000, dolore: 5 }), volemia: 4000 };
+  assert.ok(Math.abs(allarmeEsogeno(r) - 0.5) < 0.001, `vale ${allarmeEsogeno(r)}`);
+  assert.ok(allarme(r) > allarmeEsogeno(r), 'il totale comprende anche la perdita');
+});
+
+test('si può chiamare su riserve incomplete senza esplodere', () => {
+  assert.doesNotThrow(() => allarme({ volemia: 5000, volemiaIniziale: 5000 }));
+});
