@@ -68,3 +68,72 @@ export function faseCompenso(perdita) {
   if (perdita >= SOGLIE_PERDITA.compenso) return 'compenso';
   return 'nessuna';
 }
+
+/* Quanto sale la frequenza a fronte della perdita. Tarato perché a
+   metà del compenso (30%) un paziente da 72 arrivi intorno a 120, che
+   è quello che si vede sul mezzo. ASSUNZIONE NOSTRA. */
+const GUADAGNO_TACHICARDIA = 160;
+
+/* Di quanta perdita in più la pressione si riduce a un terzo, una volta
+   che il compenso ha ceduto. La caduta è esponenziale e non lineare per
+   un motivo pratico: la pressione non arriva mai a zero da sola: si
+   avvicina. Un paziente con la sistolica a zero e la diastolica a zero
+   non è un paziente ipoteso, è un paziente in arresto, e a dichiarare
+   l'arresto ci pensa `verificaArresto`, non l'aritmetica.
+   ASSUNZIONE NOSTRA. */
+const CADUTA_PRESSORIA = 0.10;
+
+/* Sotto questa sistolica il polso radiale non si sente più.
+   Bolognin :8650, dentro l'algoritmo START. */
+const PAS_POLSO_RADIALE = 80;
+
+const fra = (v, min, max) => Math.min(max, Math.max(min, v));
+
+/** Quanto regge la pressione, da 1 (intatta) a 0 (niente).
+
+    Finché il compenso tiene vale 1: è il punto di tutto il modello. La
+    vasocostrizione mantiene la sistolica mentre il sangue se ne va, e
+    chi guarda solo il monitor non si accorge di niente. Passata la
+    soglia dello scompenso il sostegno cade in fretta. */
+function tenutaPressoria(perdita, compensoAttivo) {
+  const cede = compensoAttivo ? SOGLIE_PERDITA.scompenso : SOGLIE_PERDITA.compenso;
+  if (perdita <= cede) return 1;
+  return fra(Math.exp(-(perdita - cede) / CADUTA_PRESSORIA), 0, 1);
+}
+
+/**
+ * I parametri del circolo, calcolati dalle riserve.
+ * @param {object} riserve
+ * @param {object} base           i parametri suoi da sano
+ * @param {object} modificatori   { compensoBloccato }
+ */
+export function circolo(riserve, base, modificatori = {}) {
+  const perdita = perditaVolemica(riserve);
+  const bloccato = Boolean(modificatori.compensoBloccato);
+
+  /* Senza compenso non c'è tachicardia riflessa: il paziente resta
+     sulla sua frequenza mentre la pressione se ne va. È il quadro
+     della lesione mielica (Bolognin :6487) e quello di chi prende un
+     betabloccante. */
+  const fc = bloccato
+    ? base.fc
+    : Math.round(base.fc + GUADAGNO_TACHICARDIA * perdita * riserve.contrattilita);
+
+  const tenuta = tenutaPressoria(perdita, !bloccato);
+  const pas = Math.round(base.pas * tenuta * riserve.tonoVascolare);
+
+  /* La diastolica non segue la sistolica: durante il compenso la
+     vasocostrizione la alza, e il differenziale si stringe. È un segno
+     precoce, e si legge prima che la sistolica si muova. */
+  const differenziale = Math.max(12, (base.pas - base.pad) * (1 - perdita));
+  const pad = Math.round(Math.max(0, Math.min(pas - 8, pas - differenziale)));
+
+  return {
+    fc: fra(fc, 0, 220),
+    pas: fra(pas, 0, 300),
+    pad: fra(pad, 0, 200),
+    polsoRadiale: pas >= PAS_POLSO_RADIALE,
+    perdita,
+    fase: faseCompenso(perdita),
+  };
+}

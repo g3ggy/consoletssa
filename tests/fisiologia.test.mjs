@@ -64,3 +64,44 @@ test('oltre il quaranta crolla', () => {
 test('le soglie sono dichiarate, non sparse nel codice', () => {
   assert.deepEqual(SOGLIE_PERDITA, { compenso: 0.15, scompenso: 0.30, crollo: 0.40 });
 });
+
+/* ==================== i parametri del circolo ======================= */
+
+import { circolo } from '../assets/js/core/fisiologia.js';
+
+const BASE = { fc: 72, pas: 135, pad: 82, spo2: 98, fr: 14 };
+
+test('senza perdita i parametri sono quelli suoi', () => {
+  const c = circolo(riserveIniziali({ volemia: 5000 }), BASE, {});
+  assert.equal(c.fc, 72);
+  assert.equal(c.pas, 135);
+});
+
+test('al venti per cento la pressione TIENE e la frequenza è già salita', () => {
+  const r = { ...riserveIniziali({ volemia: 5000 }), volemia: 4000 };
+  const c = circolo(r, BASE, {});
+  assert.equal(c.pas, 135, 'la sistolica non si muove: è questo che inganna');
+  assert.ok(c.fc > 95, `la frequenza doveva salire, invece è ${c.fc}`);
+  assert.ok(c.pad > BASE.pad, 'la diastolica sale: il differenziale si stringe');
+});
+
+test('al trentacinque per cento la pressione cede', () => {
+  const r = { ...riserveIniziali({ volemia: 5000 }), volemia: 3250 };
+  const c = circolo(r, BASE, {});
+  assert.ok(c.pas < 110, `la sistolica doveva cedere, invece è ${c.pas}`);
+  assert.ok(c.fc > 110, 'la frequenza è al massimo dello sforzo');
+});
+
+test('il polso radiale sparisce sotto gli ottanta di sistolica', () => {
+  // Bolognin :8650 — polso radiale presente ⇒ PAS ≥ 80
+  const r = { ...riserveIniziali({ volemia: 5000 }), volemia: 2900 };
+  const c = circolo(r, BASE, {});
+  assert.equal(c.polsoRadiale, c.pas >= 80);
+});
+
+test('la diastolica non scavalca mai la sistolica', () => {
+  for (const volemia of [5000, 4200, 3500, 3000, 2600, 2200]) {
+    const c = circolo({ ...riserveIniziali({ volemia: 5000 }), volemia }, BASE, {});
+    assert.ok(c.pad < c.pas, `a ${volemia} ml esce ${c.pas}/${c.pad}`);
+  }
+});
