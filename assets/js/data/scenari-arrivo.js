@@ -148,54 +148,6 @@ export const DETTAGLI_ARRIVO = {
   },
 
   /* ------------------------------------------------------------------ */
-  ictus: {
-    deriva: { FC: +0.2, SpO2: -0.05, PA: +0.6 },
-    arrivo: {
-      testo: "Il marito vi aspetta sul pianerottolo con la carta d'identità già in mano e dice «io l'ho vista bene alle 9:40, ne sono sicuro». Sono le 10:15. Casa tranquilla, nessun rischio.",
-      domanda: "Che valore dai a quella frase?",
-      scelte: [
-        { t: "È il dato più importante che porterò in ospedale: me lo faccio confermare e lo annoto subito", ok: true,
-          w: "Nell'ictus l'ora dell'ultimo momento in cui è stata vista bene decide il trattamento. Trentacinque minuti significano finestra aperta." },
-        { t: "È un dettaglio: conta quello che vedo io adesso", ok: false,
-          w: "Quello che vedi tu dice che c'è un ictus. Quell'ora dice se si può ancora fare qualcosa." },
-        { t: "Lo chiederò dopo, insieme al resto dell'anamnesi", ok: false,
-          w: "Rischi di perderlo. Adesso il marito è lucido; fra dieci minuti sarà in ansia e non sarà più sicuro di niente." },
-      ],
-    },
-    situazione: "Donna di 71 anni seduta al tavolo, vigile, con la bocca asimmetrica e il braccio destro che non solleva. Capisce quello che le chiedi ma fatica a rispondere: è un'afasia produttiva, non è confusa e non è «un po' rincitrullita». Non ha dolore, respira bene, il circolo tiene. Quello che è a rischio qui non è il respiro né il circolo: è il tempo.",
-    azioniSbagliate: [
-      { t: "Le faccio bere un sorso d'acqua per vedere se deglutisce",
-        w: "Nel sospetto ictus il paziente sta a digiuno: il rischio di inalazione è concreto." },
-      { t: "Aspetto qualche minuto per vedere se migliora da sola",
-        w: "Ogni minuto di attesa è tessuto cerebrale che non torna." },
-    ],
-  },
-
-  /* ------------------------------------------------------------------ */
-  sincope: {
-    deriva: { FC: -0.8, SpO2: +0.1, PA: +1.4 },
-    arrivo: {
-      testo: "Sala d'attesa affollata e calda, una ventina di persone in fila. Una ragazza è sdraiata a terra fra due sedie, cosciente, con qualcuno che le fa aria con un volantino. Un impiegato vi fa cenno da dietro il vetro.",
-      domanda: "Prima cosa?",
-      scelte: [
-        { t: "Faccio spazio intorno a lei e la lascio sdraiata", ok: true,
-          w: "Sdraiata è esattamente dove deve stare: la posizione è già metà del trattamento. Lo spazio serve a te." },
-        { t: "La faccio alzare e sedere su una sedia, sta più comoda", ok: false,
-          w: "Farla alzare adesso è il modo più semplice per farla svenire una seconda volta." },
-        { t: "La porto fuori all'aria aperta di peso", ok: false,
-          w: "Prima la valuti. E un paziente non si sposta di peso se non c'è un pericolo." },
-      ],
-    },
-    situazione: "Donna di 24 anni sdraiata a terra, cosciente e orientata, pallida e sudata. Racconta che prima di svenire ha sentito caldo, nausea e «la vista che si chiudeva», e che si è ripresa da sola in meno di un minuto. È in piedi da venti minuti in una sala calda, a digiuno. Il quadro è talmente tipico che il rischio vero è darlo per scontato senza confermarlo.",
-    azioniSbagliate: [
-      { t: "Le do dello zucchero: sarà un calo di zuccheri",
-        w: "«Calo di zuccheri» è una diagnosi da bar. La glicemia è un dato, e si misura." },
-      { t: "Chiudo sul posto: sta bene e si è ripresa",
-        w: "Presto. Una sincope si valuta, e in una giovane a digiuno vanno esclusi altri motivi." },
-    ],
-  },
-
-  /* ------------------------------------------------------------------ */
   schiacciamento: {
     deriva: { FC: +1.3, SpO2: -0.2, PA: -1.1 },
     arrivo: {
