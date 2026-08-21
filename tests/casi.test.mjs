@@ -9,7 +9,14 @@ import { AZIONI } from '../assets/js/data/azioni.js';
 import { CASI } from '../assets/js/data/casi.js';
 import { DOMANDE } from '../assets/js/data/domande.js';
 
-const avvia = (caso) => creaIntervento(caso, { azioni: AZIONI });
+/** Avvia un intervento e toglie di mezzo la prima impressione, che
+    altrimenti blocca ogni partita automatica. I test che vogliono
+    provare il sospetto lo dichiarano loro, dopo. */
+const avvia = (caso) => {
+  const i = creaIntervento(caso, { azioni: AZIONI });
+  if (i.primaImpressione) i.dichiaraSospetto('C20');
+  return i;
+};
 
 /* Una voce della pagella può essere un'azione della palette o una
    domanda dell'anamnesi: si riconoscono dal prefisso, e vivono in due
@@ -673,4 +680,34 @@ test('la scena dice quello che c\'è sul tavolo', () => {
 
 test('il ragguaglio dice sospetto, mai un\'affermazione', () => {
   assert.match(coca().ragguaglio, /sospett/i);
+});
+
+/* ==================== le classi di patologia ======================== */
+
+import { CLASSI } from '../assets/js/data/classi-patologia.js';
+
+test('ogni caso a tempo dichiara una classe che esiste sulla scheda', () => {
+  CASI.filter((c) => c.motore === 3).forEach((c) => {
+    assert.ok(c.classe, `${c.id}: manca la classe di patologia`);
+    assert.ok(CLASSI[c.classe], `${c.id}: ${c.classe} non è una classe ARES`);
+    (c.classeAnche || []).forEach((x) => {
+      assert.ok(CLASSI[x], `${c.id}: ${x} non è una classe ARES`);
+      assert.notEqual(x, c.classe, `${c.id}: ${x} è già la classe principale`);
+    });
+  });
+});
+
+test('chi chiede la prima impressione ha una risposta giusta da dare', () => {
+  CASI.filter((c) => c.sospettiPlausibili?.length).forEach((c) => {
+    assert.ok(c.classe, `${c.id}: chiede il sospetto ma non dice quale sia giusto`);
+    assert.ok(c.sospettiPlausibili.includes(c.classe),
+      `${c.id}: la classe giusta non è fra quelle proposte`);
+    c.sospettiPlausibili.forEach((x) => {
+      assert.ok(CLASSI[x], `${c.id}: ${x} non è una classe ARES`);
+    });
+    assert.ok(!c.sospettiPlausibili.includes('C20'),
+      `${c.id}: «non lo so» lo aggiunge il motore, non va dichiarato`);
+    assert.ok(c.sospettiPlausibili.length >= 3 && c.sospettiPlausibili.length <= 6,
+      `${c.id}: ne propone ${c.sospettiPlausibili.length}, ne servono da tre a sei`);
+  });
 });

@@ -35,6 +35,12 @@ export const CASI = [
     difficolta: 3,
     motore: 3,
     capitoli: ['cap-29', 'cap-27'],
+    /* Il sanguinamento è gastroenterico, ma chi legge un quadro di shock
+       e dichiara C02 non ha detto una sciocchezza: sta descrivendo quello
+       che vede. Tutte e due contano. */
+    classe: 'C09',
+    classeAnche: ['C02'],
+    sospettiPlausibili: ['C02', 'C04', 'C08', 'C09'],
 
     dispatch: {
       codice: 'VERDE',
@@ -194,6 +200,8 @@ export const CASI = [
     difficolta: 2,
     motore: 3,
     capitoli: ['cap-25', 'cap-27'],
+    classe: 'C02',
+    sospettiPlausibili: ['C02', 'C03', 'C09'],
 
     dispatch: {
       codice: 'GIALLO',
@@ -373,6 +381,10 @@ export const CASI = [
     difficolta: 2,
     motore: 3,
     capitoli: ['cap-22', 'cap-33'],
+    /* La trappola del caso è proprio scambiarlo per un'intossicazione
+       alcolica: le classi che sbagliano vanno offerte, non nascoste. */
+    classe: 'C08',
+    sospettiPlausibili: ['C04', 'C05', 'C07', 'C08'],
 
     dispatch: {
       codice: 'VERDE',
@@ -518,6 +530,8 @@ export const CASI = [
     difficolta: 2,
     motore: 3,
     capitoli: ['cap-14', 'cap-21'],
+    classe: 'C01',
+    sospettiPlausibili: ['C01', 'C02', 'C04'],
 
     dispatch: {
       codice: 'ROSSO',
@@ -700,6 +714,11 @@ export const CASI = [
     difficolta: 1,
     motore: 3,
     capitoli: ['cap-28', 'cap-25'],
+    /* La sincope regge sia come cardiocircolatoria sia come neurologica:
+       bocciarne una insegnerebbe una cosa falsa. */
+    classe: 'C02',
+    classeAnche: ['C04'],
+    sospettiPlausibili: ['C02', 'C04', 'C08'],
 
     dispatch: {
       codice: 'VERDE',
@@ -866,6 +885,8 @@ export const CASI = [
     difficolta: 1,
     motore: 3,
     capitoli: ['cap-22', 'cap-25'],
+    classe: 'C04',
+    sospettiPlausibili: ['C02', 'C04', 'C08'],
 
     dispatch: {
       codice: 'ROSSO',
@@ -1025,6 +1046,11 @@ export const CASI = [
     difficolta: 2,
     motore: 3,
     capitoli: ['cap-33', 'cap-27'],
+    /* L'iperadrenergico da sostanza si vede come un quadro cardiologico,
+       ed è quello che il soccorritore ha davanti finché non chiede. */
+    classe: 'C07',
+    classeAnche: ['C02'],
+    sospettiPlausibili: ['C02', 'C05', 'C07', 'C08'],
 
     /* Venti minuti di scena non lo fanno crollare, ed è la lezione del
        caso: il rischio cardiovascolare è reale ma arriva DOPO, quando
