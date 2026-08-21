@@ -239,3 +239,50 @@ export function parametriVisibili(riserve, base, modificatori = {}) {
     perdita: c.perdita,
   };
 }
+
+/* Il ritmo con cui il cuore si ferma dipende da PERCHÉ si è fermato, e
+   decide se il defibrillatore serve a qualcosa.
+
+   Un cuore che si ferma perché il miocardio è ischemico va in
+   fibrillazione: la scarica ha senso. Un cuore che si ferma perché non
+   gli arriva più sangue o più ossigeno continua a produrre attività
+   elettrica senza polso, e poi si spegne: la scarica non serve a niente
+   e il tempo speso ad attaccare le piastre è tempo tolto alle
+   compressioni. È la cosa che si sbaglia più spesso. */
+export const RITMO_PER_CAUSA = {
+  'ischemia-miocardica': { ritmo: 'fv', defibrillabile: true },
+  emorragia: { ritmo: 'pea', defibrillabile: false },
+  'ipossia-ventilatoria': { ritmo: 'pea', defibrillabile: false },
+  vasodilatazione: { ritmo: 'pea', defibrillabile: false },
+  ipoglicemia: { ritmo: 'pea', defibrillabile: false },
+};
+
+/* Sotto questa sistolica il circolo non è più compatibile con la vita. */
+const PAS_ARRESTO = 40;
+
+/* L'ossigenazione oltre la quale non si torna indietro. Si guarda la
+   RISERVA e non il numero del pulsossimetro: sotto il cinquanta per
+   cento la sonda al dito non legge più niente di attendibile, e un
+   paziente che sta morendo di ipossia non aspetta che il monitor si
+   decida. ASSUNZIONE NOSTRA. */
+const OSSIGENAZIONE_ARRESTO = 0.45;
+
+/**
+ * Il paziente è arrestato? Restituisce `null` se no, altrimenti come e
+ * perché.
+ *
+ * La causa è la prima offesa attiva che sappia uccidere: se sono più
+ * d'una vince quella dichiarata per prima nel caso, che è anche quella
+ * che il soccorritore dovrebbe aver riconosciuto.
+ */
+export function verificaArresto(riserve, base, modificatori, offese = []) {
+  const p = parametriVisibili(riserve, base, modificatori);
+  const senzaCircolo = p.pas < PAS_ARRESTO;
+  const senzaOssigeno = riserve.ossigenazione < OSSIGENAZIONE_ARRESTO;
+  const senzaPompa = riserve.contrattilita < 0.1;
+  if (!senzaCircolo && !senzaOssigeno && !senzaPompa) return null;
+
+  const causa = offese.map((o) => o.tipo).find((tipo) => RITMO_PER_CAUSA[tipo])
+    || 'ischemia-miocardica';
+  return { causa, ...RITMO_PER_CAUSA[causa] };
+}

@@ -203,3 +203,48 @@ test('la glicemia bassa altera la coscienza anche senza perdita di sangue', () =
   const r = { ...riserveIniziali({}), glicemia: 35 };
   assert.notEqual(parametriVisibili(r, BASE, {}).coscienza, 'A');
 });
+
+/* ==================== arresto e sopravvivenza ======================= */
+
+import { verificaArresto, RITMO_PER_CAUSA } from '../assets/js/core/fisiologia.js';
+
+test('non c\'è arresto finché il circolo regge', () => {
+  const r = { ...riserveIniziali({ volemia: 5000 }), volemia: 4000 };
+  assert.equal(verificaArresto(r, BASE, {}, []), null);
+});
+
+test('sotto i quaranta di sistolica il paziente arresta', () => {
+  const r = { ...riserveIniziali({ volemia: 5000 }), volemia: 2200 };
+  const a = verificaArresto(r, BASE, {}, [{ tipo: 'emorragia', portata: 60 }]);
+  assert.ok(a, 'doveva arrestare');
+  assert.equal(a.causa, 'emorragia');
+});
+
+test('l\'arresto da emorragia NON è defibrillabile', () => {
+  const r = { ...riserveIniziali({ volemia: 5000 }), volemia: 2200 };
+  const a = verificaArresto(r, BASE, {}, [{ tipo: 'emorragia', portata: 60 }]);
+  assert.equal(a.ritmo, 'pea');
+  assert.equal(a.defibrillabile, false, 'il DAE non risolve un esanguinamento');
+});
+
+test('l\'arresto da ischemia È defibrillabile', () => {
+  const r = { ...riserveIniziali({}), contrattilita: 0.05 };
+  const a = verificaArresto(r, BASE, {}, [{ tipo: 'ischemia-miocardica', intensita: 0.3 }]);
+  assert.ok(a, 'doveva arrestare');
+  assert.equal(a.ritmo, 'fv');
+  assert.equal(a.defibrillabile, true);
+});
+
+test('l\'arresto da ipossia non è defibrillabile', () => {
+  const r = { ...riserveIniziali({}), ossigenazione: 0.30 };
+  const a = verificaArresto(r, BASE, {}, [{ tipo: 'ipossia-ventilatoria', intensita: 0.05 }]);
+  assert.ok(a, 'doveva arrestare');
+  assert.equal(a.defibrillabile, false, 'nell\'asfittico servono ventilazione e compressioni');
+});
+
+test('la tabella dei ritmi copre tutte le offese che possono uccidere', () => {
+  for (const causa of ['emorragia', 'ipossia-ventilatoria', 'ischemia-miocardica',
+    'vasodilatazione', 'ipoglicemia']) {
+    assert.ok(RITMO_PER_CAUSA[causa], `manca il ritmo per ${causa}`);
+  }
+});
