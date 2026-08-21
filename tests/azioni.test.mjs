@@ -125,3 +125,19 @@ test('c\'è l\'esame neurologico, e si può rifare', () => {
   assert.ok(az.chi.includes('tu'));
   assert.ok(!az.unaVolta, 'in viaggio si ricontrolla: non è una sola volta');
 });
+
+test('c\'è come parlare al paziente in disparte', () => {
+  const az = AZIONI['parla-in-disparte'];
+  assert.ok(az, 'manca l\'azione parla-in-disparte');
+  assert.equal(az.cat, 'comunicazione');
+  assert.ok(az.chi.includes('tu'));
+  assert.ok(az.unaVolta, 'una volta che sei in disparte ci resti');
+  assert.match(az.spiega, /guardia|giudizio|disparte/i);
+});
+
+test('il diario delle pupille dice cosa hai visto', () => {
+  const az = AZIONI.pupille;
+  assert.equal(typeof az.diario, 'function', 'deve raccontare quello che trova, non una frase fissa');
+  assert.match(az.diario({ pupille: 'midriatiche' }), /larghe|midriasi/i);
+  assert.match(az.diario({ pupille: 'normali' }), /normoreagenti|normali/i);
+});

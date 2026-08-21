@@ -714,3 +714,37 @@ test('un effetto sul tono autonomo va nelle riserve, non sui parametri', () => {
   i.avanza(60);
   assert.ok(i.stato.fc > prima + 40, `la frequenza deve seguire il tono: era ${prima}, è ${i.stato.fc}`);
 });
+
+test('i tag arrivano fino alla risposta: in disparte si racconta di più', () => {
+  const caso = {
+    ...casoConAnamnesi(),
+    anamnesi: {
+      interlocutori: [{ id: 'amico', label: 'l\'amico' }],
+      risposte: {
+        evento: {
+          paziente: [
+            { se: (tag) => tag.includes('in-disparte'), t: '«Ho tirato.»', qualita: 'buona', rivela: ['cocaina'] },
+            { t: '«Eravamo a una festa.»', qualita: 'vaga' },
+          ],
+        },
+      },
+    },
+  };
+  const azioni = {
+    ...AZIONI_PROVA,
+    'parla-in-disparte': {
+      id: 'parla-in-disparte', cat: 'comunicazione', label: 'In disparte',
+      durata: 40, chi: ['tu'], unaVolta: true,
+      applica: () => ({ tag: 'in-disparte' }), spiega: 'prova',
+    },
+  };
+
+  const davanti = avvia(caso, azioni);
+  davanti.chiedi('evento');
+  assert.deepEqual(davanti.saputo, {}, 'davanti all\'amico non lo dice');
+
+  const soli = avvia(caso, azioni);
+  soli.esegui('parla-in-disparte', 'tu');
+  soli.chiedi('evento');
+  assert.ok(soli.saputo.cocaina, 'in disparte sì');
+});

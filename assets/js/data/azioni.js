@@ -304,7 +304,9 @@ const ELENCO = [
   {
     id: 'pupille', cat: 'D', label: 'Controlla le pupille', durata: 20, chi: ['tu'],
     rileva: 'pupille',
-    diario: 'Pupille controllate: dimensione, simmetria e reattività alla luce.',
+    diario: (p) => (p.pupille === 'midriatiche'
+      ? 'Le pupille sono larghe tutte e due e reagiscono poco alla luce: midriasi bilaterale.'
+      : 'Pupille isocoriche e normoreagenti alla luce.'),
     spiega: 'Miosi serrata orienta agli oppiacei, midriasi fissa a un danno grave.',
   },
   {
@@ -429,6 +431,22 @@ const ELENCO = [
     durata: 30, chi: ['tu'], applica: () => ({ dolore: -1, tag: 'rassicurato' }),
     diario: 'Ti presenti, spieghi cosa stai facendo, resti col paziente.',
     spiega: 'L\'udito è l\'ultimo senso che se ne va. Rassicurare fa parte del soccorso.',
+  },
+  {
+    /* Il capitolo 33 non dice cosa chiedere: dice COME, e la differenza
+       è tutta lì. «Ascolta, perdonami la domanda. Non sono una guardia,
+       a me non interessa. Ma per il tuo bene: hai fatto uso di
+       qualcosa?» — e va fatta in disparte, senza amici o familiari
+       presenti. A quel punto spesso arriva una verità che il paziente
+       non aveva detto a nessun altro. */
+    id: 'parla-in-disparte', cat: 'comunicazione',
+    label: 'Parla col paziente in disparte', durata: 40, chi: ['tu'],
+    unaVolta: true,
+    richiede: (p) => p.coscienza === 'A',
+    motivoBloccato: 'Non è abbastanza presente per una conversazione riservata.',
+    applica: () => ({ tag: 'in-disparte' }),
+    diario: 'Ti allontani di qualche passo con lui, fuori dalla portata degli altri.',
+    spiega: 'Non siete forze dell\'ordine, e va detto esplicitamente: «non sono una guardia, a me non interessa». Serve a curarlo, non a incastrarlo: in ospedale le analisi lo direbbero comunque, chiederlo adesso guadagna tempo clinico.',
   },
   {
     id: 'allerta-co', cat: 'comunicazione', label: 'Allerta la centrale operativa', durata: 30,

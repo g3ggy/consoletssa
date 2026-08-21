@@ -591,6 +591,9 @@ export function creaIntervento(caso, opzioni = {}) {
       anamnesi: caso.anamnesi,
       interlocutore,
       coscienza: proietta().coscienza,
+      /* I tag servono alle risposte a varianti: la stessa domanda rende
+         diversamente se l'hai preso da parte. */
+      tag: proietta().tag,
     });
 
     fatte = [...fatte, { id: `domanda:${d.id}`, chi: 'tu', t }];
