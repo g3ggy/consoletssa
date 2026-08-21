@@ -181,6 +181,11 @@ test('toracico-v3 ha dolore e miocardio che soffre', () => {
   const i = avvia(caso);
   assert.ok(i.stato.dolore >= 6, `arriva che ha male: invece è ${i.stato.dolore}`);
   assert.ok(i.stato.pas > 130, 'e con la pressione alta: è la scarica adrenergica');
+  /* Con l'asse dell'allarme la scarica adrenergica si vede anche
+     addosso, e non solo sul monitor: il quadro classico dell'infarto è
+     pallido e sudato (Bolognin :6481). Prima aveva cute normale. */
+  assert.equal(i.stato.cute, 'pallida-fredda-sudata');
+  assert.ok(i.stato.fr > 20, 'e respira corto');
 });
 
 test('nel toracico il dolore sale e si porta dietro la frequenza', () => {
@@ -277,6 +282,10 @@ test('ipoglicemia-v3 arriva sotto la soglia ERC ma ancora vigile', () => {
   assert.ok(i.stato.glicemia < 70, `deve essere ipoglicemico: invece è ${i.stato.glicemia}`);
   assert.ok(i.stato.glicemia >= 50, `ma non ancora crollato: invece è ${i.stato.glicemia}`);
   assert.equal(i.stato.coscienza, 'A', 'arriva vigile: è la finestra che si può ancora usare');
+  /* Bolognin :4287: «la cute appare umida e sudata». Prima nel motore
+     era un ipoglicemico con cute normale e frequenza da riposo. */
+  assert.notEqual(i.stato.cute, 'normale', `deve essere sudato: è ${i.stato.cute}`);
+  assert.ok(i.stato.fc > caso.fisiologia.base.fc, 'e tachicardico');
 });
 
 test('la finestra dello zucchero per bocca si chiude da sola', () => {

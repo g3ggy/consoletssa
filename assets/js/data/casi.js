@@ -361,7 +361,7 @@ export const CASI = [
 
     chiave: 'Sudorazione algida, pallore e dolore irradiato sono la scarica adrenergica su base ischemica. Il tempo qui è muscolo: ogni minuto sulla scena è tessuto che non torna. L\'ECG precoce decide dove va il paziente.',
     trappola: 'Il quadro sembra stabile perché parla e la pressione è alta. Ma il dolore sale da solo e a un certo punto il ritmo si rompe. E non farlo camminare: due rampe di scale sono uno sforzo massimale.',
-    ragguaglio: 'Uomo di 68 anni, iperteso e dislipidemico, fumatore, nessun anticoagulante. Dolore oppressivo retrosternale irradiato a mandibola e braccio sinistro, insorto sotto sforzo circa 40 minuti prima del nostro arrivo, con sudorazione algida. PA 152/92, FC 96, SpO₂ 95% poi 98 in ossigeno. ECG a dodici derivazioni eseguito sul posto. Trasportato seduto, senza fargli fare scale. Sospetta sindrome coronarica acuta.',
+    ragguaglio: 'Uomo di 68 anni, iperteso e dislipidemico, fumatore, nessun anticoagulante. Dolore oppressivo retrosternale irradiato a mandibola e braccio sinistro, insorto sotto sforzo circa 40 minuti prima del nostro arrivo, pallido e sudato. PA 150/91, FC 104, FR 26, SpO₂ 95% poi 98 in ossigeno. ECG a dodici derivazioni eseguito sul posto. Trasportato seduto, senza fargli fare scale. Sospetta sindrome coronarica acuta.',
   },
 
   /* ================================================================= */
@@ -506,7 +506,7 @@ export const CASI = [
 
     chiave: 'Confusione, aggressività, sudorazione e incoordinazione sono identiche in un\'ubriacatura e in un\'ipoglicemia. Sotto i 70 mg/dl è ipoglicemia e va trattata; e finché è vigile e deglutisce, bastano venti grammi di zucchero per bocca. Quella finestra si chiude da sola mentre parli.',
     trappola: '"Tanto è ubriaco" è il modo migliore per far arrivare in coma un ipoglicemico. L\'etilista cronico tende all\'ipoglicemia perché l\'alcol blocca la gluconeogenesi: le due cose convivono spesso, e l\'alito che sa di alcol non esclude niente. Per strada non c\'è un familiare a cui chiedere — la risposta ce l\'ha lui in tasca, e il crocchio ti dirà la cosa sbagliata con la faccia di chi sa.',
-    ragguaglio: 'Uomo di 52 anni, diabetico in terapia insulinica, abuso alcolico cronico. Trovato in strada confuso, agitato e sudato, scambiato dai presenti per un ubriaco. Glicemia capillare 55 mg/dl all\'arrivo, cosciente e in grado di deglutire: somministrati venti grammi di zucchero per via orale, con risalita a 78 e ripresa del sensorio. Riferisce insulina serale senza cena. FC 72, PA 128/78, SpO₂ 97%, T 35.8.',
+    ragguaglio: 'Uomo di 52 anni, diabetico in terapia insulinica, abuso alcolico cronico. Trovato in strada confuso, agitato e sudato, scambiato dai presenti per un ubriaco. Glicemia capillare 55 mg/dl all\'arrivo, cosciente e in grado di deglutire: somministrati venti grammi di zucchero per via orale, con risalita a 78 e ripresa del sensorio. Riferisce insulina serale senza cena. Cute pallida e sudata, FC 90, PA 137/83, SpO₂ 98%, T 35.8.',
   },
 
   /* ================================================================= */
