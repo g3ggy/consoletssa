@@ -136,3 +136,38 @@ test('il quadro ingannevole: ipoteso senza tachicardia', () => {
   assert.ok(c.pas < 110, 'è ipoteso');
   assert.ok(c.fc < 90, 'e non ha tachicardia: chi si fida della frequenza sbaglia');
 });
+
+/* ==================== i segni del compenso ========================== */
+
+import { segni } from '../assets/js/core/fisiologia.js';
+
+test('senza perdita la cute è normale e il refill veloce', () => {
+  const s = segni(riserveIniziali({ volemia: 5000 }), BASE, {});
+  assert.equal(s.cute, 'normale');
+  assert.ok(s.refill < 2, 'Bolognin :6489 — il refill normale sta sotto i due secondi');
+  assert.equal(s.sete, false);
+});
+
+test('in compenso la cute è pallida fredda e sudata, il refill oltre i due secondi', () => {
+  const r = { ...riserveIniziali({ volemia: 5000 }), volemia: 3900 };   // 22%
+  const s = segni(r, BASE, {});
+  assert.equal(s.cute, 'pallida-fredda-sudata');
+  assert.ok(s.refill > 2, `il refill doveva allungarsi, invece è ${s.refill}`);
+  assert.equal(s.sete, true, 'Bolognin :6485 — il senso di sete è un segno di shock');
+});
+
+test('i segni arrivano PRIMA che la pressione si muova', () => {
+  const r = { ...riserveIniziali({ volemia: 5000 }), volemia: 4000 };   // 20%
+  const c = circolo(r, BASE, {});
+  const s = segni(r, BASE, {});
+  assert.equal(c.pas, BASE.pas, 'la pressione è ancora quella di prima');
+  assert.notEqual(s.cute, 'normale', 'ma la cute lo dice già');
+  assert.ok(s.refill > 2, 'e il refill pure');
+});
+
+test('la coscienza si altera solo quando il compenso non basta più', () => {
+  const compensato = { ...riserveIniziali({ volemia: 5000 }), volemia: 4000 };
+  const scompensato = { ...riserveIniziali({ volemia: 5000 }), volemia: 3200 };
+  assert.equal(segni(compensato, BASE, {}).coscienza, 'A');
+  assert.notEqual(segni(scompensato, BASE, {}).coscienza, 'A');
+});

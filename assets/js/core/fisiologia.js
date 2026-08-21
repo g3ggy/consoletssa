@@ -137,3 +137,45 @@ export function circolo(riserve, base, modificatori = {}) {
     fase: faseCompenso(perdita),
   };
 }
+
+/* I segni del compenso, che il soccorritore vede solo se li cerca.
+
+   Nessuno di questi compare da solo nel diario: esistono nello stato e
+   basta. Ci vuole l'azione che li va a cercare — il test del refill, il
+   colorito, la mano sulla cute, la domanda sulla sete. Chi guarda solo
+   il monitor non li vede, ed è esattamente l'errore che il banco deve
+   far commettere una volta perché non si ripeta sul mezzo.
+
+   L'elenco è quello del Bolognin :6481: alterazione della coscienza,
+   tachipnea, pallore con cute fredda e sudorazione algida, tachicardia,
+   senso di sete. */
+export function segni(riserve, base, modificatori = {}) {
+  const perdita = perditaVolemica(riserve);
+  const fase = faseCompenso(perdita);
+
+  /* Il refill si allunga con la vasocostrizione periferica: è il segno
+     più precoce che si possa misurare, e costa quindici secondi.
+     Normale sotto i due secondi — Bolognin :6489. */
+  const refill = Number((1.4 + 7 * Math.max(0, perdita - 0.08)).toFixed(1));
+
+  let cute = 'normale';
+  if (perdita >= 0.20) cute = 'pallida-fredda-sudata';
+  else if (perdita >= 0.10) cute = 'pallida';
+
+  /* La coscienza è l'ultima a cedere, e quando cede è tardi. */
+  let coscienza = 'A';
+  if (fase === 'crollo') coscienza = 'U';
+  else if (perdita >= 0.35) coscienza = 'P';
+  else if (fase === 'scompenso') coscienza = 'V';
+
+  /* Nella lesione mielica manca la tachicardia ma NON la vasocostrizione
+     sotto il livello della lesione: il pallore c'è lo stesso. */
+  return {
+    cute,
+    refill,
+    sete: perdita >= 0.20,
+    coscienza,
+    tachipnea: perdita >= SOGLIE_PERDITA.compenso,
+    fase,
+  };
+}
