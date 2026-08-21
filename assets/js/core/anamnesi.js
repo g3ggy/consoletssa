@@ -87,3 +87,55 @@ export function rispostaA({ domanda, anamnesi, interlocutore, coscienza }) {
 export function domandeDisponibili(stato) {
   return DOMANDE_ELENCO.filter((d) => !d.richiede || d.richiede(stato || {}));
 }
+
+/* Da quale risposta si è cavato di più: serve a tenere la migliore
+   quando la stessa domanda è stata fatta a due persone. */
+const PESO_QUALITA = { buona: 3, vaga: 2, sbagliata: 1, falsa: 0 };
+
+/**
+ * Cosa dire alla fine: quello che ha raccolto, e dove si è fermato
+ * troppo presto.
+ *
+ * @param {object} caso
+ * @param {object[]} raccolte  { domanda, interlocutore, qualita, rivela, ripiego, t }
+ */
+export function revisioneAnamnesi(caso, raccolte = []) {
+  const chi = interlocutoriDi(caso);
+  const etichetta = (id) => chi.find((i) => i.id === id)?.label || id;
+
+  /* Di ogni domanda resta la risposta migliore che ha ottenuto: se ha
+     chiesto prima al paziente e poi alla moglie, quello che sa è quello
+     che gli ha detto la moglie. */
+  const migliori = new Map();
+  raccolte.forEach((r) => {
+    const attuale = migliori.get(r.domanda);
+    if (!attuale || PESO_QUALITA[r.qualita] > PESO_QUALITA[attuale.qualita]) {
+      migliori.set(r.domanda, r);
+    }
+  });
+
+  const voci = [...migliori.values()].map((r) => ({
+    domanda: r.domanda,
+    da: etichetta(r.interlocutore),
+    qualita: r.qualita,
+    rivela: [...(r.rivela || [])],
+    t: r.t,
+  }));
+
+  /* L'avviso non è per quello che non ha chiesto — di quello se ne
+     occupa la pagella — ma per quello che ha chiesto alla persona
+     sbagliata e ha dato per buono. */
+  const avvisi = voci
+    .filter((v) => v.qualita !== 'buona')
+    .map((v) => {
+      const risposte = caso?.anamnesi?.risposte?.[v.domanda] || {};
+      const chiSapeva = Object.keys(risposte)
+        .filter((id) => risposte[id]?.qualita === 'buona')
+        .filter((id) => !raccolte.some((r) => r.domanda === v.domanda && r.interlocutore === id));
+      if (!chiSapeva.length) return null;
+      return `${etichetta(chiSapeva[0])} avrebbe risposto meglio: chiedere a chi c'è costa pochi secondi.`;
+    })
+    .filter(Boolean);
+
+  return { voci, avvisi };
+}

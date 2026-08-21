@@ -171,3 +171,48 @@ test('uno stato incompleto non fa esplodere niente', () => {
   assert.doesNotThrow(() => domandeDisponibili({}));
   assert.doesNotThrow(() => domandeDisponibili(undefined));
 });
+
+/* ==================== la revisione finale =========================== */
+
+import { revisioneAnamnesi } from '../assets/js/core/anamnesi.js';
+
+test('quello che hai raccolto si legge per domanda, con chi te l\'ha detto', () => {
+  const r = revisioneAnamnesi(CASO_PROVA, [
+    { domanda: 'terapia', interlocutore: 'moglie', qualita: 'buona', rivela: ['betabloccante'], ripiego: null, t: 120 },
+  ]);
+  assert.equal(r.voci.length, 1);
+  assert.equal(r.voci[0].domanda, 'terapia');
+  assert.equal(r.voci[0].da, 'la moglie');
+  assert.deepEqual(r.voci[0].rivela, ['betabloccante']);
+});
+
+test('la stessa domanda chiesta a due persone resta una voce sola, la migliore', () => {
+  const r = revisioneAnamnesi(CASO_PROVA, [
+    { domanda: 'terapia', interlocutore: 'paziente', qualita: 'vaga', rivela: [], ripiego: null, t: 60 },
+    { domanda: 'terapia', interlocutore: 'moglie', qualita: 'buona', rivela: ['betabloccante'], ripiego: null, t: 120 },
+  ]);
+  assert.equal(r.voci.length, 1);
+  assert.equal(r.voci[0].qualita, 'buona', 'vale la risposta migliore che hai ottenuto');
+  assert.equal(r.avvisi.length, 0, 'ha incrociato: non c\'è niente da rimproverargli');
+});
+
+test('se ti sei fermato alla risposta vaga, il debriefing te lo dice', () => {
+  const r = revisioneAnamnesi(CASO_PROVA, [
+    { domanda: 'terapia', interlocutore: 'paziente', qualita: 'vaga', rivela: [], ripiego: null, t: 60 },
+  ]);
+  assert.equal(r.avvisi.length, 1);
+  assert.match(r.avvisi[0], /la moglie/, 'deve dire chi avrebbe risposto meglio');
+});
+
+test('nessun avviso se non c\'era nessun altro che sapesse', () => {
+  const r = revisioneAnamnesi(CASO_PROVA, [
+    { domanda: 'allergie', interlocutore: 'paziente', qualita: 'buona', rivela: [], ripiego: null, t: 30 },
+  ]);
+  assert.equal(r.avvisi.length, 0);
+});
+
+test('quello che non hai chiesto non compare fra le voci', () => {
+  const r = revisioneAnamnesi(CASO_PROVA, []);
+  assert.deepEqual(r.voci, []);
+  assert.deepEqual(r.avvisi, []);
+});
