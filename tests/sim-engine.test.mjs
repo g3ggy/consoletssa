@@ -821,3 +821,79 @@ test('la pagella conta i secondi buttati', () => {
   assert.equal(p.tempoButtato.secondi, 40);
   assert.equal(p.tempoButtato.voci[0].label, 'Prova');
 });
+
+/* ==================== il sospetto =================================== */
+
+const casoConClasse = (extra = {}) => ({
+  ...casoConAnamnesi(),
+  classe: 'C08',
+  sospettiPlausibili: ['C02', 'C07', 'C08'],
+  ...extra,
+});
+
+test('all\'inizio il banco aspetta la prima impressione', () => {
+  const i = avvia(casoConClasse());
+  assert.ok(i.primaImpressione, 'deve essere in attesa');
+  assert.deepEqual(i.primaImpressione.opzioni, ['C02', 'C07', 'C08', 'C20'],
+    '«non lo so» sta sempre in fondo ed è una risposta legittima');
+});
+
+test('finché non la dai, non puoi fare niente', () => {
+  const i = avvia(casoConClasse());
+  const r = i.esegui('monitor', 'tu');
+  assert.equal(r.ok, false);
+  assert.match(r.motivo, /cosa pensi/i);
+});
+
+test('un caso che non dichiara i plausibili non ferma nessuno', () => {
+  const i = avvia(casoConAnamnesi());
+  assert.equal(i.primaImpressione, null);
+  assert.equal(i.esegui('monitor', 'tu').ok, true);
+});
+
+test('dichiarare il sospetto non costa tempo: è un pensiero, non un gesto', () => {
+  const i = avvia(casoConClasse());
+  const prima = i.t;
+  i.dichiaraSospetto('C02');
+  assert.equal(i.sospetto.codice, 'C02');
+  assert.equal(i.t, prima, 'il tempo qui scorre solo con le azioni');
+});
+
+test('si può cambiare idea, e resta scritto quando', () => {
+  const i = avvia(casoConClasse());
+  i.dichiaraSospetto('C02');
+  i.avanza(120);
+  i.dichiaraSospetto('C08');
+  const p = i.chiudi();
+  assert.equal(p.sospetto.prima.codice, 'C02');
+  assert.equal(p.sospetto.finale.codice, 'C08');
+  assert.equal(p.sospetto.cambi, 1);
+  assert.equal(p.sospetto.giusto, true);
+  assert.equal(p.sospetto.azzeccatoA, 120, 'il minuto in cui ci sei arrivato');
+});
+
+test('ridichiarare lo stesso sospetto non conta come un cambio', () => {
+  const i = avvia(casoConClasse());
+  i.dichiaraSospetto('C08');
+  i.dichiaraSospetto('C08');
+  assert.equal(i.chiudi().sospetto.cambi, 0);
+});
+
+test('una classe che non esiste viene rifiutata', () => {
+  const i = avvia(casoConClasse());
+  assert.equal(i.dichiaraSospetto('C21').ok, false);
+});
+
+test('la classe difendibile conta giusta', () => {
+  /* La sincope regge sia come cardiocircolatoria sia come neurologica:
+     bocciarne una insegnerebbe una cosa falsa. */
+  const i = avvia(casoConClasse({ classe: 'C02', classeAnche: ['C04'] }));
+  i.dichiaraSospetto('C04');
+  assert.equal(i.chiudi().sospetto.giusto, true);
+});
+
+test('chi non dichiara mai niente non ha sospetto, e non esplode', () => {
+  const i = avvia(casoConAnamnesi());
+  const p = i.chiudi();
+  assert.equal(p.sospetto, null, 'senza classe dichiarata non c\'è niente da valutare');
+});

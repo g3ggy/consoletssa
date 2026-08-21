@@ -33,6 +33,7 @@ import {
 import { revisioneRagguaglio } from './ragguaglio.js';
 import { indicata, tempoButtato } from './giudizio.js';
 import { DOMANDE } from '../data/domande.js';
+import { CLASSI, nomeClasse } from '../data/classi-patologia.js';
 
 /* Chiavi che derivano nel tempo secondo `decorso`. */
 const DERIVATE = ['pas', 'pad', 'fc', 'spo2', 'temp', 'glicemia', 'fr', 'dolore'];
@@ -134,6 +135,18 @@ export function creaIntervento(caso, opzioni = {}) {
   let decisionePendente = null;
   let arrestoA = null;
   let storico = [];                 // { t, pas, fc, spo2 } per il grafico finale
+
+  /* Cosa pensi di avere davanti, e da che minuto. Ogni cambio resta:
+     alla fine conta da dove sei partito, dove sei arrivato e QUANDO ci
+     sei arrivato. */
+  let sospetti = [];                // { codice, t }
+
+  /* Il banco chiede la prima impressione una volta sola, subito dopo il
+     colpo d'occhio, e aspetta. Solo se il caso dichiara delle plausibili:
+     nessun caso è obbligato a partecipare. */
+  let primaImpressionePendente = caso.sospettiPlausibili?.length
+    ? { opzioni: [...caso.sospettiPlausibili, 'C20'] }
+    : null;
 
   /* Con chi stai parlando adesso. Ti giri una volta e da lì tutte le
      domande vanno a lui, finché non ti giri di nuovo. */
@@ -532,6 +545,9 @@ export function creaIntervento(caso, opzioni = {}) {
     const az = catalogo[id];
     if (!az) return { ok: false, motivo: 'Azione sconosciuta.' };
     if (decisionePendente) return { ok: false, motivo: 'Prima rispondi a quello che sta succedendo.' };
+    if (primaImpressionePendente) {
+      return { ok: false, motivo: 'Prima dì cosa pensi di avere davanti.' };
+    }
     if (ancora.esito !== 'in-corso') return { ok: false, motivo: 'L\'intervento è chiuso.' };
     if (!az.chi?.includes(chi)) return { ok: false, motivo: `${etichettaMembro(chi)} non può eseguire questa azione.` };
     if (!squadra[chi] || squadra[chi].liberoA > t) return { ok: false, motivo: `${etichettaMembro(chi)} è occupato.` };
@@ -665,6 +681,42 @@ export function creaIntervento(caso, opzioni = {}) {
     return { ok: true, risposta: r };
   }
 
+  /* --------------------------- il sospetto ------------------------- */
+
+  /** Dichiara cosa pensi di avere davanti. Non costa tempo: è un
+      pensiero, non un gesto, e il tempo qui scorre solo con le azioni. */
+  function dichiaraSospetto(codice) {
+    if (!CLASSI[codice]) return { ok: false, motivo: 'Classe di patologia sconosciuta.' };
+
+    primaImpressionePendente = null;
+
+    /* Ridichiarare quello che hai già in mente non è un ripensamento. */
+    if (sospetti[sospetti.length - 1]?.codice === codice) return { ok: true };
+
+    sospetti = [...sospetti, { codice, t }];
+    scrivi('sospetto', `Pensi a un quadro di tipo ${nomeClasse(codice)}.`);
+    notifica();
+    return { ok: true };
+  }
+
+  /** Com'è andata col riconoscimento. `null` se il caso non dichiara una
+      classe: senza risposta giusta non c'è niente da valutare. */
+  function revisioneSospetto() {
+    if (!caso.classe) return null;
+    const giusta = (c) => c === caso.classe || (caso.classeAnche || []).includes(c);
+    const azzeccato = sospetti.find((x) => giusta(x.codice));
+    return {
+      storico: sospetti,
+      prima: sospetti[0] || null,
+      finale: sospetti[sospetti.length - 1] || null,
+      giusto: Boolean(sospetti.length && giusta(sospetti[sospetti.length - 1].codice)),
+      azzeccatoA: azzeccato ? azzeccato.t : null,
+      cambi: Math.max(0, sospetti.length - 1),
+      attesa: caso.classe,
+      attesaLabel: nomeClasse(caso.classe),
+    };
+  }
+
   /* ------------------------------ pagella -------------------------- */
   function pagella() {
     const s = proietta();
@@ -745,6 +797,7 @@ export function creaIntervento(caso, opzioni = {}) {
       ragguaglio: revisioneRagguaglio(caso, { fatte, saputo, letture }),
       esitoPaziente,
       tempoButtato: buttato,
+      sospetto: revisioneSospetto(),
       gravitaIniziale: gIniziale,
       gravitaFinale: gFinale,
       secondi: t,
@@ -777,6 +830,10 @@ export function creaIntervento(caso, opzioni = {}) {
     get interlocutore() { return interlocutore; },
     get interlocutori() { return interlocutoriDi(caso); },
     get saputo() { return saputo; },
+    dichiaraSospetto,
+    get sospetto() { return sospetti[sospetti.length - 1] || null; },
+    get sospetti() { return sospetti; },
+    get primaImpressione() { return primaImpressionePendente; },
     get raccolte() { return raccolte; },
     domandeDisponibili: () => domandeDisponibili(proietta()),
     chiedi,
