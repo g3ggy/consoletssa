@@ -67,6 +67,41 @@ export const CASI = [
       modificatori: { eta: 74, terapia: ['betabloccante'] },
     },
 
+    anamnesi: {
+      interlocutori: [{ id: 'moglie', label: 'la moglie' }],
+      risposte: {
+        disturbi: {
+          paziente: { t: '«Mi sento le gambe molli. Stamattina mi sono alzato e mi girava tutto.»', qualita: 'buona' },
+          moglie: { t: '«È da ieri che è spento, non ha voluto cenare.»', qualita: 'buona' },
+        },
+        allergie: {
+          paziente: { t: '«No, niente allergie.»', qualita: 'buona' },
+        },
+        /* La trappola del caso: lui il nome non se lo ricorda, e finché
+           ti fermi a lui quel betabloccante resta invisibile. */
+        terapia: {
+          paziente: { t: '«Quella per la pressione, mi pare. Una la mattina.»', qualita: 'vaga' },
+          moglie: {
+            t: '«Il Cardicor per il cuore, e la cardioaspirina. Gliela do io tutte le mattine.»',
+            qualita: 'buona',
+            rivela: ['betabloccante'],
+          },
+        },
+        patologie: {
+          paziente: { t: '«La pressione alta. E il cuore che batte storto, ogni tanto.»', qualita: 'vaga' },
+          moglie: { t: '«Ipertensione, e ha l\'aritmia. L\'anno scorso l\'hanno tenuto due giorni in ospedale.»', qualita: 'buona' },
+        },
+        'ultimo-pasto': {
+          paziente: { t: '«Stamattina un caffè. Non mi va giù niente.»', qualita: 'buona' },
+          moglie: { t: '«Ieri a pranzo, poi più niente. E ha fatto due volte il bagno, scuro.»', qualita: 'buona', rivela: ['melena'] },
+        },
+        evento: {
+          paziente: { t: '«Niente, mi sono solo sentito debole. Non sono caduto.»', qualita: 'buona' },
+          moglie: { t: '«Ieri sera è stato male in bagno, ma non ha voluto che chiamassi.»', qualita: 'buona' },
+        },
+      },
+    },
+
     eventi: [
       {
         id: 'alzarsi', t: 110,
@@ -126,6 +161,8 @@ export const CASI = [
         { id: 'misura-pa', entro: 150, peso: 3 },
         { id: 'monitor', entro: 210, peso: 2 },
         { id: 'refill', entro: 180, peso: 3 },
+        { id: 'domanda:terapia', entro: 300, peso: 3 },
+        { id: 'domanda:patologie', entro: 360, peso: 1 },
         { id: 'antishock', entro: 300, peso: 3 },
         { id: 'coperta', entro: 420, peso: 1 },
         { id: 'riferisci-infermiere', entro: 360, peso: 2 },

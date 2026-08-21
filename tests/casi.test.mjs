@@ -7,8 +7,16 @@ import assert from 'node:assert/strict';
 import { creaIntervento } from '../assets/js/core/sim-engine.js';
 import { AZIONI } from '../assets/js/data/azioni.js';
 import { CASI } from '../assets/js/data/casi.js';
+import { DOMANDE } from '../assets/js/data/domande.js';
 
 const avvia = (caso) => creaIntervento(caso, { azioni: AZIONI });
+
+/* Una voce della pagella può essere un'azione della palette o una
+   domanda dell'anamnesi: si riconoscono dal prefisso, e vivono in due
+   cataloghi diversi. */
+const PREFISSO_DOMANDA = 'domanda:';
+const eUnaDomanda = (id) => String(id).startsWith(PREFISSO_DOMANDA);
+const idDomanda = (id) => String(id).slice(PREFISSO_DOMANDA.length);
 
 /** Risponde sempre alla prima opzione corretta, se c'è una decisione aperta. */
 function rispondiSeServe(i) {
@@ -28,7 +36,13 @@ test('ogni caso dichiara le chiavi che il motore si aspetta', () => {
     assert.ok(c.azioni?.necessarie?.length, `${c.id}: nessuna azione necessaria`);
     assert.ok(c.chiave && c.trappola && c.ragguaglio, `${c.id}: manca il testo del debriefing`);
     (c.azioni.necessarie || []).forEach((n) => {
-      [].concat(n.id).forEach((id) => assert.ok(AZIONI[id], `${c.id}: azione necessaria sconosciuta ${id}`));
+      [].concat(n.id).forEach((id) => {
+        if (eUnaDomanda(id)) {
+          assert.ok(DOMANDE[idDomanda(id)], `${c.id}: domanda necessaria sconosciuta ${id}`);
+          return;
+        }
+        assert.ok(AZIONI[id], `${c.id}: azione necessaria sconosciuta ${id}`);
+      });
     });
     (c.azioni.dannose || []).forEach((d) => {
       [].concat(d.id).forEach((id) => assert.ok(AZIONI[id], `${c.id}: azione dannosa sconosciuta ${id}`));
@@ -60,6 +74,18 @@ test('facendo le azioni necessarie il paziente non peggiora e il punteggio è pi
     c.azioni.necessarie.forEach((n) => {
       rispondiSeServe(i);
       const id = [].concat(n.id)[0];
+
+      /* Le domande le fai sempre tu, e non si delegano: basta aspettare
+         di essere libero. */
+      if (eUnaDomanda(id)) {
+        const attesaTua = i.squadra.tu.liberoA - i.t;
+        if (attesaTua > 0) { i.avanza(attesaTua); rispondiSeServe(i); }
+        const risposta = i.chiedi(idDomanda(id));
+        assert.ok(risposta.ok, `${c.id}: ${id} rifiutata (${risposta.motivo})`);
+        rispondiSeServe(i);
+        return;
+      }
+
       const az = AZIONI[id];
       const chi = az.chi.includes('tu') ? 'tu' : az.chi[0];
       // aspetta che chi deve eseguire sia libero: le azioni delegate
@@ -164,4 +190,35 @@ test('toracico-v3 non trattato arresta in fibrillazione, e il DAE serve', () => 
   assert.ok(i.stato.tag.includes('arresto') || i.stato.esito === 'morto',
     'quarantacinque minuti di infarto non trattato finiscono male');
   assert.equal(i.stato.ritmo, 'fv', 'il cuore ischemico fibrilla: la scarica ha senso');
+});
+
+/* ==================== l'anamnesi nei casi =========================== */
+
+test('shock-v3 ha qualcuno a cui chiedere, oltre al paziente', () => {
+  const caso = CASI.find((c) => c.id === 'shock-v3');
+  assert.ok(caso.anamnesi, 'manca il blocco anamnesi');
+  assert.ok(caso.anamnesi.interlocutori.some((i) => i.id === 'moglie'));
+});
+
+test('in shock-v3 il betabloccante lo sa solo la moglie', () => {
+  const caso = CASI.find((c) => c.id === 'shock-v3');
+  const i = avvia(caso);
+
+  i.chiedi('terapia');
+  assert.deepEqual(i.saputo, {}, 'dal paziente non cavi il nome del farmaco');
+
+  i.rivolgitiA('moglie');
+  i.chiedi('terapia');
+  assert.ok(i.saputo.betabloccante, 'la moglie sa cosa prende, ed è la chiave del caso');
+});
+
+test('quello che la moglie rivela è la stessa chiave che agisce sul paziente', () => {
+  const caso = CASI.find((c) => c.id === 'shock-v3');
+  const rivelate = Object.values(caso.anamnesi.risposte)
+    .flatMap((perInterlocutore) => Object.values(perInterlocutore))
+    .flatMap((r) => r.rivela || []);
+  caso.fisiologia.modificatori.terapia.forEach((farmaco) => {
+    assert.ok(rivelate.includes(farmaco),
+      `${farmaco} agisce sul paziente ma nessuno può dirtelo: l'anamnesi non lo copre`);
+  });
 });
