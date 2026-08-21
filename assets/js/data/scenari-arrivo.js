@@ -21,31 +21,6 @@
    ===================================================================== */
 
 export const DETTAGLI_ARRIVO = {
-  /* ------------------------------------------------------------------ */
-  toracico: {
-    deriva: { FC: +0.9, SpO2: -0.15, PA: -1.2 },
-    arrivo: {
-      testo: "Il figlio vi aspetta al portone e vi fa strada. Secondo piano, scale strette, niente ascensore. Sul pianerottolo non c'è nessun pericolo: la scena è tranquilla.",
-      domanda: "Cosa porti su?",
-      scelte: [
-        { t: "Borsa, ossigeno, monitor e DAE: salgo attrezzato", ok: true,
-          w: "Su un dolore toracico il DAE sale con te. Se il cuore si ferma mentre sei là sopra, tornare al mezzo sono due minuti che non hai." },
-        { t: "Solo la borsa: prima vedo, poi decido cosa serve", ok: false,
-          w: "Su altri casi è ragionevole, qui no. Due rampe di scale a vuoto costano più del peso del materiale." },
-        { t: "Salgo con la barella a cucchiaio, tanto va portato giù", ok: false,
-          w: "Prima valuti, poi decidi come scendere. E su scale strette la cucchiaio non passa: serviranno telo o sedia." },
-        { t: "Chiedo ai familiari di farlo scendere in strada mentre saliamo", ok: false,
-          w: "Mai. Due rampe di scale sono uno sforzo massimale per un cuore che sta già lavorando senza ossigeno." },
-      ],
-    },
-    situazione: "Uomo di 68 anni seduto sul divano, pallido, sudato, la mano chiusa a pugno in mezzo al petto. Il dolore dura da 40 minuti, è iniziato mentre saliva le scale e non è passato mettendosi seduto. Non hai ancora nessun parametro, e non ti serve: quello che minaccia la vita è un miocardio che sta lavorando senza ossigeno, e ogni minuto che passa è muscolo che non torna.",
-    azioniSbagliate: [
-      { t: "Lo faccio sdraiare, così gli prendo la pressione più comodamente",
-        w: "Sdraiarlo aumenta il ritorno venoso e fa lavorare di più il cuore. Nel dolore toracico si sta seduti." },
-      { t: "Gli faccio prendere l'aspirina che ha in casa",
-        w: "Non sei tu a somministrare farmaci, nemmeno quelli di casa. Lo riferisci all'infermiere e decide lui." },
-    ],
-  },
 
   /* ------------------------------------------------------------------ */
   bpco: {
@@ -97,55 +72,7 @@ export const DETTAGLI_ARRIVO = {
     ],
   },
 
-  /* ------------------------------------------------------------------ */
-  shock: {
-    deriva: { FC: +1.6, SpO2: -0.1, PA: -2.5 },
-    arrivo: {
-      testo: "La moglie vi apre e dice subito «l'ho fatto sedere, è solo un po' stanco». Casa in ordine, nessun rischio, nessuna fretta nella sua voce. Il codice della centrale era verde.",
-      domanda: "Con che testa entri?",
-      scelte: [
-        { t: "Il codice della centrale non è un verdetto: guardo io e decido io", ok: true,
-          w: "Quel verde è nato da come ha raccontato la cosa chi ha chiamato. Il tuo colpo d'occhio vale di più, e qui vale molto di più." },
-        { t: "È un verde: valutazione con calma, poi si vede", ok: false,
-          w: "È così che si arriva tardi. Il codice si conferma o si cambia sul posto, non si eredita." },
-        { t: "Mi faccio raccontare tutto dalla moglie prima di avvicinarmi", ok: false,
-          w: "La storia serve, ma dopo. Due secondi di colpo d'occhio dicono più di cinque minuti di racconto." },
-      ],
-    },
-    situazione: "Uomo di 74 anni seduto in poltrona, vigile ma spento, che risponde lentamente. La cute è pallida e fredda al tatto, con un velo di sudore. Non ha dolore, non è dispnoico, non ha niente di eclatante: ha l'aspetto di uno che sta compensando qualcosa. Ed è proprio questo il punto — il compenso regge finché regge, e quando cede lo fa tutto insieme.",
-    azioniSbagliate: [
-      { t: "Lo faccio alzare e lo accompagno alla barella",
-        w: "Un paziente che sta compensando un'ipotensione, messo in piedi, sviene. E cade." },
-      { t: "Chiamo il medico curante per farmi dire la terapia",
-        w: "Non è il momento e non serve: la terapia la chiedi alla moglie in trenta secondi." },
-    ],
-  },
 
-  /* ------------------------------------------------------------------ */
-  ipoglicemia: {
-    deriva: { FC: +0.6, SpO2: 0, PA: -0.4 },
-    arrivo: {
-      testo: "Marciapiede, un crocchio di sei o sette persone attorno a un uomo seduto a terra. Qualcuno filma con il telefono. Un passante ripete a voce alta «è ubriaco, lasciatelo perdere».",
-      domanda: "Come ti avvicini?",
-      scelte: [
-        { t: "Faccio allargare le persone, valuto se è aggressivo e mi tengo una via di uscita", ok: true,
-          w: "Paziente agitato in mezzo alla gente: prima la tua sicurezza e lo spazio per lavorare, poi tutto il resto." },
-        { t: "Mi inginocchio subito accanto a lui e comincio a valutarlo", ok: false,
-          w: "Inginocchiarsi davanti a una persona agitata, con la gente addosso, ti toglie ogni via di uscita." },
-        { t: "Resto sul mezzo e aspetto le forze dell'ordine", ok: false,
-          w: "Si chiamano quando servono, ma qui l'uomo è seduto e non ti sta aggredendo: aspettare e basta è solo tempo perso." },
-        { t: "Discuto con chi sta filmando finché non smette", ok: false,
-          w: "Fai allontanare, non discuti. Il tuo tempo appartiene al paziente." },
-      ],
-    },
-    situazione: "Uomo di 52 anni seduto a terra, sudato, agitato, con l'eloquio impastato. Non collabora e ha l'alito che sa di alcol. Confusione, sudorazione, tremori e incoordinazione sono identici in un'ubriacatura e in un'ipoglicemia — e le due cose convivono spesso. Non hai ancora nessun numero, e senza quel numero stai solo indovinando.",
-    azioniSbagliate: [
-      { t: "Gli do da bere qualcosa di zuccherato, male non fa",
-        w: "A un paziente che non collabora lo zucchero rischia di finire nei polmoni. E comunque prima serve il dato." },
-      { t: "Lo lascio smaltire e avviso i vigili urbani",
-        w: "È il modo più efficace per far arrivare in coma un ipoglicemico." },
-    ],
-  },
 
   /* ------------------------------------------------------------------ */
   incidente: {

@@ -9,6 +9,7 @@ import { getState, dueCards, boxCounts, resetAll, dayKey } from '../core/store.j
 import { CARTE_IDS } from '../data/carte.js';
 import { loadManual } from '../core/manual.js';
 import { SCENARI } from '../data/scenari.js';
+import { CASI } from '../data/casi.js';
 import { RHYTHMS } from '../core/waveform.js';
 
 const NOMI_PASSO = {
@@ -88,9 +89,11 @@ export async function render() {
   runs.forEach((r) => (r.errori || []).forEach((e) => { conteggi[e] = (conteggi[e] || 0) + 1; }));
   const deboli = Object.entries(conteggi).sort((a, b) => b[1] - a[1]).slice(0, 5);
 
-  /* scenari mai affrontati */
+  /* Scenari mai affrontati, di tutti e due i motori: un caso convertito
+     esce da SCENARI ed entra in CASI, e senza guardare anche lì
+     sparirebbe dall'elenco invece di risultare da fare. */
   const visti = new Set(runs.map((r) => r.id));
-  const mancanti = SCENARI.filter((c) => !visti.has(c.id));
+  const mancanti = [...CASI, ...SCENARI].filter((c) => !visti.has(c.id));
 
   const srsSeen = Object.values(s.srs).reduce((a, c) => a + c.seen, 0);
   const srsOk = Object.values(s.srs).reduce((a, c) => a + c.ok, 0);

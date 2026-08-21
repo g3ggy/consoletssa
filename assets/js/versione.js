@@ -13,11 +13,12 @@
    (e la stessa stringa in cima a sw.js).
    ===================================================================== */
 
-export const VERSIONE = '1.8.1';
+export const VERSIONE = '1.9.0';
 export const DATA_VERSIONE = '21 agosto 2026';
 
 /** Cosa è cambiato, dalla più recente. Le prime tre finiscono nel pannello. */
 export const NOVITA = [
+  { v: '1.9.0', t: 'L\'ipoglicemico in strada passa al motore a tempo, ed è il primo caso in cui una finestra si chiude da sola: arriva a 55 di glicemia, ancora vigile, e lo zucchero per bocca si può ancora dare. Fra tre minuti no. I passanti dicono che è ubriaco — è la risposta sbagliata, e niente te lo segnala: la verità ce l\'ha lui in tasca, o nel glucometro. Gli scenari già convertiti non compaiono più due volte nella lista.' },
   { v: '1.8.1', t: 'Il monitor mostra i tre parametri che misura davvero: frequenza, saturazione e pressione. CO2 e temperatura erano due riquadri fermi a trattini — la temperatura si prende col timpanico e sta fra le rilevazioni, insieme a FR e glicemia. Ogni rilevazione ripetuta lampeggia e dice da quanto ce l\'hai, anche quando il numero non è cambiato: glicemia e temperatura si rifanno quando vuoi.' },
   { v: '1.8.0', t: 'L\'anamnesi si fa a domande. Le sei del SAMPLE si chiedono sempre, le sei dell\'OPQRST quando il paziente ha dolore, e ognuna costa il suo tempo. La stessa domanda dà risposte diverse a seconda di chi la riceve: il paziente confuso non è attendibile e nessuno te lo dice, e c\'è chi sa cose che lui non ricorda. È così che si scopre il betabloccante che teneva nascosto il compenso.' },
   { v: '1.7.0', t: 'Il paziente ha una fisiologia. Non peggiora più a ritmo fisso: compensa finché può — la pressione tiene mentre la cute impallidisce e il riempimento capillare si allunga — e poi scompensa. Se nessuno interviene arriva all\'arresto, e il ritmo con cui il cuore si ferma dipende dal perché si è fermato. I segni del compenso non compaiono da soli: vanno cercati, e ci sono tre azioni nuove per farlo.' },
