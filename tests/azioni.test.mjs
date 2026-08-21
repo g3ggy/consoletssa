@@ -54,3 +54,43 @@ test('i prerequisiti non esplodono su uno stato qualunque', () => {
     }
   });
 });
+
+/* Le offese leggono i tag: se un'azione non mette il tag giusto, il
+   provvedimento non ha alcun effetto sul paziente. */
+const TAG_ATTESI = {
+  compressione: 'compressione',
+  laccio: 'laccio',
+  'o2-reservoir': 'o2',
+  'o2-maschera': 'o2',
+  'o2-occhialini': 'o2',
+  pallone: 'pallone',
+  'inf-liquidi': 'liquidi',
+  'zucchero-os': 'zucchero',
+  'inf-glucosata': 'glucosata',
+  'inf-adrenalina': 'adrenalina',
+};
+
+test('le azioni che curano mettono il tag che le offese leggono', () => {
+  Object.entries(TAG_ATTESI).forEach(([id, tag]) => {
+    const az = AZIONI[id];
+    assert.ok(az, `manca l'azione ${id}`);
+    assert.ok(az.applica, `${id}: manca applica()`);
+    const eff = az.applica({ viePervie: true, tag: [] }, {});
+    assert.equal(eff.tag, tag, `${id} doveva mettere il tag "${tag}"`);
+  });
+});
+
+test('le azioni non decidono più di quanto migliora un parametro', () => {
+  Object.keys(TAG_ATTESI).forEach((id) => {
+    const eff = AZIONI[id].applica({ viePervie: true, tag: [] }, {});
+    Object.entries(eff).forEach(([k, v]) => {
+      assert.ok(typeof v !== 'number',
+        `${id}: dichiara ancora ${k}: ${v}, ma i parametri li calcola la fisiologia`);
+    });
+  });
+});
+
+test('la posizione del paziente mette il tag che il ritorno venoso legge', () => {
+  assert.equal(AZIONI.antishock.applica({ tag: [] }, {}).tag, 'antishock');
+  assert.equal(AZIONI['posizione-seduta'].applica({ tag: [] }, {}).tag, 'seduta');
+});

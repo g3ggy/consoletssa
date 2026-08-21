@@ -404,3 +404,35 @@ test('il vecchio formato con decorso continua a funzionare', () => {
   i.avanza(60);
   assert.equal(i.stato.pas, 97, 'i casi senza blocco fisiologia non cambiano');
 });
+
+/* Nel formato 3 un provvedimento non muove un numero: mette un tag, e
+   sono le riserve a cambiare strada. */
+const AZIONI_FIS = {
+  ...AZIONI_PROVA,
+  liquidi: {
+    id: 'liquidi', cat: 'C', label: 'Infusione di liquidi',
+    durata: 30, chi: ['tu'], unaVolta: true,
+    applica: () => ({ tag: 'liquidi' }),
+    spiega: 'prova',
+  },
+};
+
+test('la posizione antishock tiene su la pressione anche nel formato 3', () => {
+  const senza = avvia(casoFisiologico(), AZIONI_FIS);
+  senza.avanza(60 * 32);
+  const con = avvia(casoFisiologico(), AZIONI_FIS);
+  con.esegui('antishock', 'tu');
+  con.avanza(60 * 32 - con.t);
+  assert.ok(con.stato.pas > senza.stato.pas,
+    `in antishock ${con.stato.pas}, senza ${senza.stato.pas}`);
+});
+
+test('i liquidi comprano tempo, e si vede nei parametri', () => {
+  const senza = avvia(casoFisiologico(), AZIONI_FIS);
+  senza.avanza(60 * 30);
+  const con = avvia(casoFisiologico(), AZIONI_FIS);
+  con.esegui('liquidi', 'tu');
+  con.avanza(60 * 30 - con.t);
+  assert.ok(con.stato.pas > senza.stato.pas,
+    `con la flebo ${con.stato.pas}, senza ${senza.stato.pas}`);
+});

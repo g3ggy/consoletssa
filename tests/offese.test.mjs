@@ -75,3 +75,28 @@ test('le offese non mutano le riserve che ricevono', () => {
   applicaOffese(r, [{ tipo: 'emorragia', portata: 60 }], 60, []);
   assert.equal(r.volemia, 5000, 'l\'oggetto di partenza è rimasto intatto');
 });
+
+/* ==================== quello che rimette a posto ==================== */
+
+import { applicaTerapie } from '../assets/js/data/offese.js';
+
+test('senza provvedimenti le riserve non cambiano da sole', () => {
+  const r = riserveIniziali({ volemia: 5000 });
+  assert.deepEqual(applicaTerapie(r, 60, []), r);
+});
+
+test('i liquidi rimettono volume, ma non ne mettono più di quanto ne aveva', () => {
+  const r = { ...riserveIniziali({ volemia: 5000 }), volemia: 3600 };
+  const dopo = applicaTerapie(r, 60, ['liquidi']);
+  assert.ok(dopo.volemia > 3600, 'un minuto di infusione qualcosa rende');
+  const tanto = applicaTerapie({ ...r, volemia: 4900 }, 600, ['liquidi']);
+  assert.ok(tanto.volemia < r.volemiaIniziale,
+    'la flebo non rimpiazza il sangue: il tetto resta sotto quello che aveva');
+});
+
+test('i liquidi non bastano contro un\'emorragia più veloce dell\'infusione', () => {
+  const r = { ...riserveIniziali({ volemia: 5000 }), volemia: 4000 };
+  const offese = [{ tipo: 'emorragia', sede: 'interna', portata: 90 }];
+  const dopo = applicaTerapie(applicaOffese(r, offese, 60, ['liquidi']), 60, ['liquidi']);
+  assert.ok(dopo.volemia < 4000, 'chi sanguina più di quanto gli infondi peggiora lo stesso');
+});

@@ -101,6 +101,25 @@ function tenutaPressoria(perdita, compensoAttivo) {
   return fra(Math.exp(-(perdita - cede) / CADUTA_PRESSORIA), 0, 1);
 }
 
+/* Quanto la posizione cambia il sangue che torna al cuore.
+
+   Non è un dettaglio da manuale: è il motivo per cui a un ipoteso le
+   gambe si alzano e non lo si fa mettere seduto. Il sangue che non
+   torna al cuore è sangue che il cuore non può mandare al cervello.
+   Bolognin :6489 dà la posizione antishock; i coefficienti sono
+   ASSUNZIONE NOSTRA. */
+export const RITORNO_VENOSO = {
+  antishock: +0.15,
+  seduta: -0.20,
+  'in-piedi': -0.35,
+};
+
+/** Il ritorno venoso adesso, dato quello che è stato fatto al paziente. */
+export function ritornoVenoso(tag = []) {
+  const somma = tag.reduce((acc, x) => acc + (RITORNO_VENOSO[x] || 0), 0);
+  return fra(1 + somma, 0.5, 1.3);
+}
+
 /**
  * I parametri del circolo, calcolati dalle riserve.
  * @param {object} riserve
@@ -119,7 +138,11 @@ export function circolo(riserve, base, modificatori = {}) {
     ? base.fc
     : Math.round(base.fc + GUADAGNO_TACHICARDIA * perdita * riserve.contrattilita);
 
-  const tenuta = tenutaPressoria(perdita, !bloccato);
+  /* La posizione agisce sulla TENUTA, non sulla pressione: alzare le
+     gambe a chi non ha perso niente non lo fa diventare iperteso, ma a
+     chi sta cedendo restituisce qualche mmHg. Per questo si moltiplica
+     la tenuta e si tiene il tetto a 1. */
+  const tenuta = fra(tenutaPressoria(perdita, !bloccato) * (modificatori.ritornoVenoso ?? 1), 0, 1);
   const pas = Math.round(base.pas * tenuta * riserve.tonoVascolare);
 
   /* La diastolica non segue la sistolica: durante il compenso la

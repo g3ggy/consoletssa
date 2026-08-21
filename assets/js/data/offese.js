@@ -120,3 +120,28 @@ export function compensoBloccato(offese = [], modificatori = {}) {
   const daTerapia = (modificatori.terapia || []).includes('betabloccante');
   return daOffesa || daTerapia;
 }
+
+/* Quanti ml al minuto rende una flebo che corre, e fin dove.
+
+   Il tetto è il punto: i cristalloidi riempiono il vaso, non
+   rimpiazzano il sangue perduto. Un paziente riempito di fisiologica
+   ha una pressione migliore e lo stesso sangue di prima, ed è per
+   questo che l'unica cura dell'emorragia è fermare l'emorragia.
+   Il ritmo e il tetto sono ASSUNZIONE NOSTRA. */
+const LIQUIDI_ML_MINUTO = 30;
+const TETTO_RIEMPIMENTO = 0.85;
+
+/**
+ * Quello che i provvedimenti rimettono nelle riserve, per `dt` secondi.
+ * Riceve i tag come le offese, e come loro restituisce riserve NUOVE.
+ */
+export function applicaTerapie(riserve, dt = 0, tag = []) {
+  if (!tag.includes('liquidi') || dt <= 0) return riserve;
+
+  const tetto = (riserve.volemiaIniziale || riserve.volemia) * TETTO_RIEMPIMENTO;
+  if (riserve.volemia >= tetto) return riserve;
+  return {
+    ...riserve,
+    volemia: Math.min(tetto, riserve.volemia + (LIQUIDI_ML_MINUTO / 60) * dt),
+  };
+}

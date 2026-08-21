@@ -279,3 +279,26 @@ test('con la RCP in corso la curva è più piatta', () => {
 test('la probabilità non va sotto zero per quanto si aspetti', () => {
   assert.ok(sopravvivenza(3600, []) >= 0);
 });
+
+/* ==================== il ritorno venoso ============================= */
+
+import { ritornoVenoso } from '../assets/js/core/fisiologia.js';
+
+test('senza far niente il ritorno venoso è quello normale', () => {
+  assert.equal(ritornoVenoso([]), 1);
+});
+
+test('la posizione antishock aiuta la pressione, la seduta la toglie', () => {
+  assert.ok(ritornoVenoso(['antishock']) > 1);
+  assert.ok(ritornoVenoso(['seduta']) < 1);
+  assert.ok(ritornoVenoso(['in-piedi']) < ritornoVenoso(['seduta']),
+    'un ipoteso in piedi sta peggio di un ipoteso seduto');
+});
+
+test('il ritorno venoso si vede sulla sistolica, non sulla frequenza', () => {
+  const r = { ...riserveIniziali({ volemia: 5000 }), volemia: 3600 };   // 28%
+  const piatto = circolo(r, BASE, { ritornoVenoso: ritornoVenoso(['antishock']) });
+  const seduto = circolo(r, BASE, { ritornoVenoso: ritornoVenoso(['seduta']) });
+  assert.ok(piatto.pas > seduto.pas, 'in antishock la pressione tiene meglio');
+  assert.equal(piatto.fc, seduto.fc, 'la frequenza dipende dalla perdita, non dalla posizione');
+});

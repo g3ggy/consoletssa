@@ -22,9 +22,10 @@
 /* `verificaArresto` si chiama come una funzione che sim-engine ha già:
    si importa sotto altro nome per non coprirla. */
 import {
-  riserveIniziali, parametriVisibili, verificaArresto as arrestoDaRiserve,
+  riserveIniziali, parametriVisibili, ritornoVenoso,
+  verificaArresto as arrestoDaRiserve,
 } from './fisiologia.js';
-import { applicaOffese, compensoBloccato } from '../data/offese.js';
+import { applicaOffese, applicaTerapie, compensoBloccato } from '../data/offese.js';
 
 /* Chiavi che derivano nel tempo secondo `decorso`. */
 const DERIVATE = ['pas', 'pad', 'fc', 'spo2', 'temp', 'glicemia', 'fr', 'dolore'];
@@ -198,8 +199,15 @@ export function creaIntervento(caso, opzioni = {}) {
        frequenza che il paziente non ha. */
     if (ancora.tag.includes('arresto')) return { ...base, riserve };
 
-    const r = dt > 0 ? applicaOffese(riserve, fis.offese, dt, ancora.tag) : riserve;
-    const p = parametriVisibili(r, fis.base, modFis);
+    /* Prima quello che consuma, poi quello che rimette: l'ordine conta
+       solo per il tetto del riempimento, ma è anche il modo in cui
+       vanno le cose sul mezzo. */
+    const consumate = dt > 0 ? applicaOffese(riserve, fis.offese, dt, ancora.tag) : riserve;
+    const r = dt > 0 ? applicaTerapie(consumate, dt, ancora.tag) : consumate;
+
+    /* La posizione del paziente non consuma riserve: cambia quanto
+       sangue torna al cuore, cioè quanto la pressione tiene. */
+    const p = parametriVisibili(r, fis.base, { ...modFis, ritornoVenoso: ritornoVenoso(ancora.tag) });
     return {
       ...base,
       ...p,
@@ -302,7 +310,12 @@ export function creaIntervento(caso, opzioni = {}) {
   function verificaArrestoFisiologico() {
     if (!fis || arrestoA !== null || ancora.esito !== 'in-corso') return;
     const s = proietta();
-    const a = arrestoDaRiserve(s.riserve, fis.base, fis.modificatori, fis.offese);
+    /* Gli stessi modificatori con cui si calcolano i parametri che si
+       vedono: se il compenso è bloccato lo è anche qui, altrimenti il
+       motore dichiarerebbe l'arresto a una pressione diversa da quella
+       che ha appena mostrato sul monitor. */
+    const a = arrestoDaRiserve(s.riserve, fis.base,
+      { ...modFis, ritornoVenoso: ritornoVenoso(ancora.tag) }, fis.offese);
     if (!a) return;
     ancoraOra();
     ancora = { ...ancora, arrestoDefibrillabile: a.defibrillabile };
