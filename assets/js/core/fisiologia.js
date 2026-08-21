@@ -148,7 +148,13 @@ export function circolo(riserve, base, modificatori = {}) {
      chi sta cedendo restituisce qualche mmHg. Per questo si moltiplica
      la tenuta e si tiene il tetto a 1. */
   const tenuta = fra(tenutaPressoria(perdita, !bloccato) * (modificatori.ritornoVenoso ?? 1), 0, 1);
-  const pas = Math.round(base.pas * tenuta * riserve.tonoVascolare);
+
+  /* Tre cose fanno la pressione, e ognuna può mancare per conto suo:
+     quanto sangue c'è (la tenuta), quanto i vasi lo stringono (il tono),
+     e quanto il cuore lo spinge (la contrattilità). Un infartuato ha
+     tutto il suo sangue e la pressione che scende lo stesso: è la pompa
+     che non ce la fa, e i liquidi lì non servono. */
+  const pas = Math.round(base.pas * tenuta * riserve.tonoVascolare * riserve.contrattilita);
 
   /* La diastolica si tiene in rapporto alla sistolica, e il rapporto si
      alza col compenso: è così che il differenziale si stringe, ed è un
@@ -165,6 +171,7 @@ export function circolo(riserve, base, modificatori = {}) {
     pas: fra(pas, 0, 300),
     pad: fra(pad, 0, 200),
     polsoRadiale: pas >= PAS_POLSO_RADIALE,
+    rapporto,
     perdita,
     fase: faseCompenso(perdita),
   };
@@ -236,9 +243,11 @@ export function parametriVisibili(riserve, base, modificatori = {}) {
   const s = segni(riserve, base, modificatori);
 
   /* Il dolore tira su frequenza e pressione per via adrenergica: è
-     compenso anche quello, e maschera l'ipovolemia. */
-  const fc = Math.round(c.fc + riserve.dolore * SPINTA_DOLORE_FC);
-  const pas = Math.round(c.pas + riserve.dolore * SPINTA_DOLORE_PAS);
+     compenso anche quello, e maschera l'ipovolemia. La scala arriva a
+     dieci: oltre, il paziente non ha modo di dirtelo. */
+  const dolore = fra(riserve.dolore, 0, 10);
+  const fc = Math.round(c.fc + dolore * SPINTA_DOLORE_FC);
+  const pas = Math.round(c.pas + dolore * SPINTA_DOLORE_PAS);
 
   const spo2 = Math.round(fra(riserve.ossigenazione * 100, 50, 100));
 
@@ -262,12 +271,14 @@ export function parametriVisibili(riserve, base, modificatori = {}) {
   return {
     fc: fra(fc, 0, 220),
     pas: fra(pas, 0, 300),
-    /* mai sotto zero: un monitor non stampa una diastolica negativa */
-    pad: Math.max(0, Math.min(c.pad, fra(pas, 0, 300) - 8)),
+    /* La diastolica segue la sistolica anche quando è il dolore ad
+       alzarla: la scarica adrenergica stringe i vasi, non li apre.
+       Mai sotto zero: un monitor non stampa una diastolica negativa. */
+    pad: Math.max(0, Math.round(Math.min(fra(pas, 0, 300) * c.rapporto, fra(pas, 0, 300) - 8))),
     spo2,
     fr,
     glicemia: Math.round(riserve.glicemia),
-    dolore: Math.round(riserve.dolore),
+    dolore: Math.round(dolore),
     coscienza: peggiore(peggiore(s.coscienza, daGlicemia), daPerfusione),
     cute: s.cute,
     refill: s.refill,

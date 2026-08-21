@@ -331,3 +331,30 @@ test('chi non perfonde il cervello non resta vigile, per poco sangue che abbia p
   assert.ok(p.pas < 75, `controllo: doveva essere ipoteso, è ${p.pas}`);
   assert.notEqual(p.coscienza, 'A', 'con quella pressione non è più vigile');
 });
+
+/* ==================== il cuore come pompa =========================== */
+
+test('un cuore che pompa meno fa meno pressione, col sangue tutto dentro', () => {
+  const sano = riserveIniziali({});
+  const infartuato = { ...riserveIniziali({}), contrattilita: 0.6 };
+  const a = circolo(sano, BASE, {});
+  const b = circolo(infartuato, BASE, {});
+  assert.equal(b.perdita, 0, 'non ha perso una goccia di sangue');
+  assert.ok(b.pas < a.pas, `la pressione doveva calare, invece è ${b.pas}`);
+});
+
+test('il dolore non supera il dieci della scala', () => {
+  const r = { ...riserveIniziali({}), dolore: 14 };
+  assert.equal(parametriVisibili(r, BASE, {}).dolore, 10,
+    'la scala del dolore arriva a dieci: oltre non c\'è niente da scrivere');
+});
+
+test('il dolore alza la pressione senza slargare il differenziale', () => {
+  const calmo = riserveIniziali({});
+  const dolorante = { ...riserveIniziali({}), dolore: 10 };
+  const a = parametriVisibili(calmo, BASE, {});
+  const b = parametriVisibili(dolorante, BASE, {});
+  assert.ok(b.pas > a.pas, 'la sistolica sale');
+  assert.ok(b.pad > a.pad, 'e la diastolica la segue, invece di restare indietro');
+  assert.ok(b.pad > b.pas * 0.45, `esce ${b.pas}/${b.pad}`);
+});

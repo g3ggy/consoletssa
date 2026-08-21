@@ -462,3 +462,27 @@ test('in arresto il saturimetro non legge più niente', () => {
   assert.equal(i.stato.spo2, null,
     'senza circolo la sonda al dito non ha niente da misurare: il riquadro resta a trattini');
 });
+
+test('nel formato 3 un effetto su una riserva agisce sulla riserva, non sul numero', () => {
+  const AZIONI_DOLORE = {
+    ...AZIONI_FIS,
+    calma: {
+      id: 'calma', cat: 'comunicazione', label: 'Rassicura', durata: 30, chi: ['tu'],
+      applica: () => ({ dolore: -3 }),
+      spiega: 'prova',
+    },
+  };
+  const caso = casoFisiologico({
+    fisiologia: {
+      base: { fc: 72, pas: 135, pad: 82, spo2: 98, fr: 14, glicemia: 96 },
+      riserve: { volemia: 5000, dolore: 8 },
+      offese: [],
+      modificatori: {},
+    },
+  });
+  const i = avvia(caso, AZIONI_DOLORE);
+  const prima = i.stato.fc;
+  i.esegui('calma', 'tu');
+  assert.equal(i.stato.dolore, 5, 'il dolore è sceso davvero, non per finta');
+  assert.ok(i.stato.fc < prima, 'e con lui la frequenza, perché la spinta adrenergica cala');
+});

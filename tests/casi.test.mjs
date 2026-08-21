@@ -87,7 +87,7 @@ test('nello shock la posizione seduta fa scendere ancora la pressione', () => {
 });
 
 test('nel dolore toracico chi non trasporta arriva all\'arresto', () => {
-  const caso = CASI.find((c) => c.id === 'toracico-v2');
+  const caso = CASI.find((c) => c.id === 'toracico-v3');
   const i = avvia(caso);
   for (let giro = 0; giro < 13; giro += 1) {
     i.avanza(60);
@@ -133,4 +133,35 @@ test('shock-v3 arriva già scompensato, ma senza tachicardia', () => {
   assert.ok(i.stato.fc < 90, `e la frequenza non sale: invece è ${i.stato.fc}`);
   assert.notEqual(i.stato.cute, 'normale', 'ma la cute lo dice');
   assert.ok(i.stato.refill > 2, 'e il refill pure');
+});
+
+test('toracico-v3 ha dolore e miocardio che soffre', () => {
+  const caso = CASI.find((c) => c.id === 'toracico-v3');
+  assert.ok(caso, 'manca toracico-v3');
+  const tipi = caso.fisiologia.offese.map((o) => o.tipo);
+  assert.ok(tipi.includes('ischemia-miocardica'), 'deve avere l\'ischemia');
+  const i = avvia(caso);
+  assert.ok(i.stato.dolore >= 6, `arriva che ha male: invece è ${i.stato.dolore}`);
+  assert.ok(i.stato.pas > 130, 'e con la pressione alta: è la scarica adrenergica');
+});
+
+test('nel toracico il dolore sale e si porta dietro la frequenza', () => {
+  const i = avvia(CASI.find((c) => c.id === 'toracico-v3'));
+  const prima = { dolore: i.stato.dolore, fc: i.stato.fc };
+  i.avanza(60 * 6);
+  while (i.decisionePendente) i.rispondiDecisione(0);
+  assert.ok(i.stato.dolore > prima.dolore, 'il dolore non trattato sale da solo');
+  assert.ok(i.stato.fc > prima.fc, 'e il cuore va più in fretta proprio mentre soffre');
+});
+
+test('toracico-v3 non trattato arresta in fibrillazione, e il DAE serve', () => {
+  const i = avvia(CASI.find((c) => c.id === 'toracico-v3'));
+  for (let giro = 0; giro < 45; giro += 1) {
+    i.avanza(60);
+    rispondiSeServe(i);
+    if (i.stato.esito !== 'in-corso') break;
+  }
+  assert.ok(i.stato.tag.includes('arresto') || i.stato.esito === 'morto',
+    'quarantacinque minuti di infarto non trattato finiscono male');
+  assert.equal(i.stato.ritmo, 'fv', 'il cuore ischemico fibrilla: la scarica ha senso');
 });

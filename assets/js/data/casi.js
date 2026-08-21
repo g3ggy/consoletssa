@@ -150,12 +150,12 @@ export const CASI = [
 
   /* ================================================================= */
   {
-    id: 'toracico-v2',
+    id: 'toracico-v3',
     ecg: { pattern: 'stemi-inferiore' },
     titolo: 'Dolore toracico in casa',
     tipo: 'medico',
     difficolta: 2,
-    motore: 2,
+    motore: 3,
     capitoli: ['cap-25', 'cap-27'],
 
     dispatch: {
@@ -172,30 +172,31 @@ export const CASI = [
       vitale: true,
     },
 
-    iniziale: {
-      coscienza: 'A',
-      viePervie: true,
-      respiro: { tipo: 'normale', fr: 22 },
-      fc: 96, pas: 152, pad: 92, ritmo: 'sinusale',
-      polsoRadiale: true,
-      spo2: 95, glicemia: 128, temp: 36.4,
-      cute: 'pallida-fredda', dolore: 7,
+    fisiologia: {
+      /* Il suo normale: iperteso, senza terapia che gli freni il cuore. */
+      base: { fc: 70, pas: 132, pad: 80, spo2: 98, fr: 16, glicemia: 128, temp: 36.4 },
+      /* Il sangue c'è tutto: quello che manca è il coronarico che lo
+         porta al muscolo. Arriva con quaranta minuti di dolore addosso. */
+      riserve: { volemia: 5000, dolore: 7, ossigenazione: 0.95 },
+      /* Il miocardio soffre e pompa sempre meno; il dolore da solo alza
+         frequenza e pressione, che fanno soffrire ancora di più il
+         miocardio. È il circolo vizioso da rompere, e si rompe portandolo
+         in emodinamica — non restando lì a rassicurarlo. */
+      offese: [
+        { tipo: 'ischemia-miocardica', intensita: 0.020 },
+        { tipo: 'dolore-acuto', intensita: 0.20 },
+        /* respira male perché ha male e perché il cuore congestiona: è
+           il poco che l'ossigeno può frenare */
+        { tipo: 'ipossia-ventilatoria', intensita: 0.0012 },
+      ],
+      modificatori: { eta: 68, terapia: [] },
     },
 
-    decorso: {
-      base: { dolore: +0.28, spo2: -0.12, fc: +0.7, pas: -0.8 },
-      freni: {
-        o2: { spo2: +1.6 },
-        seduta: { dolore: -0.18, spo2: +0.4 },
-        rassicurato: { dolore: -0.12, fc: -0.6 },
-        'in-viaggio': { dolore: -0.1 },
-      },
-      limiti: { pas: [60, 220], pad: [40, 130], fc: [40, 190], spo2: [75, 100], dolore: [0, 10] },
-    },
-
-    /* sdraiarlo peggiora il respiro e il dolore */
+    /* Sdraiare un cardiopatico gli manda addosso il sangue che il cuore
+       non riesce già a spingere: respira peggio e ha più male. Non è una
+       penalità dichiarata, è quello che gli succede. */
     effettiAzioni: {
-      antishock: { spo2: -4, dolore: +1.5 },
+      antishock: { ossigenazione: -0.04, dolore: +1.5 },
     },
 
     eventi: [
@@ -217,7 +218,7 @@ export const CASI = [
             {
               t: 'A piedi appoggiato a noi: sono solo due rampe',
               ok: false,
-              effetto: { dolore: +2, spo2: -3, fc: +18 },
+              effetto: { dolore: +2, ossigenazione: -0.03, contrattilita: -0.08 },
               w: 'Due rampe di scale sono uno sforzo massimale per un cuore in ischemia. È il modo più semplice per farlo peggiorare davanti a te.',
             },
           ],
@@ -225,13 +226,17 @@ export const CASI = [
       },
       {
         id: 'sudore', t: 330, se: (p) => p.dolore > 8,
-        effetto: { fc: +8 },
         testo: 'Diventa grigio e si copre di sudore freddo: la maglietta è bagnata sulla schiena.',
       },
       {
         id: 'extrasistoli', t: 480, se: (p) => !p.tag.includes('in-viaggio'),
         testo: 'Sul monitor compaiono battiti anticipati, isolati ma sempre più frequenti.',
       },
+      /* L'arresto dell'infartuato non è la pompa che si spegne piano: è
+         il ritmo che si rompe di colpo, in fibrillazione, mentre il
+         paziente ti sta ancora parlando. Per questo resta un evento e
+         non emerge dalle riserve — e per questo scatta solo se sei
+         ancora lì invece che in viaggio. */
       {
         id: 'arresto', t: 690, se: (p) => !p.tag.includes('in-viaggio'),
         effetto: { arresto: true },

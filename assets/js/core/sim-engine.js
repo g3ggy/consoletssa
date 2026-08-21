@@ -238,6 +238,12 @@ export function creaIntervento(caso, opzioni = {}) {
   }
 
   /* --------------------------- effetti ----------------------------- */
+  /* Le grandezze che nel formato 3 stanno nelle riserve e non nei
+     parametri: un'azione che dice `dolore: -2` deve toglierlo davvero al
+     paziente, non al numero scritto sul monitor — che tanto al calcolo
+     successivo tornerebbe com'era. */
+  const RISERVE = ['volemia', 'ossigenazione', 'glicemia', 'contrattilita', 'tonoVascolare', 'dolore'];
+
   /** Applica un oggetto-effetto: delta numerici, campi diretti, tag, arresto. */
   function applicaEffetto(eff) {
     if (!eff) return;
@@ -246,6 +252,10 @@ export function creaIntervento(caso, opzioni = {}) {
 
     Object.entries(eff).forEach(([k, v]) => {
       if (k === 'tag') { if (!s.tag.includes(v)) s.tag = [...s.tag, v]; return; }
+      if (fis && RISERVE.includes(k) && typeof v === 'number') {
+        riserve = { ...riserve, [k]: riserve[k] + v };
+        return;
+      }
       if (k === 'togliTag') { s.tag = s.tag.filter((x) => x !== v); return; }
       if (k === 'arresto') return;                     // gestito sotto
       if (k === 'respiro') { s.respiro = { ...s.respiro, ...v }; s.fr = s.respiro.fr; return; }
@@ -256,6 +266,10 @@ export function creaIntervento(caso, opzioni = {}) {
       }
     });
     ancora = s;
+    /* Se l'effetto ha toccato le riserve, i parametri che si vedono sono
+       già cambiati: si rifà l'ancora perché la lettura successiva li
+       trovi aggiornati. */
+    if (fis) ancora = proietta();
 
     if (eff.arresto) entraInArresto();
   }
