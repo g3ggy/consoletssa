@@ -174,9 +174,13 @@ ogni risposta di ogni caso.
 Scoprire **non cambia la fisiologia**: il farmaco agiva già da prima che
 arrivaste, e farlo cominciare adesso sarebbe medicina falsa. Cambia tre cose:
 
-1. **quello che sai** — una scheda che si riempie mentre chiedi;
-2. **quello che riferisci** — il ragguaglio all'infermiere e in ospedale;
-3. **la pagella** — le domande necessarie del caso, con il loro `entro`.
+1. **quello che sai** — una scheda che si riempie mentre chiedi, e che alla
+   fine dice da chi l'hai saputo;
+2. **la pagella** — le domande necessarie del caso, con il loro `entro`;
+3. **il debriefing** — che ti dice dove ti sei fermato troppo presto.
+
+Il testo del ragguaglio resta scritto a mano nel caso (vedi §6): comporlo dalle
+risposte raccolte è il lavoro dopo, non questo.
 
 Il Bolognin dice perché conta, e vale la pena riportarlo nel debriefing: «se il
 paziente dovesse entrare in stato di incoscienza prima dell'arrivo in ospedale
