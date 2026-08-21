@@ -417,3 +417,59 @@ test('tirarlo fuori di peso è un errore, e il debriefing lo dice', () => {
   assert.equal(p.dannose.length, 1);
   assert.match(p.dannose[0].perche, /rachide|estricazione/i);
 });
+
+/* ==================== sincope-v3 ==================================== */
+
+const sinc = () => CASI.find((c) => c.id === 'sincope-v3');
+
+test('sincope-v3 arriva già ripresa, come dice la definizione', () => {
+  const caso = sinc();
+  assert.ok(caso, 'manca sincope-v3');
+  const i = avvia(caso);
+  /* «Un paziente ancora con alterazione della coscienza all'arrivo del
+     mezzo non va mai considerato una sincope» — Bolognin :4314. */
+  assert.equal(i.stato.coscienza, 'A');
+  assert.equal(i.stato.pas, 90, 'ipotensione transitoria, non shock');
+  assert.equal(i.stato.glicemia, 84, 'la glicemia va nelle riserve, non nella base');
+  assert.equal(i.stato.spo2, 99);
+});
+
+test('supina resta bene anche se non fai niente', () => {
+  const i = avvia(sinc());
+  lasciaPassare(i, 15);
+  assert.equal(i.stato.coscienza, 'A');
+  assert.equal(i.chiudi().esitoPaziente, 'stabile');
+});
+
+test('se la tiri su risviene, e non per copione', () => {
+  const i = avvia(sinc());
+  assert.equal(i.stato.coscienza, 'A');
+  i.esegui('posizione-seduta', 'tu');
+  assert.ok(i.stato.pas < 75, `seduta la pressione cede: invece è ${i.stato.pas}`);
+  assert.equal(i.stato.coscienza, 'V', 'ed è la seconda sincope che il manuale annuncia');
+});
+
+test('la posizione seduta è fra le dannose, col perché', () => {
+  const caso = sinc();
+  const d = caso.azioni.dannose.find((x) => x.id === 'posizione-seduta');
+  assert.ok(d, 'la posizione seduta deve contare come errore');
+  assert.match(d.perche, /supin|antishock|risven/i);
+});
+
+test('l\'impiegata sa quanto è durata, lei no', () => {
+  const caso = sinc();
+  assert.ok(caso.anamnesi.interlocutori.some((x) => x.id === 'impiegata'));
+  const i = avvia(caso);
+  i.rivolgitiA('impiegata');
+  i.chiedi('evento');
+  assert.ok(i.saputo['durata-breve'], 'chi ha visto sa quanto è durata');
+});
+
+test('le domande che escludono il quadro grave sono nel caso', () => {
+  const caso = sinc();
+  const disturbi = caso.anamnesi.risposte.disturbi.paziente;
+  /* «La concomitanza con dolore toracico, dispnea, dolore addominale
+     deve suggerire sempre una patologia maggiore» — Bolognin :4324. */
+  assert.match(disturbi.t, /male|dolore|respir/i);
+  assert.ok(disturbi.rivela?.includes('nessun-segno-grave'));
+});

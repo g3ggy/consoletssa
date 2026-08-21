@@ -691,6 +691,164 @@ export const CASI = [
     trappola: 'Prima la scena: traffico e liquidi, e i vigili del fuoco non ci sono ancora. Un soccorritore investito è un secondo paziente e un mezzo in meno per tutti. Poi il rachide, che si protegge già dalla A e non dopo. E non fidarti dei numeri: sono quasi normali perché ha trent\'anni, non perché stia bene.',
     ragguaglio: 'Uomo di circa trent\'anni, nessuna patologia nota, nessuna terapia. Incidente auto contro palo ad alta velocità riferita dal testimone, senza frenata, cintura allacciata, airbag esploso, volante e parabrezza deformati. Cosciente e orientato, dolore toracico e addominale alto, dispnea. All\'arrivo FC 106, PA 128/91 con differenziale ristretto, FR 24, SpO₂ 96%, cute pallida, riempimento capillare 2,4 secondi. Segno della cintura sul torace e addome alto teso. Collare, ossigeno ad alti flussi, estricazione con KED e immobilizzazione su tavola spinale. Sospette lesioni interne da dinamica maggiore.',
   },
+  /* ================================================================= */
+  {
+    id: 'sincope-v3',
+    ecg: { pattern: 'normale' },
+    titolo: 'Svenimento in coda alle poste',
+    tipo: 'medico',
+    difficolta: 1,
+    motore: 3,
+    capitoli: ['cap-28', 'cap-25'],
+
+    dispatch: {
+      codice: 'VERDE',
+      testo: 'Donna di 24 anni svenuta mentre era in fila. Ora è cosciente.',
+      luogo: 'Ufficio postale',
+    },
+    scena: {
+      testo: 'Sala d\'attesa affollata e calda, persone intorno che guardano. Nessun rischio, ma serve spazio per lavorare.',
+      sicura: true,
+    },
+    colpoOcchio: {
+      testo: 'Sdraiata a terra, cosciente e orientata, pallida e sudata. Dice che le è già successo una volta al prelievo del sangue.',
+      vitale: true,
+    },
+
+    fisiologia: {
+      /* Il suo normale: ventiquattro anni, sportiva, nessuna patologia.
+         La frequenza a 58 è ASSUNZIONE NOSTRA e copre una lacuna: il
+         motore muove la frequenza col compenso e col dolore, mai verso
+         il basso, quindi la bradicardia vagale del manuale non è
+         modellabile e si dichiara come se fosse la sua di base. */
+      base: { fc: 58, pas: 112, pad: 70, spo2: 99, fr: 14, glicemia: 84, temp: 36.3 },
+      /* Il vago ha ancora la mano sul freno: il letto vascolare è
+         allargato e la pressione sta bassa. Il sangue c'è tutto.
+         Glicemia e ossigenazione stanno QUI e non nella base: è dalle
+         riserve che escono i numeri che si vedono. */
+      riserve: { volemia: 5000, tonoVascolare: 0.80, ossigenazione: 0.99, glicemia: 84 },
+      /* Nessuna offesa: la sincope è già finita quando arrivate, e se
+         il quadro peggiorasse non sarebbe più una sincope. */
+      offese: [],
+      modificatori: { eta: 24, terapia: [] },
+    },
+
+    anamnesi: {
+      interlocutori: [{ id: 'impiegata', label: 'l\'impiegata' }],
+      risposte: {
+        /* Il «no» che ricevi è il reperto: è così che una sincope resta
+           una sincope invece di essere qualcos'altro che non hai
+           cercato (Bolognin :4324). */
+        disturbi: {
+          paziente: {
+            t: '«Adesso solo un po\' di debolezza. Non ho male da nessuna parte, né al petto né alla pancia, e respiro bene.»',
+            qualita: 'buona',
+            rivela: ['nessun-segno-grave'],
+          },
+          impiegata: { t: '«Era bianca come un lenzuolo. Adesso ha già ripreso colore.»', qualita: 'buona' },
+        },
+        allergie: {
+          paziente: { t: '«Nessuna.»', qualita: 'buona' },
+        },
+        terapia: {
+          paziente: { t: '«Non prendo niente. E no, non sono incinta.»', qualita: 'buona' },
+        },
+        patologie: {
+          paziente: { t: '«Niente. Mi era già successo una volta, al prelievo del sangue.»', qualita: 'buona', rivela: ['gia-successo'] },
+        },
+        'ultimo-pasto': {
+          paziente: { t: '«Non ho fatto colazione, sono uscita di corsa.»', qualita: 'buona', rivela: ['digiuno'] },
+        },
+        evento: {
+          paziente: {
+            t: '«Ero in fila da venti minuti, faceva caldissimo. Mi è venuta la nausea e la vista si è chiusa.»',
+            qualita: 'buona',
+            rivela: ['prodromi', 'fattore-scatenante'],
+          },
+          impiegata: {
+            t: '«È scivolata giù piano, non ha battuto la testa. Meno di un minuto ed era di nuovo con noi, lucida.»',
+            qualita: 'buona',
+            rivela: ['durata-breve', 'nessun-trauma'],
+          },
+        },
+      },
+    },
+
+    eventi: [
+      {
+        id: 'vuole-alzarsi', t: 120,
+        testo: 'Si tira su su un gomito: «Sto bene adesso, davvero. Posso alzarmi? Mi vergogno, mi guardano tutti».',
+        decisione: {
+          domanda: 'Cosa le dici?',
+          opzioni: [
+            {
+              t: 'Le chiedo di restare giù ancora un po\', e faccio allontanare le persone',
+              ok: true,
+              w: 'Il manuale è esplicito: farla sedere o alzare adesso può farla risvenire. E il capannello è metà del suo imbarazzo.',
+            },
+            {
+              t: 'La faccio sedere piano: se sta bene non ha senso tenerla a terra',
+              ok: false,
+              effetto: { tonoVascolare: -0.04 },
+              w: 'È presto. Il tono vascolare non è ancora tornato, e tirarla su toglie il ritorno venoso che la sta tenendo cosciente.',
+            },
+          ],
+        },
+      },
+      {
+        id: 'colore', t: 300, se: (p) => p.coscienza === 'A',
+        testo: 'Riprende colore in viso e comincia a fare domande su cosa è successo: è completamente tornata.',
+      },
+    ],
+
+    arresto: { finestraRcp: 60 },
+
+    soglie: [
+      { id: 's-risviene', se: (p) => p.coscienza !== 'A', testo: 'Gli occhi le si rovesciano indietro e non risponde più: è svenuta un\'altra volta.' },
+      { id: 's-caldo', se: (p) => p.tag.includes('antishock'), testo: 'Con le gambe sollevate il colorito migliora a vista d\'occhio.' },
+    ],
+
+    azioni: {
+      necessarie: [
+        { id: 'valuta-scena', entro: 60, peso: 2 },
+        { id: 'allontana-curiosi', entro: 150, peso: 2 },
+        { id: 'avpu', entro: 150, peso: 1 },
+        { id: 'antishock', entro: 210, peso: 3 },
+        { id: 'misura-glicemia', entro: 240, peso: 3 },
+        { id: 'misura-pa', entro: 300, peso: 2 },
+        { id: 'domanda:disturbi', entro: 360, peso: 3 },
+        { id: 'domanda:evento', entro: 420, peso: 2 },
+        { id: 'carica', entro: 600, peso: 2 },
+      ],
+      utili: ['dpi', 'rassicura', 'conta-fr', 'colorito', 'monitor', 'copri', 'domanda:ultimo-pasto', 'domanda:patologie'],
+      dannose: [
+        {
+          id: 'posizione-seduta', penalita: 3,
+          perche: 'Il manuale dice di mantenerla supina o in posizione antishock: farla sedere o alzare in piedi può provocare una ulteriore sincope (Bolognin :4322). Ed è esattamente quello che succede.',
+        },
+        {
+          id: 'spinale',
+          perche: 'È scivolata giù piano e non ha battuto la testa: l\'impiegata l\'ha visto. Tre minuti buttati e una ragazza spaventata.',
+        },
+      ],
+    },
+
+    chiave: 'Prodromi tipici — caldo, nausea, vista che si chiude — fattore scatenante evidente, ripresa completa in meno di un minuto: è una sincope vasovagale. Il vago fa l\'opposto dell\'adrenalina: bradicardia, ipotensione, nausea. E la glicemia si misura comunque.',
+    trappola: 'Sincope vuol dire perdita di coscienza transitoria con risoluzione spontanea completa: se all\'arrivo il paziente è ancora alterato NON è una sincope, è un\'altra cosa e va cercata. L\'altra trappola è la fretta di rimetterla in piedi perché «sta bene»: il tono vascolare non è ancora tornato, e la fai svenire una seconda volta davanti a tutti.',
+    ragguaglio: 'Donna di 24 anni, nessuna patologia nota, nessuna terapia, a digiuno. Sincope in ambiente caldo e affollato dopo venti minuti in piedi, con prodromi tipici e ripresa spontanea completa in meno di un minuto, testimoniata. Nessun trauma cranico. Nega dolore toracico, dispnea e dolore addominale. All\'arrivo vigile e orientata, PA 90/56, FC 58, glicemia 84. Mantenuta supina con arti inferiori sollevati.',
+    ragguaglioVoci: [
+      { t: 'Donna di 24 anni, nessuna patologia e nessuna terapia', da: 'domanda:patologie' },
+      { t: 'A digiuno da ieri sera', da: 'sapere:digiuno' },
+      { t: 'Prodromi tipici e venti minuti in piedi al caldo', da: 'sapere:prodromi' },
+      { t: 'Ripresa spontanea completa in meno di un minuto, testimoniata', da: 'sapere:durata-breve' },
+      { t: 'Nessun trauma cranico', da: 'sapere:nessun-trauma' },
+      { t: 'Nega dolore toracico, dispnea e dolore addominale', da: 'sapere:nessun-segno-grave' },
+      { t: 'PA 90/56', da: 'lettura:pa' },
+      { t: 'Glicemia 84', da: 'lettura:glicemia' },
+      { t: 'Mantenuta supina con arti inferiori sollevati', da: 'azione:antishock' },
+    ],
+  },
+
 ];
 
 export const CASI_INDICE = Object.fromEntries(CASI.map((c) => [c.id, c]));
