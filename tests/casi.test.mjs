@@ -55,8 +55,14 @@ test('ogni caso dichiara le chiavi che il motore si aspetta', () => {
 });
 
 /* Un caso senza offese non ha niente che consumi le riserve: il paziente
-   resta com'è, e deve restarci senza che il motore inventi nulla. */
-const puoPeggiorare = (c) => c.motore !== 3 || (c.fisiologia.offese || []).length > 0;
+   resta com'è, e deve restarci senza che il motore inventi nulla.
+
+   E non basta avere delle offese: ce ne sono che TENDONO A UN BERSAGLIO
+   invece di consumare — il simpaticomimetico tiene il tono al picco e lì
+   resta. Un caso così lo dichiara con `peggioraDaSolo: false`, e allora
+   deve restare stabile: se peggiora, qualcosa consuma di nascosto. */
+const puoPeggiorare = (c) => c.peggioraDaSolo !== false
+  && (c.motore !== 3 || (c.fisiologia.offese || []).length > 0);
 
 test('senza fare nulla il paziente peggiora, e nessun caso esplode', () => {
   CASI.forEach((c) => {
@@ -599,4 +605,72 @@ test('la bradicardia della sincope viene dal vago, non da una base finta', () =>
      tessera. Prima leggeva «normale», ed era il buco lasciato aperto
      da 1.10.0. */
   assert.notEqual(i.stato.cute, 'normale', `deve essere pallida: è ${i.stato.cute}`);
+});
+
+/* ==================== cocaina-v3 ==================================== */
+
+const coca = () => CASI.find((c) => c.id === 'cocaina-v3');
+
+test('cocaina-v3 arriva iperadrenergico senza che gli manchi niente', () => {
+  const caso = coca();
+  assert.ok(caso, 'manca cocaina-v3');
+  const i = avvia(caso);
+  assert.ok(i.stato.fc > 140, `deve correre: invece è ${i.stato.fc}`);
+  assert.ok(i.stato.pas > 140, `e avere la pressione alta: invece è ${i.stato.pas}`);
+  assert.equal(i.stato.perdita, 0, 'e non ha perso una goccia di sangue');
+  assert.equal(i.stato.pupille, 'midriatiche');
+  assert.equal(i.stato.cute, 'pallida-fredda-sudata');
+  assert.equal(i.stato.coscienza, 'A', 'agitato non vuol dire alterato');
+});
+
+test('la saturazione è buona, ed è il punto della trappola', () => {
+  /* «Un paziente agitato va considerato IPOSSICO fino a prova
+     contraria» — capitolo 33. Qui la prova contraria c'è, ma bisogna
+     andarla a prendere col saturimetro. */
+  const i = avvia(coca());
+  assert.ok(i.stato.spo2 >= 97, `non è ipossico: ${i.stato.spo2}`);
+  const monitor = coca().azioni.necessarie.find((n) => [].concat(n.id).includes('monitor'));
+  assert.ok(monitor, 'il monitor deve essere fra le necessarie');
+  assert.ok(monitor.entro <= 240, 'e presto: è la prova contraria');
+});
+
+test('l\'ambiente calmo è il trattamento, e si vede', () => {
+  const i = avvia(coca());
+  const prima = i.stato.fc;
+  i.esegui('rassicura', 'tu');
+  lasciaPassare(i, 6);
+  assert.ok(i.stato.fc < prima - 10, `sei minuti di voce bassa devono vedersi: da ${prima} a ${i.stato.fc}`);
+});
+
+test('davanti all\'amico non lo dice, in disparte sì', () => {
+  const caso = coca();
+  assert.ok(caso.anamnesi.interlocutori.some((x) => x.id === 'amico'));
+
+  const davanti = avvia(caso);
+  davanti.chiedi('evento');
+  assert.deepEqual(davanti.saputo, {}, 'con l\'amico lì non ammette niente');
+
+  const soli = avvia(caso);
+  soli.esegui('parla-in-disparte', 'tu');
+  soli.chiedi('evento');
+  assert.ok(soli.saputo.cocaina, 'preso da parte, la verità arriva');
+});
+
+test('chiamare le forze dell\'ordine è l\'errore del caso', () => {
+  const caso = coca();
+  const d = caso.azioni.dannose.find((x) => x.id === 'chiedi-ffoo');
+  assert.ok(d, 'la denuncia deve contare come errore');
+  assert.match(d.perche, /guardia|curarlo|rapporto|denunc/i);
+});
+
+test('la scena dice quello che c\'è sul tavolo', () => {
+  const caso = coca();
+  assert.ok(caso.diarioAzioni?.['valuta-scena'], 'guardarsi intorno deve rendere');
+  const i = avvia(caso);
+  i.esegui('valuta-scena', 'tu');
+  assert.ok(i.diario.some((r) => /banconota|piattino|specchio/i.test(r.testo)));
+});
+
+test('il ragguaglio dice sospetto, mai un\'affermazione', () => {
+  assert.match(coca().ragguaglio, /sospett/i);
 });

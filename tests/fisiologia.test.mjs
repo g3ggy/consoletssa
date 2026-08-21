@@ -486,3 +486,13 @@ test('refill e sete restano attaccati al sangue, non all\'allarme', () => {
   assert.ok(p.refill < 2, `il refill non deve allungarsi: invece è ${p.refill}`);
   assert.equal(p.sete, false);
 });
+
+test('il polso radiale si sente sulla pressione che il paziente ha davvero', () => {
+  /* `circolo` calcola il polso prima che l'allarme spinga la sistolica:
+     senza questo controllo un iperadrenergico con 126 di massima
+     risultava senza polso, e in pagella valeva tre punti di gravità. */
+  const r = { ...riserveIniziali({ tonoAutonomo: 1.4, contrattilita: 0.7 }) };
+  const p = parametriVisibili(r, BASE, {});
+  assert.ok(p.pas > 90, `serve un caso con la sistolica su: è ${p.pas}`);
+  assert.equal(p.polsoRadiale, true, `con ${p.pas} di sistolica il radiale si sente`);
+});

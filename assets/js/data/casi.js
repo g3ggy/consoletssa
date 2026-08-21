@@ -1016,6 +1016,195 @@ export const CASI = [
     ],
   },
 
+  /* ================================================================= */
+  {
+    id: 'cocaina-v3',
+    ecg: { pattern: 'normale' },
+    titolo: 'Cardiopalmo dopo una festa',
+    tipo: 'medico',
+    difficolta: 2,
+    motore: 3,
+    capitoli: ['cap-33', 'cap-27'],
+
+    /* Venti minuti di scena non lo fanno crollare, ed è la lezione del
+       caso: il rischio cardiovascolare è reale ma arriva DOPO, quando
+       ve ne siete andati. L'ischemia coronarica c'è e si paga in
+       contrattilità e dolore, ma piano: non è un infarto in corso. */
+    peggioraDaSolo: false,
+
+    dispatch: {
+      codice: 'GIALLO',
+      testo: 'Uomo di 30 anni, "sta male", frequenza cardiaca alta. Chiama un amico.',
+      luogo: 'Appartamento privato',
+    },
+    scena: {
+      testo: 'Appartamento privato, luci basse, musica ancora accesa. Un amico presente, che risponde a monosillabi.',
+      sicura: true,
+    },
+    colpoOcchio: {
+      testo: 'Seduto sul divano, vigile e orientato, sudato. Si alza e si risiede, parla in fretta. «Mi sento il cuore in gola.»',
+      vitale: true,
+    },
+
+    fisiologia: {
+      /* Il suo normale: trent'anni, nessuna patologia. La pressione da
+         sano è 110/70 — è la scarica che la porta a 150. */
+      base: { fc: 70, pas: 110, pad: 70, spo2: 98, fr: 16, glicemia: 108, temp: 37.2 },
+      /* Il tono autonomo è alto perché è alta la sostanza in circolo,
+         non perché al paziente manchi qualcosa: la volemia è intatta,
+         l'ossigeno pure. È il primo caso del banco in cui l'allarme non
+         è un compenso ma un veleno. */
+      riserve: {
+        volemia: 5000, ossigenazione: 0.98, glicemia: 108,
+        tonoAutonomo: 1.4, dolore: 3,
+      },
+      offese: [
+        /* Tende al picco e ci resta, finché qualcuno non abbassa la
+           voce. Non c'è altro da dare. */
+        { tipo: 'simpaticomimetico', picco: 1.4, calmo: 0.8, costante: 180 },
+        /* «Il dolore toracico in questi casi è ischemico fino a prova
+           contraria»: la cocaina stringe le coronarie. Intensità bassa,
+           ma il tempo che passa sulla scena si paga. */
+        { tipo: 'ischemia-miocardica', intensita: 0.010 },
+      ],
+      modificatori: { eta: 30, terapia: [] },
+    },
+
+    /* Gli «elementi obiettivi che possono orientare» del capitolo 33:
+       residui, materiale nell'ambiente, comportamento. Guardarsi
+       intorno rende quanto una domanda, e costa meno. */
+    diarioAzioni: {
+      'valuta-scena': 'Niente rischi: appartamento, porta aperta, nessuno agitato oltre a lui. Sul tavolino un piattino, uno specchietto e una banconota arrotolata.',
+    },
+
+    anamnesi: {
+      interlocutori: [{ id: 'amico', label: 'l\'amico' }],
+      risposte: {
+        disturbi: {
+          paziente: { t: '«Il cuore mi va a mille e ho il petto stretto. E non riesco a stare fermo.»', qualita: 'buona', rivela: ['cardiopalmo', 'oppressione-toracica'] },
+          amico: { t: '«Ha cominciato un\'ora fa. Diceva che gli batteva forte.»', qualita: 'buona' },
+        },
+        allergie: {
+          paziente: { t: '«No, niente.»', qualita: 'buona' },
+        },
+        terapia: {
+          paziente: { t: '«Non prendo niente, sto bene di solito.»', qualita: 'buona' },
+        },
+        patologie: {
+          paziente: { t: '«Nessuna. Non sono mai stato in ospedale.»', qualita: 'buona', rivela: ['nessuna-patologia'] },
+          amico: { t: '«Che io sappia niente, sta sempre bene.»', qualita: 'buona' },
+        },
+        'ultimo-pasto': {
+          paziente: { t: '«Non mi ricordo. Abbiamo bevuto, questo sì.»', qualita: 'buona', rivela: ['alcol'] },
+          amico: { t: '«Abbiamo bevuto parecchio, sì.»', qualita: 'buona', rivela: ['alcol'] },
+        },
+        /* Il perno del caso. Davanti all'amico non ammette niente;
+           preso da parte, «spesso arriva la verità — magari una verità
+           che il paziente non aveva detto a nessun altro, nemmeno
+           all'amico presente» (capitolo 33). */
+        evento: {
+          paziente: [
+            {
+              se: (tag) => tag.includes('in-disparte'),
+              t: '«…va bene. Ho tirato, un paio di righe. E avevo bevuto. Non lo dica in giro, la prego.»',
+              qualita: 'buona',
+              rivela: ['cocaina', 'alcol'],
+            },
+            {
+              t: '«Eravamo a una festa. Non lo so, mi è partito il cuore così.»',
+              qualita: 'vaga',
+            },
+          ],
+          amico: { t: 'Guarda per terra. «Boh. Stavamo bevendo, tutto qui.»', qualita: 'vaga' },
+        },
+        'qualita-dolore': {
+          paziente: { t: '«Come una morsa. Non fitte, proprio stretto.»', qualita: 'buona' },
+        },
+        irradiazione: {
+          paziente: { t: '«No, sta qui in mezzo.»', qualita: 'buona' },
+        },
+        intensita: {
+          paziente: { t: '«Tre, quattro. Più che altro mi spaventa il cuore.»', qualita: 'buona' },
+        },
+      },
+    },
+
+    eventi: [
+      {
+        id: 'non-sta-fermo', t: 90,
+        testo: 'Si rialza in piedi, fa due passi, si risiede. «Scusate, non ci riesco a stare fermo.»',
+      },
+      {
+        id: 'rifiuta-trasporto', t: 300,
+        testo: 'Comincia a stare meglio e ci ripensa: «Sto meglio adesso, davvero. Non voglio andare in ospedale». L\'amico annuisce.',
+        decisione: {
+          domanda: 'Cosa fai?',
+          opzioni: [
+            {
+              t: 'Gli spiego perché deve venire comunque, senza alzare la voce, e insisto',
+              ok: true,
+              w: 'Trasporto sempre, anche se «sembra star bene»: il rischio cardiovascolare acuto è reale, e il quadro può ripartire quando siete già andati via.',
+            },
+            {
+              t: 'Se rifiuta è un suo diritto: firma il rifiuto e ce ne andiamo',
+              ok: false,
+              w: 'Cocaina e alcol insieme fanno cocaetilene nel fegato, più tossico e a emivita più lunga della cocaina da sola. Il caso citato a lezione è arrivato in terapia intensiva con frequenza 160 e pressione non rilevabile — cioè in shock — con un tracciato slargato che sembrava una tachicardia ventricolare.',
+            },
+          ],
+        },
+      },
+    ],
+
+    arresto: { finestraRcp: 60 },
+
+    soglie: [
+      { id: 's-tachi', se: (p) => p.fc > 145, testo: 'Il monitor tiene una frequenza sopra i 145 e non accenna a scendere.' },
+      { id: 's-calmo', se: (p) => p.tag.includes('rassicurato') && p.fc < 130, testo: 'Da quando gli parli piano il respiro si allunga, e la frequenza è scesa sotto i 130.' },
+    ],
+
+    azioni: {
+      necessarie: [
+        { id: 'valuta-scena', entro: 60, peso: 2 },
+        { id: 'avpu', entro: 120, peso: 1 },
+        /* La prova contraria all'ipossia. Presto, perché è la domanda
+           che viene prima di «sarà la droga». */
+        { id: 'monitor', entro: 200, peso: 4 },
+        { id: 'misura-pa', entro: 260, peso: 2 },
+        { id: 'rassicura', entro: 320, peso: 3 },
+        { id: 'pupille', entro: 360, peso: 2 },
+        { id: 'parla-in-disparte', entro: 440, peso: 3 },
+        { id: 'domanda:evento', entro: 500, peso: 4 },
+        { id: 'carica', entro: 660, peso: 3 },
+      ],
+      utili: ['dpi', 'conta-fr', 'colorito', 'misura-glicemia', 'ecg-elettrodi', 'ecg-esegui', 'domanda:disturbi', 'domanda:patologie', 'domanda:ultimo-pasto', 'riferisci-infermiere'],
+      dannose: [
+        {
+          id: 'chiedi-ffoo', penalita: 3,
+          perche: 'Non siete forze dell\'ordine, e va detto esplicitamente: la domanda serve a curarlo, non a incastrarlo. Chiamarle distrugge il rapporto e la verità non la senti più — e in ospedale le analisi la direbbero comunque.',
+        },
+        {
+          id: 'spinale',
+          perche: 'Non c\'è nessun trauma: è seduto sul divano di casa sua. Tre minuti buttati e un agitato immobilizzato, che è la cosa peggiore che gli puoi fare adesso.',
+        },
+      ],
+    },
+
+    chiave: 'Quadro iperadrenergico in un trentenne sano — tachicardia, ipertensione, sudorazione, agitazione, midriasi — senza febbre e senza che gli manchi niente: pensa alle sostanze. Il quadro OPPOSTO — bradipnea, miosi, coscienza depressa, cute fredda — orienterebbe agli oppiacei. E con la cocaina dipende dalla dose e dal taglio: non sempre è agitazione, a volte è depressione.',
+    trappola: 'Prima di dire «è la droga», misura la saturazione: un paziente agitato va considerato ipossico fino a prova contraria, e la prova contraria è un numero, non un\'impressione. Poi la domanda sulle sostanze: si fa in disparte e senza tono da guardia, o non ottieni niente. E non c\'è antidoto da somministrare — si monitora, si tiene calmo, si trasporta comunque.',
+    ragguaglio: 'Uomo di 30 anni, nessuna patologia nota, nessuna terapia. Riferita assunzione di cocaina e alcol nella notte. Cardiopalmo e oppressione toracica da circa un\'ora, agitazione psicomotoria. All\'arrivo vigile e orientato, FC 152, PA 153/97, FR 26, SpO₂ 98%, glicemia 108, midriasi bilaterale, cute sudata. Monitorizzato, ambiente calmo, trasportato. Sospetto quadro da sostanze simpaticomimetiche.',
+    ragguaglioVoci: [
+      { t: 'Uomo di 30 anni, nessuna patologia nota e nessuna terapia', da: 'domanda:patologie' },
+      { t: 'Riferita assunzione di cocaina e alcol nella notte', da: 'sapere:cocaina' },
+      { t: 'Cardiopalmo e oppressione toracica da circa un\'ora', da: 'sapere:cardiopalmo' },
+      { t: 'FC 152 e SpO₂ 98%: non è ipossico', da: 'azione:monitor' },
+      { t: 'PA 153/97', da: 'lettura:pa' },
+      { t: 'Midriasi bilaterale', da: 'lettura:pupille' },
+      { t: 'Vigile e orientato', da: 'azione:avpu' },
+      { t: 'Tenuto in ambiente calmo', da: 'azione:rassicura' },
+      { t: 'Trasportato: sospetto quadro da sostanze simpaticomimetiche' },
+    ],
+  },
+
 ];
 
 export const CASI_INDICE = Object.fromEntries(CASI.map((c) => [c.id, c]));

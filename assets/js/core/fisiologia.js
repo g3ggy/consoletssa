@@ -383,7 +383,11 @@ export function parametriVisibili(riserve, base, modificatori = {}) {
     /* Un parametro che si vede solo se lo cerchi: c'è l'azione che
        guarda le pupille, e finché nessuno la fa la tessera resta vuota. */
     pupille: s.pupille,
-    polsoRadiale: c.polsoRadiale,
+    /* Il polso si sente sulla pressione che il paziente HA, non su
+       quella che avrebbe senza la spinta dell'allarme: `circolo` lo
+       calcola prima di sommarla, e a un iperadrenergico con 126 di
+       sistolica il radiale si sente eccome. */
+    polsoRadiale: pas >= PAS_POLSO_RADIALE,
     fase: c.fase,
     perdita: c.perdita,
   };
