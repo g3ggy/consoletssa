@@ -39,3 +39,32 @@ export function perditaVolemica(riserve) {
   const iniziale = riserve.volemiaIniziale || RISERVE_ADULTO.volemia;
   return Math.max(0, (iniziale - riserve.volemia) / iniziale);
 }
+
+/* Le soglie della perdita, in frazione della volemia.
+
+   ATTENZIONE ALLA FONTE. Il Bolognin dà solo la soglia pediatrica: il
+   bambino compensa fino al 25% e poi crolla (:7636). Per l'adulto le
+   soglie 15/30/40 vengono dallo schema ATLS/PTC, che nei manuali che
+   abbiamo non c'è: il PTC Base in `tmp/` è la sola integrazione COVID
+   2020. Finché non arriva il PTC completo queste tre soglie sono
+   ASSUNZIONE NOSTRA, non linea guida. Se il manuale arriva, si
+   correggono qui e i test dicono subito cosa cambia. */
+export const SOGLIE_PERDITA = {
+  compenso: 0.15,
+  scompenso: 0.30,
+  crollo: 0.40,
+};
+
+/** In che fase è il paziente, data la frazione di sangue persa.
+
+    · nessuna   — non si vede niente, nemmeno cercando
+    · compenso  — tachicardia e vasocostrizione, ma la PRESSIONE TIENE.
+                  È la fase che inganna: i segni ci sono, i numeri no.
+    · scompenso — il compenso non basta più, la pressione cede
+    · crollo    — verso l'arresto */
+export function faseCompenso(perdita) {
+  if (perdita >= SOGLIE_PERDITA.crollo) return 'crollo';
+  if (perdita >= SOGLIE_PERDITA.scompenso) return 'scompenso';
+  if (perdita >= SOGLIE_PERDITA.compenso) return 'compenso';
+  return 'nessuna';
+}
