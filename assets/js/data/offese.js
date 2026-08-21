@@ -41,6 +41,25 @@ export const OFFESE = {
     },
   },
 
+  simpaticomimetico: {
+    id: 'simpaticomimetico',
+    fonte: 'ERC 2021 cap. 6 :3625 — emergenze ipertensive da cocaina e anfetamine',
+    /* Questa non consuma: TENDE A UN BERSAGLIO. È il modo in cui si
+       comporta una sostanza in circolo, ed è anche l'unico modo per cui
+       il tono non scappa verso l'infinito sommando un delta al secondo.
+
+       Il freno è l'ambiente calmo, e non è un ripiego: sull'abuso di
+       cocaina non ci sono antidoti da somministrare. Si monitora, si
+       tiene bassa la voce, si trasporta. Quello che le linee guida
+       aggiungono — benzodiazepine, alfa-antagonisti puri — sul mezzo
+       non c'è e comunque non è del volontario. */
+    applica: (offesa, riserve, dt, tag) => {
+      const bersaglio = tag.includes('rassicurato') ? offesa.calmo : offesa.picco;
+      const passo = (bersaglio - (riserve.tonoAutonomo || 0)) * (dt / offesa.costante);
+      return { tonoAutonomo: passo };
+    },
+  },
+
   'ipossia-ventilatoria': {
     id: 'ipossia-ventilatoria',
     fonte: 'Bolognin :3277, :6425 — ossigeno ad alti flussi',

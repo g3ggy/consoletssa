@@ -100,3 +100,24 @@ test('i liquidi non bastano contro un\'emorragia più veloce dell\'infusione', (
   const dopo = applicaTerapie(applicaOffese(r, offese, 60, ['liquidi']), 60, ['liquidi']);
   assert.ok(dopo.volemia < 4000, 'chi sanguina più di quanto gli infondi peggiora lo stesso');
 });
+
+test('il simpaticomimetico tiene il tono al picco, non lo fa esplodere', () => {
+  const offesa = { tipo: 'simpaticomimetico', picco: 1.4, calmo: 0.8, costante: 180 };
+  let r = { tonoAutonomo: 1.4 };
+  for (let giro = 0; giro < 20; giro += 1) r = applicaOffese(r, [offesa], 60, []);
+  assert.ok(Math.abs(r.tonoAutonomo - 1.4) < 0.01, `venti minuti dopo è ancora al picco: ${r.tonoAutonomo}`);
+});
+
+test('l\'ambiente calmo abbassa la scarica, ed è tutto il trattamento che c\'è', () => {
+  const offesa = { tipo: 'simpaticomimetico', picco: 1.4, calmo: 0.8, costante: 180 };
+  let r = { tonoAutonomo: 1.4 };
+  for (let giro = 0; giro < 5; giro += 1) r = applicaOffese(r, [offesa], 60, ['rassicurato']);
+  assert.ok(r.tonoAutonomo < 1.2, `cinque minuti di voce bassa devono vedersi: ${r.tonoAutonomo}`);
+  assert.ok(r.tonoAutonomo > 0.75, 'ma non scende sotto il valore calmo');
+});
+
+test('chi arriva sotto il picco ci sale', () => {
+  const offesa = { tipo: 'simpaticomimetico', picco: 1.4, calmo: 0.8, costante: 180 };
+  const r = applicaOffese({ tonoAutonomo: 0.2 }, [offesa], 60, []);
+  assert.ok(r.tonoAutonomo > 0.2);
+});
