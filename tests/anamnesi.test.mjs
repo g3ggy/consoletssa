@@ -144,3 +144,30 @@ test('chi mente continua a mentire anche da confuso', () => {
   assert.equal(r.qualita, 'falsa');
   assert.equal(r.ripiego, null);
 });
+
+/* ==================== la lista delle domande ======================== */
+
+import { domandeDisponibili } from '../assets/js/core/anamnesi.js';
+
+test('senza dolore si vede solo il SAMPLE', () => {
+  const lista = domandeDisponibili({ dolore: 0 });
+  assert.equal(lista.length, 6);
+  assert.ok(lista.every((d) => d.schema === 'SAMPLE'));
+});
+
+test('col dolore compaiono anche le sei dell\'OPQRST', () => {
+  const lista = domandeDisponibili({ dolore: 7 });
+  assert.equal(lista.length, 12);
+  assert.ok(lista.some((d) => d.id === 'irradiazione'));
+});
+
+test('l\'ordine è quello dello schema, non a caso', () => {
+  const lista = domandeDisponibili({ dolore: 7 });
+  assert.deepEqual(lista.slice(0, 6).map((d) => d.lettera), ['S', 'A', 'M', 'P', 'L', 'E']);
+  assert.deepEqual(lista.slice(6).map((d) => d.lettera), ['O', 'P', 'Q', 'R', 'S', 'T']);
+});
+
+test('uno stato incompleto non fa esplodere niente', () => {
+  assert.doesNotThrow(() => domandeDisponibili({}));
+  assert.doesNotThrow(() => domandeDisponibili(undefined));
+});

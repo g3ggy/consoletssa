@@ -16,6 +16,8 @@
    dopo non chiede più.
    ===================================================================== */
 
+import { DOMANDE_ELENCO } from '../data/domande.js';
+
 /* Il paziente c'è sempre e non va dichiarato dal caso. */
 export const PAZIENTE = { id: 'paziente', label: 'il paziente' };
 
@@ -79,4 +81,9 @@ export function rispostaA({ domanda, anamnesi, interlocutore, coscienza }) {
     rivela: scritta.qualita === 'buona' ? [...(scritta.rivela || [])] : [],
     ripiego: null,
   };
+}
+
+/** Le domande che ha senso fare col paziente in questo stato. */
+export function domandeDisponibili(stato) {
+  return DOMANDE_ELENCO.filter((d) => !d.richiede || d.richiede(stato || {}));
 }
