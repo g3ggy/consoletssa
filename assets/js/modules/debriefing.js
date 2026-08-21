@@ -15,6 +15,7 @@ import { setRibbonRhythm } from '../core/ribbon.js';
 import { saveRun } from '../core/store.js';
 import { daChi } from '../core/anamnesi.js';
 import { DOMANDE } from '../data/domande.js';
+import { nomeClasse } from '../data/classi-patologia.js';
 
 /* Il diario si disegna in due posti — quello che scorre nel vivo e
    quello fermo del debriefing — e le icone devono essere le stesse.
@@ -161,6 +162,70 @@ export function grafico(storico, eventi) {
   return wrap;
 }
 
+const mmss = (s) => `${Math.floor(s / 60)}:${String(Math.round(s) % 60).padStart(2, '0')}`;
+
+/* Quello che non serviva. Non toglie punti — in servizio nessuno te ne
+   toglie — ma i secondi si vedono, e si vedono accanto alle finestre che
+   hai mancato: è lì che il conto diventa concreto. */
+function sezioneTempoButtato(p) {
+  const b = p.tempoButtato;
+  if (!b || !b.voci.length) return null;
+
+  const tardi = p.necessarie.filter((n) => n.ritardo || !n.fatta);
+  const nota = tardi.length
+    ? `Nel frattempo: ${tardi.map((n) => n.label.toLowerCase()).join(', ')}.`
+    : 'Stavolta sei rimasto dentro i tempi lo stesso.';
+
+  return el('section.dbox.deb-sez', {}, [
+    el('div.t', { text: 'il tempo che non torna' }),
+    el('h3', { text: `${mmss(b.secondi)} su gesti che non servivano` }),
+    el('p.deb-nota', { text: nota }),
+    el('ul.deb-elenco', {}, b.voci.map((v) => el('li', {}, [
+      el('b', { text: `${v.label} — ${v.secondi}s` }),
+      el('span', { text: v.perche }),
+      v.fonte ? el('small.deb-fonte', { text: v.fonte }) : null,
+    ].filter(Boolean)))),
+  ]);
+}
+
+/* Il riconoscimento. Nessun punteggio: quello che conta è QUANDO ci sei
+   arrivato, e se ci sei arrivato cambiando idea o restando fermo su
+   quello che avevi pensato dalla porta. */
+function sezioneSospetto(p) {
+  const s = p.sospetto;
+  if (!s) return null;
+
+  if (!s.finale) {
+    return el('section.dbox.deb-sez', {}, [
+      el('div.t', { text: 'cosa avevi davanti' }),
+      el('h3', { text: 'Non hai mai detto cosa pensavi' }),
+      el('p', { text: `Era un quadro di tipo ${s.attesaLabel}.` }),
+    ]);
+  }
+
+  const righe = [];
+  righe.push(`Sei partito da ${nomeClasse(s.prima.codice)}.`);
+  if (s.cambi === 0) {
+    righe.push(s.giusto
+      ? 'Non hai avuto bisogno di cambiare idea.'
+      : 'Non hai mai cambiato idea, e questa volta era la strada sbagliata.');
+  } else {
+    righe.push(`Hai cambiato idea ${s.cambi === 1 ? 'una volta' : `${s.cambi} volte`}, `
+      + `e sei arrivato a ${nomeClasse(s.finale.codice)}.`);
+  }
+  if (s.azzeccatoA !== null) {
+    righe.push(`Ci sei arrivato a ${mmss(s.azzeccatoA)}.`);
+  } else {
+    righe.push(`Era ${s.attesaLabel}.`);
+  }
+
+  return el('section.dbox.deb-sez', {}, [
+    el('div.t', { text: 'cosa avevi davanti' }),
+    el('h3', { text: s.giusto ? 'L\'hai inquadrato' : 'Il quadro era un altro' }),
+    el('p', { text: righe.join(' ') }),
+  ]);
+}
+
 export function mostraDebriefing(sim, n) {
   const p = sim.chiudi();
   const caso = sim.caso;
@@ -204,6 +269,8 @@ export function mostraDebriefing(sim, n) {
         ]),
       ]),
     ]),
+
+    ...[sezioneSospetto(p), sezioneTempoButtato(p)].filter(Boolean),
 
     el('div.dbox', {}, [
       el('div.t', { text: 'come è andato il paziente' }),

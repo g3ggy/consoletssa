@@ -286,3 +286,14 @@
 .sospetto-eti { font-size: .8rem; opacity: .7; text-transform: uppercase; letter-spacing: .04em; }
 .sospetto-sel { flex: 1 1 12rem; min-width: 0; }
 .sospetto-quando { font-size: .8rem; opacity: .6; }
+
+/* ------------------- debriefing: le due sezioni nuove --------------- */
+/* Eredita il riquadro da `.dbox`: qui c'è solo quello che serve
+   all'elenco del tempo buttato, che ha tre righe per voce. */
+.deb-sez h3 { margin: 0 0 6px; font-size: var(--fs-md); }
+.deb-sez .deb-nota { margin: 0 0 10px; color: var(--ink-2); }
+.deb-elenco { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.deb-elenco li { display: grid; gap: 2px; }
+.deb-elenco b { color: var(--amber); }
+.deb-elenco span { color: var(--ink-2); }
+.deb-fonte { font-family: var(--mono); font-size: var(--fs-xs); color: var(--ink-3); }
