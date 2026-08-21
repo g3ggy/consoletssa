@@ -105,3 +105,34 @@ test('la diastolica non scavalca mai la sistolica', () => {
     assert.ok(c.pad < c.pas, `a ${volemia} ml esce ${c.pas}/${c.pad}`);
   }
 });
+
+/* ==================== quando il compenso non c'è ==================== */
+
+/* Bolognin :6487 — «In caso di lesione mielica lo shock non presenta la
+   compensazione tachicardica: si avrà un paziente ipoteso con frequenza
+   nella norma o anche bradicardico». Stesso quadro col betabloccante.
+   Un modello che fa SEMPRE salire la frequenza quando la pressione
+   scende è un modello che non ha capito niente. */
+
+test('col compenso bloccato la frequenza non sale', () => {
+  const r = { ...riserveIniziali({ volemia: 5000 }), volemia: 4000 };
+  const libero = circolo(r, BASE, {});
+  const bloccato = circolo(r, BASE, { compensoBloccato: true });
+  assert.ok(libero.fc > 95, 'controllo: senza blocco la frequenza sale');
+  assert.equal(bloccato.fc, BASE.fc, 'col blocco resta la sua');
+});
+
+test('col compenso bloccato la pressione cede prima', () => {
+  const r = { ...riserveIniziali({ volemia: 5000 }), volemia: 4000 };  // 20%
+  const libero = circolo(r, BASE, {});
+  const bloccato = circolo(r, BASE, { compensoBloccato: true });
+  assert.equal(libero.pas, BASE.pas, 'controllo: senza blocco la sistolica tiene');
+  assert.ok(bloccato.pas < BASE.pas, `col blocco doveva cedere, invece è ${bloccato.pas}`);
+});
+
+test('il quadro ingannevole: ipoteso senza tachicardia', () => {
+  const r = { ...riserveIniziali({ volemia: 5000 }), volemia: 3800 };
+  const c = circolo(r, BASE, { compensoBloccato: true });
+  assert.ok(c.pas < 110, 'è ipoteso');
+  assert.ok(c.fc < 90, 'e non ha tachicardia: chi si fida della frequenza sbaglia');
+});
