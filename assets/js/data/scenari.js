@@ -416,15 +416,24 @@ export const OPZIONI = {
     crush: 'Sospetta sindrome da schiacciamento',
   },
 
-  /* Come apri il ragguaglio al Pronto Soccorso. */
+  /* Come apri il ragguaglio al Pronto Soccorso.
+
+     Attenzione a cosa si sta chiedendo: «chi è» sta per primo in tutti
+     e due i casi, come dice lo schema in cima al passo. Quello che
+     cambia è il SECONDO posto — la patologia che decide il trattamento
+     oppure l'orario che lo decide — e tutti i ragguagli del progetto
+     sono scritti così. Prima queste due voci erano formulate come se il
+     tempo scavalcasse l'identificazione del paziente, e nessuno dei
+     testi lo faceva: al Pronto Soccorso non si apre con «puntura di
+     imenottero» senza dire di chi si parla. */
   apertura: {
     'eta-patologie': {
-      t: 'Età, sesso e patologie rilevanti — poi l\'evento',
-      w: 'È lo schema del ragguaglio: chi è, cosa ha di rilevante (anticoagulanti per primi), cosa è successo, cosa hai fatto.',
+      t: 'Chi è, e subito le patologie che contano — poi l\'evento',
+      w: 'Chi è, cosa ha di rilevante, cosa è successo, cosa hai fatto. Quando una terapia cronica cambia il trattamento — un anticoagulante, l\'ossigenoterapia domiciliare — quella va al secondo posto, prima dell\'evento.',
     },
     'evento-prestazioni': {
-      t: 'L\'evento e l\'ora, poi anamnesi e prestazioni eseguite',
-      w: 'Quando il tempo è il dato che decide il trattamento (arresto, ictus, trauma, intossicazione) l\'evento e l\'orario vanno per primi.',
+      t: 'Chi è, e subito l\'evento con la sua ora — poi i parametri',
+      w: 'Stesso schema, ma quando il tempo decide il trattamento (arresto, ictus, intossicazione, schiacciamento) l\'orario si dice appena dopo aver detto chi è, prima dei parametri: è il dato che in ospedale sceglie la terapia.',
     },
   },
   aperturaDistrattori: [
