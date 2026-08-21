@@ -748,3 +748,76 @@ test('i tag arrivano fino alla risposta: in disparte si racconta di più', () =>
   soli.chiedi('evento');
   assert.ok(soli.saputo.cocaina, 'in disparte sì');
 });
+
+/* ==================== il giudizio dei gesti ========================= */
+
+test('un gesto senza indicazione non porta nessun verdetto', () => {
+  /* `monitor` non compare in `indicazioni.js`: collegare il monitor non
+     ha una controindicazione, e non c'è niente da insegnare. */
+  const i = avvia(casoConAnamnesi());
+  i.esegui('monitor', 'tu');
+  const f = i.fatte.find((x) => x.id === 'monitor');
+  assert.ok(f, 'l\'azione di prova deve essere stata fatta');
+  assert.equal(f.giudizio.ok, true);
+});
+
+test('il verdetto si dà quando l\'azione PARTE, non quando finisce', () => {
+  /* È la ragione per cui il giudizio non sta dentro `completa`: se una
+     manovra dura tre minuti e nel frattempo scopri qualcosa, il gesto
+     che hai deciso resta quello che hai deciso. */
+  const catalogo = {
+    lunga: {
+      id: 'lunga', cat: 'C', label: 'Manovra lunga', durata: 180, chi: ['tu'],
+      diario: 'lunga', spiega: 'prova',
+    },
+  };
+  const indicazioni = {
+    lunga: { quando: (c) => c.t >= 100, perche: 'serve solo dopo i cento secondi di prova', fonte: 'p' },
+  };
+  const i = creaIntervento(casoConAnamnesi(), { azioni: catalogo, indicazioni });
+  i.esegui('lunga', 'tu');
+  const f = i.fatte.find((x) => x.id === 'lunga');
+  assert.equal(f.giudizio.ok, false,
+    'partita a t=0 il verdetto è no, anche se finisce a 180');
+});
+
+test('il giudizio guarda solo quello che hai misurato davvero', () => {
+  const catalogo = {
+    ...AZIONI_PROVA,
+    prova: {
+      id: 'prova', cat: 'C', label: 'Prova', durata: 10, chi: ['tu'],
+      diario: 'prova', spiega: 'prova',
+    },
+  };
+  const indicazioni = {
+    prova: { quando: (c) => c.letture.pas !== undefined, perche: 'serve la pressione presa', fonte: 'p' },
+  };
+  const i = creaIntervento(casoConAnamnesi(), { azioni: catalogo, indicazioni });
+  i.esegui('prova', 'tu');
+  assert.equal(i.fatte.find((x) => x.id === 'prova').giudizio.ok, false,
+    'senza aver misurato la pressione il contesto non ce l\'ha');
+});
+
+test('il diario scrive una riga di tipo giudizio, che la UI potrà nascondere', () => {
+  const catalogo = {
+    prova: { id: 'prova', cat: 'C', label: 'Prova', durata: 10, chi: ['tu'], diario: 'prova', spiega: 'p' },
+  };
+  const indicazioni = { prova: { quando: () => false, perche: 'non serviva proprio', fonte: 'p' } };
+  const i = creaIntervento(casoConAnamnesi(), { azioni: catalogo, indicazioni });
+  i.esegui('prova', 'tu');
+  const riga = i.diario.find((r) => r.tipo === 'giudizio');
+  assert.ok(riga, 'manca la riga del giudizio');
+  assert.match(riga.testo, /non serviva proprio/);
+});
+
+test('la pagella conta i secondi buttati', () => {
+  const catalogo = {
+    prova: { id: 'prova', cat: 'C', label: 'Prova', durata: 40, chi: ['tu'], diario: 'prova', spiega: 'p' },
+  };
+  const indicazioni = { prova: { quando: () => false, perche: 'non serviva proprio', fonte: 'p' } };
+  const i = creaIntervento(casoConAnamnesi(), { azioni: catalogo, indicazioni });
+  i.esegui('prova', 'tu');
+  const p = i.chiudi();
+  assert.equal(p.tempoButtato.secondi, 40);
+  assert.equal(p.tempoButtato.voci[0].label, 'Prova');
+});

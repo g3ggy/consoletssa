@@ -31,6 +31,7 @@ import {
   revisioneAnamnesi,
 } from './anamnesi.js';
 import { revisioneRagguaglio } from './ragguaglio.js';
+import { indicata, tempoButtato } from './giudizio.js';
 import { DOMANDE } from '../data/domande.js';
 
 /* Chiavi che derivano nel tempo secondo `decorso`. */
@@ -90,6 +91,11 @@ export function creaIntervento(caso, opzioni = {}) {
   const catalogo = opzioni.azioni || {};
   const membri = opzioni.membri || ['tu', 'autista', 'infermiere'];
   const COSTO_DELEGA = opzioni.costoDelega ?? 5;
+
+  /* Le indicazioni si possono sostituire dall'esterno per i test, come il
+     catalogo delle azioni. Nell'uso vero sono quelle di `indicazioni.js`,
+     che `giudizio.js` importa da sé. */
+  const indicazioni = opzioni.indicazioni;
 
   /* Voltarsi verso un'altra persona costa quanto voltarsi. */
   const COSTO_VOLTARSI = opzioni.costoVoltarsi ?? 10;
@@ -374,11 +380,11 @@ export function creaIntervento(caso, opzioni = {}) {
     dovute.forEach((p) => completa(p));
   }
 
-  function completa({ id, chi }) {
+  function completa({ id, chi, giudizio }) {
     const az = catalogo[id];
     if (!az) return;
     squadra = { ...squadra, [chi]: { ...squadra[chi], azione: null } };
-    fatte = [...fatte, { id, chi, t }];
+    fatte = [...fatte, { id, chi, t, giudizio }];
 
     if (az.applica) applicaEffetto(az.applica(proietta(), contesto()));
     // un caso può dare a un'azione generica un effetto tutto suo:
@@ -400,6 +406,13 @@ export function creaIntervento(caso, opzioni = {}) {
       ? (typeof suo === 'function' ? suo(proietta()) : suo)
       : (typeof az.diario === 'function' ? az.diario(proietta()) : (az.diario || az.label));
     scrivi(chi === 'tu' ? 'azione' : 'squadra', chi === 'tu' ? testo : `${etichettaMembro(chi)}: ${testo}`, id);
+
+    /* La riga del giudizio va nel diario sempre: è la UI che la nasconde
+       in modalità esame, perché è una scelta di presentazione e non del
+       motore. */
+    if (giudizio && giudizio.ok === false) {
+      scrivi('giudizio', `Non era indicata: ${giudizio.perche}`, id);
+    }
   }
 
   const etichettaMembro = (chi) => ({ tu: 'Tu', autista: 'Autista', infermiere: 'Infermiere' }[chi] || chi);
@@ -460,6 +473,47 @@ export function creaIntervento(caso, opzioni = {}) {
     };
   }
 
+  /* Le grandezze che un soccorritore può avere in mano. Non è lo stato
+     del paziente: è quello che ha misurato, e per i parametri continui
+     quello che il monitor gli mostra adesso. */
+  const CHIAVI_CONOSCIBILI = ['fc', 'spo2', 'pa', 'ritmo', 'glicemia', 'temp',
+    'refill', 'cute', 'sete', 'polso', 'fr'];
+
+  /** Quello che il soccorritore SA in questo istante.
+
+      È il contesto che le indicazioni ricevono, e il motivo per cui il
+      meccanismo non è un imbroglio: un'indicazione non può guardare un
+      numero che si ottiene facendo il gesto che sta giudicando. */
+  function contestoGiudizio() {
+    const s = proietta();
+
+    const lette = {};
+    CHIAVI_CONOSCIBILI.forEach((k) => {
+      const v = valore(k);
+      if (v !== undefined && v !== null) lette[k] = v;
+    });
+    /* `pa` è la stringa '128/78': un predicato che ci scrive sopra un
+       confronto numerico otterrebbe `false` in silenzio per sempre.
+       La sistolica si espone a parte, come numero. */
+    if (typeof lette.pa === 'string') {
+      const sistolica = parseInt(lette.pa.split('/')[0], 10);
+      if (Number.isFinite(sistolica)) lette.pas = sistolica;
+    }
+
+    return {
+      t,
+      /* La coscienza si vede senza strumenti: è l'unica cosa dello stato
+         che sta nel contesto senza essere stata misurata. */
+      coscienza: s.coscienza,
+      letture: lette,
+      /* `saputo` è `{ chiave: { da, t } }`: ai predicati serve solo sapere
+         se la chiave c'è. */
+      saputo: Object.fromEntries(Object.keys(saputo).map((k) => [k, true])),
+      tag: s.tag,
+      caso: { tipo: caso.tipo },
+    };
+  }
+
   function azioniDisponibili() {
     const s = proietta();
     const ctx = contesto();
@@ -491,7 +545,12 @@ export function creaIntervento(caso, opzioni = {}) {
 
     const fineA = t + az.durata;
     squadra = { ...squadra, [chi]: { liberoA: fineA, azione: az.id } };
-    pendenti = [...pendenti, { fineA, id, chi }];
+    /* Il verdetto si dà ADESSO, con quello che sai adesso: se la manovra
+       dura tre minuti e nel frattempo scopri qualcosa, il gesto che hai
+       deciso resta quello che hai deciso. Viaggia dentro `pendenti` fino
+       al completamento. */
+    const giudizio = indicata(id, contestoGiudizio(), indicazioni);
+    pendenti = [...pendenti, { fineA, id, chi, giudizio }];
 
     if (chi === 'tu') {
       avanza(az.durata);
@@ -650,6 +709,10 @@ export function creaIntervento(caso, opzioni = {}) {
         penalita: d.penalita ?? 2,
       }));
 
+    /* Il superfluo non toglie punti: costa i secondi che ha preso, e
+       quei secondi si vedono nelle finestre mancate. */
+    const buttato = tempoButtato(fatte, catalogo);
+
     const gIniziale = gravita(statoIniziale);
     const gFinale = gravita(s);
     let esitoPaziente = 'stabile';
@@ -681,6 +744,7 @@ export function creaIntervento(caso, opzioni = {}) {
          di sostenere davvero. */
       ragguaglio: revisioneRagguaglio(caso, { fatte, saputo, letture }),
       esitoPaziente,
+      tempoButtato: buttato,
       gravitaIniziale: gIniziale,
       gravitaFinale: gFinale,
       secondi: t,
