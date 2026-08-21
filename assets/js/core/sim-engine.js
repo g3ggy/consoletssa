@@ -661,6 +661,17 @@ export function creaIntervento(caso, opzioni = {}) {
       necessarie,
       dannose,
       anamnesi: revisioneAnamnesi(caso, raccolte),
+      /* Il tempo dall'esordio, per i casi in cui il tempo è la terapia.
+         Il viaggio non lo sappiamo e non lo inventiamo: il conto si
+         ferma a quando la squadra parte, che è l'unico pezzo che
+         dipende da lei. */
+      esordio: typeof caso.esordio === 'number'
+        ? {
+          primaDiVoi: caso.esordio * 60,
+          vostro: t,
+          allaPartenza: caso.esordio * 60 + t,
+        }
+        : null,
       esitoPaziente,
       gravitaIniziale: gIniziale,
       gravitaFinale: gFinale,

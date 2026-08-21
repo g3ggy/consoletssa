@@ -649,3 +649,20 @@ test('senza diarioAzioni resta il testo del catalogo', () => {
      override si ripiega sull'etichetta, ed è quella che deve comparire. */
   assert.ok(i.diario.some((r) => r.testo === 'Misura la glicemia'));
 });
+
+/* ============= il tempo dall'esordio ================================ */
+
+test('un caso che dichiara l\'esordio porta il conto nella pagella', () => {
+  const i = avvia({ ...casoConAnamnesi(), esordio: 35 });
+  i.avanza(120);
+  const p = i.chiudi();
+  assert.equal(p.esordio.primaDiVoi, 35 * 60, 'i minuti dichiarati, in secondi');
+  assert.equal(p.esordio.vostro, 120, 'quanto ci avete messo voi');
+  assert.equal(p.esordio.allaPartenza, 35 * 60 + 120, 'la somma è quello che porti in ospedale');
+});
+
+test('un caso che non lo dichiara non ha il conto, e non rompe', () => {
+  const i = avvia(casoConAnamnesi());
+  const p = i.chiudi();
+  assert.equal(p.esordio, null);
+});
