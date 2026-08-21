@@ -58,6 +58,7 @@ assets/js/
     anamnesi.js       chi risponde, cosa dice, cosa rivela. Logica pura
     ragguaglio.js     quanto del ragguaglio modello sai davvero sostenere
     giudizio.js       il gesto ci stava, e quanto tempo e' costato quello che no. Pura
+    pagella.js        com'e' andata: punti, esito, sospetto, tempo buttato. Pura
     manual.js markdown.js ribbon.js
   data/               solo dati, nessun DOM
     casi.js           casi per il motore a tempo (formato 3: offese, non derive)
