@@ -154,6 +154,9 @@ const CADUTA_PRESSORIA = 0.10;
    il differenziale si stringe, non di quanto. */
 const STRETTA_DIFFERENZIALE = 0.5;
 
+/* Oltre il compenso pieno: vedi il commento su `pupille` in `segni`. */
+const SOGLIA_MIDRIASI = 1.2;
+
 /* Sotto questa sistolica il polso radiale non si sente più.
    Bolognin :8650, dentro l'algoritmo START. */
 const PAS_POLSO_RADIALE = 80;
@@ -262,15 +265,25 @@ export function circolo(riserve, base, modificatori = {}) {
 export function segni(riserve, base, modificatori = {}) {
   const perdita = perditaVolemica(riserve);
   const fase = faseCompenso(perdita);
+  const a = allarme(riserve);
 
   /* Il refill si allunga con la vasocostrizione periferica: è il segno
      più precoce che si possa misurare, e costa quindici secondi.
      Normale sotto i due secondi — Bolognin :6489. */
   const refill = Number((1.4 + 12 * Math.max(0, perdita - 0.08)).toFixed(1));
 
+  /* La cute segue l'allarme in VALORE ASSOLUTO: il capitolo 28 mette
+     «sudorazione, pallore, offuscamento visivo» fra i prodromi vagali,
+     quindi le due forze opposte danno la stessa cute. Quello che le
+     distingue è la frequenza, non il colorito.
+
+     Le soglie sono scritte come frazioni e non come decimali di
+     proposito: 1/3 e 2/3 dell'asse sono esattamente il 10% e il 20% di
+     perdita di prima, e arrotondarle sposterebbe la soglia. */
+  const forza = Math.abs(a);
   let cute = 'normale';
-  if (perdita >= 0.20) cute = 'pallida-fredda-sudata';
-  else if (perdita >= 0.10) cute = 'pallida';
+  if (forza >= 2 / 3) cute = 'pallida-fredda-sudata';
+  else if (forza >= 1 / 3) cute = 'pallida';
 
   /* La coscienza è l'ultima a cedere, e quando cede è tardi. */
   let coscienza = 'A';
@@ -283,9 +296,20 @@ export function segni(riserve, base, modificatori = {}) {
   return {
     cute,
     refill,
+    /* Sete e refill restano attaccati al sangue: misurano il volume,
+       non l'allarme. */
     sete: perdita >= 0.20,
     coscienza,
-    tachipnea: perdita >= SOGLIE_PERDITA.compenso,
+    /* Si respira più in fretta per qualunque allarme, non solo perché
+       manca sangue: il capitolo 27 mette il respiro «più profondo e
+       frequente» in elenco con la tachicardia. La soglia 0,5 è quella
+       di prima: 15% di perdita diviso 0,30. */
+    tachipnea: a >= 0.5,
+    /* La midriasi sta OLTRE il compenso pieno. Se comparisse a ogni
+       dolore forte smetterebbe di essere un indizio, e il suo lavoro
+       qui è distinguere una scarica esogena da un compenso.
+       ASSUNZIONE NOSTRA. */
+    pupille: a >= SOGLIA_MIDRIASI ? 'midriatiche' : 'normali',
     fase,
   };
 }
@@ -356,6 +380,9 @@ export function parametriVisibili(riserve, base, modificatori = {}) {
     cute: s.cute,
     refill: s.refill,
     sete: s.sete,
+    /* Un parametro che si vede solo se lo cerchi: c'è l'azione che
+       guarda le pupille, e finché nessuno la fa la tessera resta vuota. */
+    pupille: s.pupille,
     polsoRadiale: c.polsoRadiale,
     fase: c.fase,
     perdita: c.perdita,

@@ -446,3 +446,43 @@ test('il dolore alza la pressione come prima, non il doppio', () => {
   const p = parametriVisibili(riserveIniziali({ dolore: 10 }), BASE, {});
   assert.equal(p.pas, BASE.pas + 25, 'venticinque mmHg a dolore dieci, come prima');
 });
+
+/* ============ i segni dell'allarme ================================== */
+
+test('l\'ipoglicemico è sudato, e prima non lo era', () => {
+  /* «La cute appare umida e sudata… può essere ostile e aggressivo,
+     tanto da essere scambiato per un intossicato da alcolici»
+     — Bolognin :4287. */
+  const p = parametriVisibili(riserveIniziali({ glicemia: 45 }), BASE, {});
+  assert.notEqual(p.cute, 'normale', `a 45 di glicemia non è normale: è ${p.cute}`);
+  assert.ok(p.fc > BASE.fc, 'ed è tachicardico');
+});
+
+test('anche il vago dà pallore e sudore: i prodromi sono gli stessi', () => {
+  const p = parametriVisibili(riserveIniziali({ tonoAutonomo: -0.4 }), BASE, {});
+  assert.notEqual(p.cute, 'normale', 'il capitolo 28 mette pallore e sudorazione fra i prodromi vagali');
+});
+
+test('la midriasi sta oltre il compenso pieno, se no non è un indizio', () => {
+  assert.equal(parametriVisibili(riserveIniziali({ dolore: 9 }), BASE, {}).pupille, 'normali',
+    'un dolore forte non deve bastare, o la midriasi non distingue più niente');
+  assert.equal(parametriVisibili(riserveIniziali({ tonoAutonomo: 1.4 }), BASE, {}).pupille, 'midriatiche');
+});
+
+test('il vago non dà mai midriasi', () => {
+  assert.equal(parametriVisibili(riserveIniziali({ tonoAutonomo: -1 }), BASE, {}).pupille, 'normali');
+});
+
+test('si respira più in fretta anche per allarmi che non sono il sangue', () => {
+  const p = parametriVisibili(riserveIniziali({ tonoAutonomo: 1.4 }), BASE, {});
+  assert.ok(p.fr >= BASE.fr + 10, `deve essere tachipnoico: invece è ${p.fr}`);
+});
+
+test('refill e sete restano attaccati al sangue, non all\'allarme', () => {
+  /* Misurano il volume: un normovolemico vasocostretto riempie
+     comunque in fretta, e la sete di Bolognin :6481 è sete da
+     ipovolemia, non bocca secca da adrenalina. */
+  const p = parametriVisibili(riserveIniziali({ tonoAutonomo: 1.4 }), BASE, {});
+  assert.ok(p.refill < 2, `il refill non deve allungarsi: invece è ${p.refill}`);
+  assert.equal(p.sete, false);
+});
