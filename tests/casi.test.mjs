@@ -552,3 +552,30 @@ test('dare zucchero per bocca a un\'afasica è un errore', () => {
   const caso = ict();
   assert.ok(caso.azioni.dannose.some((d) => d.id === 'zucchero-os'));
 });
+
+/* ============ quello che l'asse dell'allarme non deve muovere ========
+   `shock-v3` ha il compenso bloccato dal betabloccante e nessun dolore;
+   `ictus-v3` non ha niente che allarmi. Sono i due casi che devono
+   restare identici al mmHg quando la frequenza passa sull'asse: se si
+   muovono, l'asse ha un peso sbagliato e non è una scelta, è un errore. */
+
+test('shock-v3 e ictus-v3 restano identici al mmHg', () => {
+  const atteso = {
+    'shock-v3': { fc: 72, pas: 84, pad: 58, fr: 24, spo2: 98, cute: 'pallida-fredda-sudata', refill: 2.9 },
+    'ictus-v3': { fc: 88, pas: 178, pad: 95, fr: 16, spo2: 96, cute: 'normale', refill: 1.4 },
+  };
+  Object.entries(atteso).forEach(([id, v]) => {
+    const s = avvia(CASI.find((c) => c.id === id)).stato;
+    Object.entries(v).forEach(([k, valore]) => {
+      assert.equal(s[k], valore, `${id}: ${k} è ${s[k]}, era ${valore}`);
+    });
+  });
+});
+
+test('shock-v3 non si muove nemmeno dopo cinque minuti', () => {
+  const i = avvia(CASI.find((c) => c.id === 'shock-v3'));
+  lasciaPassare(i, 5);
+  assert.equal(i.stato.fc, 72, 'il betabloccante gli tiene ferma la frequenza');
+  assert.equal(i.stato.pas, 69);
+  assert.equal(i.stato.cute, 'pallida-fredda-sudata');
+});
