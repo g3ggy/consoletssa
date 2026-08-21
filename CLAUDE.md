@@ -20,8 +20,9 @@ programmatore.
 
 **Il contenuto clinico viene dai manuali**, non dalla memoria. Le fonti stanno in
 `content/manuale.md` (appunti dell'autore) e nei PDF dentro `tmp/`, che è fuori da git:
-manuale Bolognin TSSA 2022, linee guida ERC 2021 in traduzione IRC (dieci capitoli in
-`tmp/lineeguicaerc/`), manuale LIFEPAK 15.
+manuale Bolognin TSSA 2022, linee guida ERC in traduzione IRC (dieci capitoli in
+`tmp/lineeguicaerc/`: otto sono **ERC 2025**, il 6 e il 7 sono ancora 2021),
+manuale LIFEPAK 15.
 
 Il testo estratto sta in `tmp/testi/`, e **`tmp/testi/FONTI.md` è la mappa**: dice quale
 capitolo tratta cosa e a che riga, e raccoglie i numeri che finiscono nel motore con
@@ -137,7 +138,7 @@ ricarica-e-svuota-cache, ma la cura è bumpare sempre tutti e tre i punti.
 
 - **BLS-D, triage, manovre**: moduli non ancora scritti. Le fonti ci sono tutte e gli
   agganci stanno in `tmp/testi/FONTI.md`: il BLS-D si scrive sul capitolo 4 delle ERC
-  2021, il triage START sul Bolognin (:8630-8660, le quattro domande per esteso).
+  2025, il triage START sul Bolognin (:8630-8660, le quattro domande per esteso).
 - **Anamnesi a domande**: raccogliere informazioni facendo *la domanda giusta*,
   con risposte che possono essere incomplete o false. Disegnato, mai costruito.
 - **Arresto durante lo scenario** nel motore vecchio (nel v2 c'è già).
