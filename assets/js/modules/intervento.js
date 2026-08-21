@@ -608,6 +608,24 @@ function mostraDebriefing() {
       grafico(p.storico, eventi),
     ]),
 
+    p.esordio ? el('div.dbox', {}, [
+      el('div.t', { text: 'il tempo dall\'esordio' }),
+      el('div.tempi', {}, [
+        el('div', {}, [
+          el('b', { text: formatSeconds(p.esordio.primaDiVoi) }),
+          el('span', { text: 'già passati quando siete arrivati' }),
+        ]),
+        el('div', {}, [
+          el('b', { text: formatSeconds(p.esordio.vostro) }),
+          el('span', { text: 'spesi da voi sulla scena' }),
+        ]),
+        el('div.forte', {}, [
+          el('b', { text: formatSeconds(p.esordio.allaPartenza) }),
+          el('span', { text: 'dall\'esordio quando siete partiti' }),
+        ]),
+      ]),
+    ]) : null,
+
     el('div.dbox', {}, [
       el('div.t', { text: 'quello che serviva' }),
       el('div.pagella', {}, p.necessarie.map((r) => el(`div.voce.${r.fatta ? (r.ritardo ? 'tardi' : 'ok') : 'no'}`, {}, [
@@ -659,6 +677,20 @@ function mostraDebriefing() {
     el('div.dbox', {}, [
       el('div.t', { text: 'il ragguaglio, come lo diresti' }),
       el('p.handover', { style: { margin: '0' }, text: caso.ragguaglio }),
+
+      /* Il modello dice come si parla; il confronto dice quanto di quel
+         testo sei davvero in grado di sostenere. Le voci che non hai
+         non sono un rimprovero sul testo: sono cose che in ospedale
+         nessuno potrà più recuperare. */
+      p.ragguaglio.totale ? el('div.rag-conf', {}, [
+        el('div.lbl', {
+          text: `di ${p.ragguaglio.totale} cose che il ragguaglio dice, ${p.ragguaglio.tue} le hai davvero`,
+        }),
+        ...p.ragguaglio.voci.map((v) => el(`div.rag-voce${v.tuo ? '.tua' : ''}`, {}, [
+          el('span.m'),
+          el('span', { text: v.t }),
+        ])),
+      ]) : null,
     ]),
 
     el('div.dbox', {}, [
