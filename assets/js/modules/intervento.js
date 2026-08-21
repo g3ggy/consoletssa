@@ -17,6 +17,7 @@ import { CASI, CASI_INDICE } from '../data/casi.js';
 import { cartellino, badgeCriticita } from '../core/cartellino.js';
 import { foglioEcg12 } from '../core/ecg12.js';
 import { mostraDebriefing as disegnaDebriefing, ICONA_RIGA } from './debriefing.js';
+import { GRUPPI_CLASSI, nomeClasse } from '../data/classi-patologia.js';
 
 let sim = null;
 let chiusure = [];
@@ -208,6 +209,41 @@ function aggiornaSquadra() {
       }),
     ]);
   }));
+}
+
+/* ============================== SOSPETTO ============================ */
+/* Cosa pensi di avere davanti. Un `select` nativo e non una griglia di
+   bottoni: diciassette voci su un telefono le sa mostrare solo il
+   selettore di sistema, e per giunta gratis. */
+function costruisciSospetto() {
+  const sel = el('select.sospetto-sel', { 'aria-label': 'Cosa sospetti' });
+  sel.append(el('option', { value: '', text: '— cosa sospetti? —' }));
+  GRUPPI_CLASSI.forEach((g) => {
+    const gruppo = el('optgroup', { label: g.label });
+    g.codici.forEach((c) => {
+      gruppo.append(el('option', { value: c, text: nomeClasse(c) }));
+    });
+    sel.append(gruppo);
+  });
+  sel.addEventListener('change', () => {
+    if (!sel.value) return;
+    sim.dichiaraSospetto(sel.value);
+    aggiornaTutto();
+  });
+  return sel;
+}
+
+function aggiornaSospetto() {
+  if (!n.sospetto) return;
+  /* Senza una classe giusta dichiarata dal caso non c'è niente da
+     correggere, e un campo che non viene mai valutato è peggio che
+     assente. */
+  const attivo = Boolean(sim.caso.classe);
+  n.sospetto.box.hidden = !attivo;
+  if (!attivo) return;
+  const s = sim.sospetto;
+  n.sospetto.sel.value = s?.codice || '';
+  n.sospetto.quando.textContent = s ? `dalle ${formatSeconds(s.t)}` : '';
 }
 
 /* =============================== DIARIO ============================= */
@@ -414,6 +450,7 @@ function aggiornaTutto() {
   if (!sim || !n) return;
   aggiornaMonitor();
   aggiornaSquadra();
+  aggiornaSospetto();
   aggiornaDiario();
   aggiornaDecisione();
   aggiornaPalette();
@@ -431,6 +468,11 @@ export function render(params) {
   const radice = el('div');
   const mon = costruisciMonitor();
   const squadra = el('div.squadra-box');
+  const selSospetto = costruisciSospetto();
+  const quandoSospetto = el('span.sospetto-quando');
+  const boxSospetto = el('div.sospetto-box', { hidden: true }, [
+    el('span.sospetto-eti', { text: 'Sospetti' }), selSospetto, quandoSospetto,
+  ]);
   const diario = el('div.diario', { role: 'log', 'aria-live': 'polite', 'aria-relevant': 'additions' });
   const diarioBox = el('div.diario-box', {}, [diario]);
   const decisione = el('div.decisione.step', { hidden: true, role: 'alertdialog', 'aria-live': 'assertive' });
@@ -523,6 +565,7 @@ export function render(params) {
       el('div.int-lato', {}, [
         mon.pannello,
         el('div.card.tight', {}, [el('p.lbl', { text: 'Squadra' }), squadra]),
+        el('div.card.tight', {}, [boxSospetto]),
       ]),
     ]),
     paletteBox,
@@ -539,6 +582,7 @@ export function render(params) {
 
   n = {
     radice, mon, squadra, diario, diarioBox, decisione,
+    sospetto: { box: boxSospetto, sel: selSospetto, quando: quandoSospetto },
     paletteTabs, paletteLista, tempoBarra, tempoTacche, tempoTxt, ecg: ecgBox,
     chiudiPalette: () => togglePalette(false),
   };
