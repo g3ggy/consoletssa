@@ -56,6 +56,7 @@ assets/js/
     sim-engine.js     motore a turni, logica pura, testato
     fisiologia.js     riserve → compenso → parametri visibili. Logica pura
     anamnesi.js       chi risponde, cosa dice, cosa rivela. Logica pura
+    ragguaglio.js     quanto del ragguaglio modello sai davvero sostenere
     manual.js markdown.js ribbon.js
   data/               solo dati, nessun DOM
     casi.js           casi per il motore a tempo (formato 3: offese, non derive)
@@ -78,7 +79,8 @@ Due motori di simulazione convivono:
   sei: bpco, arresto, anticoagulante, anafilassi, cocaina, schiacciamento.
 - **`modules/intervento.js` + `core/sim-engine.js` + `core/fisiologia.js`** — il
   nuovo, a tempo, con squadra di tre, palette di azioni, diario e debriefing.
-  Quattro casi: `shock-v3`, `toracico-v3`, `ipoglicemia-v3`, `incidente-v3`.
+  Sei casi: `shock-v3`, `toracico-v3`, `ipoglicemia-v3`, `incidente-v3`,
+  `sincope-v3`, `ictus-v3`.
 
 **Convertire uno scenario significa toglierlo dal vecchio**, da `scenari.js` e
 da `scenari-arrivo.js`: se resta di là compare due volte nella pagina
@@ -107,9 +109,14 @@ in `azioni.necessarie` come le azioni, e la pagella le pesa allo stesso modo.
 Le costanti cliniche portano la fonte nel commento. Due sono **assunzione
 nostra** e vanno riviste se arriva il manuale: le soglie 15/30/40% della perdita
 (il Bolognin dà solo il 25% pediatrico, :7636 — servirebbe il PTC Base completo)
-e di quanto la RCP appiattisce la curva di sopravvivenza.
+e di quanto la RCP appiattisce la curva di sopravvivenza. Due stanno dentro
+`sincope-v3`: la frequenza a 58 dichiarata come base (il motore muove la
+frequenza col compenso e col dolore, mai verso il basso, quindi la
+bradicardia vagale non è modellabile) e il tono vascolare a 0,80, che dà i
+90/56 supina e i 72/45 seduta. Vanno riviste quando arriverà il tono
+autonomo, che si progetta col gruppo A.
 
-La conversione degli altri dieci scenari sul motore nuovo è lavoro ancora da fare.
+La conversione degli altri sei scenari sul motore nuovo è lavoro ancora da fare.
 
 ---
 
@@ -206,22 +213,29 @@ rilevazioni ripetute lampeggiano e dicono da quanto ce l'hai.
 cosa fai, il caso dice cosa trovi — la tessera di diabetico nel portafogli, il
 segno della cintura sul torace. Stessa impostazione di `effettiAzioni`.
 
-**Il prossimo pezzo** è il **gruppo C**, ictus e sincope: i due casi in cui i
-parametri stanno bene e il prezzo dell'errore va inventato. Specifica e piano
-sono scritti e approvati, l'esecuzione non è cominciata:
+**Fatto in 1.10.0.** Il **gruppo C**, `sincope-v3` e `ictus-v3`: i due casi in
+cui i parametri stanno bene e il prezzo dell'errore sta altrove. Nella sincope è
+fisico — `posizione-seduta` toglie ritorno venoso, la pressione va a 72/45 e la
+coscienza a V, e la seconda sincope non è un copione ma il calcolo. Nell'ictus è
+il tempo e l'informazione: `caso.esordio` porta i minuti nella pagella, e
+`core/ragguaglio.js` confronta le voci del ragguaglio modello con quello che hai
+davvero raccolto. Chi fa 21/21 di pagella può avere in mano metà del ragguaglio,
+ed è la lezione. Specifica e piano restano come storia della decisione:
 
 - `docs/superpowers/specs/2026-08-21-casi-senza-fisiologia-design.md`
 - `docs/superpowers/plans/2026-08-21-casi-senza-fisiologia.md`
 
-Gli otto scenari che restano sono divisi in tre gruppi: **A** cocaina,
-anafilassi, anticoagulante (tre offese nuove, più il tono autonomo); **B** bpco,
-schiacciamento, arresto (tre meccanismi che il motore non ha); **C** ictus e
-sincope, in corso.
+**Il prossimo pezzo** sono i sei scenari che restano, in due gruppi: **A**
+cocaina, anafilassi, anticoagulante (tre offese nuove, più il tono autonomo);
+**B** bpco, schiacciamento, arresto (tre meccanismi che il motore non ha).
+Ognuno ha la sua specifica da scrivere.
 
 - **BLS-D, triage, manovre**: moduli non ancora scritti. Le fonti ci sono tutte e gli
   agganci stanno in `tmp/testi/FONTI.md`: il BLS-D si scrive sul capitolo 4 delle ERC
   2025, il triage START sul Bolognin (:8630-8660, le quattro domande per esteso).
 - **Arresto durante lo scenario** nel motore vecchio (nel v2 c'è già).
 - **Sei scenari legacy** ancora da portare sul motore a tempo, gruppi A e B.
+- **`ragguaglioVoci` sui quattro casi già scritti**: chi non le dichiara non vede
+  il riquadro del confronto, e va bene così. Si aggiungono toccando quel caso.
 
 Fuori perimetro per scelta dell'autore: account, sincronizzazione, export dei progressi.
