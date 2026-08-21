@@ -49,7 +49,7 @@ assets/js/
     store.js          localStorage, aggiornamenti immutabili, Leitner
     dom.js  ui.js     el() / $() e i mattoncini dell'interfaccia
     waveform.js       canvas che scorrono (ECG, pleth, respiro) + createCanvasHost
-    lifepak.js        schermo del LIFEPAK 15: 5 riquadri, tracciati, allarmi
+    lifepak.js        schermo del LIFEPAK 15: 3 riquadri, tracciati, allarmi
     suoni.js          sintesi Web Audio dei toni del monitor (IEC 60601-1-8)
     ecg12.js          12 derivazioni su carta millimetrata, stampabile
     cartellino.js     replica del cartellino di CO118
@@ -74,10 +74,16 @@ content/manuale.md    il manuale che il modulo Studio legge
 
 Due motori di simulazione convivono:
 
-- **`modules/simulazioni.js`** — il vecchio, a 8 passi con domande. Dodici scenari.
+- **`modules/simulazioni.js`** — il vecchio, a 8 passi con domande. Ne restano
+  sei: bpco, arresto, anticoagulante, anafilassi, cocaina, schiacciamento.
 - **`modules/intervento.js` + `core/sim-engine.js` + `core/fisiologia.js`** — il
   nuovo, a tempo, con squadra di tre, palette di azioni, diario e debriefing.
-  Due casi, `shock-v3` e `toracico-v3`.
+  Quattro casi: `shock-v3`, `toracico-v3`, `ipoglicemia-v3`, `incidente-v3`.
+
+**Convertire uno scenario significa toglierlo dal vecchio**, da `scenari.js` e
+da `scenari-arrivo.js`: se resta di là compare due volte nella pagina
+Simulazioni. E `progressi.js` conta gli «scenari mai affrontati» su tutti e due
+gli elenchi, per lo stesso motivo.
 
 Nel motore nuovo il caso **non dichiara più di quanto peggiora**: dichiara la
 causa (`fisiologia.offese`) e le riserve nascoste — volemia, ossigenazione,
@@ -165,6 +171,13 @@ ricarica-e-svuota-cache, ma la cura è bumpare sempre tutti e tre i punti.
 - In italiano la preposizione si fonde con l'articolo: gli interlocutori si
   dichiarano con l'articolo davanti ("la moglie") e i testi passano da `aChi()` /
   `daChi()` in `anamnesi.js`, se no si legge "chiedi a il paziente".
+- **`base.glicemia` e `base.spo2` non si vedono.** Quei due numeri escono dalle
+  riserve (`riserve.glicemia`, `riserve.ossigenazione * 100`), non dalla base: un
+  caso che li scrive solo nella base mostra i valori di `RISERVE_ADULTO`.
+- I parametri di un caso convertito **si calibrano, non si copiano** dal vecchio:
+  si chiama `parametriVisibili` da uno script e si guardano i numeri. Quelli
+  scritti a mano nel motore a domande spesso non stanno in piedi con la
+  fisiologia, e quando divergono ha ragione la fisiologia.
 
 ---
 
@@ -183,10 +196,32 @@ risposta vaga. Specifica e piano restano come storia della decisione:
 - `docs/superpowers/specs/2026-08-21-anamnesi-a-domande-design.md`
 - `docs/superpowers/plans/2026-08-21-anamnesi-a-domande.md`
 
+**Fatto in 1.8.1.** Il monitor mostra i tre parametri che misura davvero — HR,
+SpO2, NIBP. CO2 e temperatura erano riquadri fermi a trattini perché nessuno
+gliele passava; la temperatura sta fra le rilevazioni, dove la misuri. Le
+rilevazioni ripetute lampeggiano e dicono da quanto ce l'hai.
+
+**Fatto in 1.9.0 e 1.9.1.** I primi due scenari legacy convertiti,
+`ipoglicemia-v3` e `incidente-v3`, e **`caso.diarioAzioni`**: il catalogo dice
+cosa fai, il caso dice cosa trovi — la tessera di diabetico nel portafogli, il
+segno della cintura sul torace. Stessa impostazione di `effettiAzioni`.
+
+**Il prossimo pezzo** è il **gruppo C**, ictus e sincope: i due casi in cui i
+parametri stanno bene e il prezzo dell'errore va inventato. Specifica e piano
+sono scritti e approvati, l'esecuzione non è cominciata:
+
+- `docs/superpowers/specs/2026-08-21-casi-senza-fisiologia-design.md`
+- `docs/superpowers/plans/2026-08-21-casi-senza-fisiologia.md`
+
+Gli otto scenari che restano sono divisi in tre gruppi: **A** cocaina,
+anafilassi, anticoagulante (tre offese nuove, più il tono autonomo); **B** bpco,
+schiacciamento, arresto (tre meccanismi che il motore non ha); **C** ictus e
+sincope, in corso.
+
 - **BLS-D, triage, manovre**: moduli non ancora scritti. Le fonti ci sono tutte e gli
   agganci stanno in `tmp/testi/FONTI.md`: il BLS-D si scrive sul capitolo 4 delle ERC
   2025, il triage START sul Bolognin (:8630-8660, le quattro domande per esteso).
 - **Arresto durante lo scenario** nel motore vecchio (nel v2 c'è già).
-- **Dieci scenari legacy** da portare sul motore v2.
+- **Sei scenari legacy** ancora da portare sul motore a tempo, gruppi A e B.
 
 Fuori perimetro per scelta dell'autore: account, sincronizzazione, export dei progressi.
