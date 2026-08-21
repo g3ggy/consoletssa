@@ -508,6 +508,189 @@ export const CASI = [
     trappola: '"Tanto è ubriaco" è il modo migliore per far arrivare in coma un ipoglicemico. L\'etilista cronico tende all\'ipoglicemia perché l\'alcol blocca la gluconeogenesi: le due cose convivono spesso, e l\'alito che sa di alcol non esclude niente. Per strada non c\'è un familiare a cui chiedere — la risposta ce l\'ha lui in tasca, e il crocchio ti dirà la cosa sbagliata con la faccia di chi sa.',
     ragguaglio: 'Uomo di 52 anni, diabetico in terapia insulinica, abuso alcolico cronico. Trovato in strada confuso, agitato e sudato, scambiato dai presenti per un ubriaco. Glicemia capillare 55 mg/dl all\'arrivo, cosciente e in grado di deglutire: somministrati venti grammi di zucchero per via orale, con risalita a 78 e ripresa del sensorio. Riferisce insulina serale senza cena. FC 72, PA 128/78, SpO₂ 97%, T 35.8.',
   },
+
+  /* ================================================================= */
+  {
+    id: 'incidente-v3',
+    ecg: { pattern: 'normale' },
+    titolo: 'Auto contro palo',
+    tipo: 'trauma',
+    difficolta: 2,
+    motore: 3,
+    capitoli: ['cap-14', 'cap-21'],
+
+    dispatch: {
+      codice: 'ROSSO',
+      testo: 'Incidente stradale, auto contro palo. Un occupante, cosciente, ancora dentro il veicolo.',
+      luogo: 'Strada extraurbana',
+    },
+    scena: {
+      testo: 'Carreggiata con il traffico che continua a scorrere a fianco senza rallentare, e sotto la vettura una pozza di liquido. I vigili del fuoco non sono ancora arrivati.',
+      sicura: false,
+      rischio: 'traffico e liquidi infiammabili',
+    },
+    colpoOcchio: {
+      testo: 'Seduto al posto di guida, cosciente, parla e risponde. Parabrezza infranto a ragnatela, volante deformato, airbag esploso. Cintura allacciata.',
+      vitale: true,
+    },
+
+    fisiologia: {
+      /* Il suo normale: trentadue anni, nessuna patologia. */
+      base: { fc: 66, pas: 118, pad: 74, spo2: 98, fr: 14, glicemia: 110, temp: 36.2 },
+      /* «Il volante ferma il tronco, non gli organi interni, che
+         proseguono nel loro movimento in avanti» — Bolognin :6248. Quel
+         volante deformato è ottocento millilitri già persi dentro
+         l'addome quando la squadra arriva: il sedici per cento, appena
+         sopra la soglia in cui il compenso si accende. Nel giovane
+         regge, e la sistolica resta quasi normale mentre il
+         differenziale si stringe. */
+      riserve: { volemia: 5000, dolore: 4, ossigenazione: 0.96 },
+      offese: [
+        { tipo: 'emorragia', sede: 'interna', portata: 35, gia: 800 },
+        { tipo: 'dolore-acuto', intensita: 0.12 },
+        /* Il torace ha preso il volante: respira corto perché gli fa
+           male e perché il polmone contuso scambia peggio. */
+        { tipo: 'ipossia-ventilatoria', intensita: 0.0010 },
+      ],
+      modificatori: { eta: 32, terapia: [] },
+    },
+
+    /* La dinamica è scritta anche addosso, per chi lo guarda: è la
+       parte di «E» che si salta quando si ha fretta. */
+    diarioAzioni: {
+      esposizione: 'Sul torace il segno obliquo della cintura, e in mezzo allo sterno un\'impronta rossa larga quanto il volante. L\'addome alto è teso e fa male appena lo tocchi.',
+    },
+
+    anamnesi: {
+      interlocutori: [{ id: 'testimone', label: 'il testimone' }],
+      risposte: {
+        disturbi: {
+          paziente: { t: '«Il petto, e qui sopra la pancia. E non riesco a prendere fiato.»', qualita: 'buona' },
+          testimone: { t: '«Si lamentava del petto. Io l\'ho lasciato lì com\'era, non l\'ho toccato.»', qualita: 'buona' },
+        },
+        allergie: {
+          paziente: { t: '«Nessuna.»', qualita: 'buona' },
+        },
+        terapia: {
+          paziente: { t: '«Non prendo niente.»', qualita: 'buona' },
+        },
+        patologie: {
+          paziente: { t: '«Niente, sto bene. Non vado mai dal medico.»', qualita: 'buona' },
+        },
+        'ultimo-pasto': {
+          paziente: { t: '«Ho cenato un paio d\'ore fa.»', qualita: 'buona' },
+        },
+        /* Il cuore del caso. Il Bolognin (:6237-6240) mette la dinamica
+           fra le cose da chiedere per prime — «cosa ha colpito cosa e a
+           che velocità? ha avuto la possibilità di frenare?» — e lui non
+           è in grado di rispondere: era dentro l'urto. Chi ha visto sì. */
+        evento: {
+          paziente: { t: '«È stato un attimo. Non lo so, ho perso il controllo e mi sono ritrovato qui.»', qualita: 'vaga' },
+          testimone: {
+            t: '«Andava forte, forte davvero. E non ha frenato: guardi per terra, non c\'è una riga. Ha preso il palo in pieno.»',
+            qualita: 'buona',
+            rivela: ['dinamica-maggiore'],
+          },
+        },
+        esordio: {
+          paziente: { t: '«Da quando ho battuto. Prima stavo benissimo.»', qualita: 'buona' },
+        },
+        allevia: {
+          paziente: { t: '«Se sto fermo è meno peggio. Se provo a tirare il fiato no.»', qualita: 'buona' },
+        },
+        'qualita-dolore': {
+          paziente: { t: '«Come una botta. Sordo, e mi stringe.»', qualita: 'buona' },
+        },
+        irradiazione: {
+          paziente: { t: '«No, sta lì. Ma è largo, prende tutto il petto.»', qualita: 'buona' },
+        },
+        intensita: {
+          paziente: { t: '«Sei. Sette quando respiro.»', qualita: 'buona' },
+        },
+        'durata-dolore': {
+          paziente: { t: '«Da quando è successo. Dieci minuti, forse.»', qualita: 'buona' },
+          testimone: { t: '«Ho chiamato subito: saranno dieci minuti, non di più.»', qualita: 'buona' },
+        },
+      },
+    },
+
+    eventi: [
+      {
+        id: 'vuole-uscire', t: 150,
+        testo: 'Slaccia la cintura e prova a girarsi per scendere: «Sto bene, mi faccia uscire da qui».',
+        decisione: {
+          domanda: 'Cosa fai?',
+          opzioni: [
+            {
+              t: 'Gli tengo la testa e gli dico di non muoversi finché non lo immobilizziamo',
+              ok: true,
+              w: 'Il rachide si protegge già dalla A, e in un\'auto lo si protegge tenendo la testa mentre l\'altro monta il collare.',
+            },
+            {
+              t: 'Lo aiuto a scendere: se cammina da solo è meglio per tutti',
+              ok: false,
+              effetto: { dolore: 2, volemia: -150 },
+              w: 'Un rachide a rischio che si torce da solo. E muoversi con un addome che sanguina accelera quello che sta già succedendo.',
+            },
+          ],
+        },
+      },
+      {
+        id: 'vvf', t: 420,
+        testo: 'Arrivano i vigili del fuoco: mettono i cunei, staccano la batteria e presidiano la carreggiata.',
+      },
+      {
+        id: 'cede', t: 600, se: (p) => p.fc > 125,
+        testo: 'Si fa più bianco e più sudato, e comincia a chiederti se è grave. Ripete la stessa domanda due volte.',
+      },
+    ],
+
+    arresto: { finestraRcp: 60 },
+
+    soglie: [
+      { id: 's-differenziale', se: (p) => (p.pas - p.pad) < 32, testo: 'Massima e minima si avvicinano: il differenziale si sta stringendo.' },
+      { id: 's-cute', se: (p) => p.cute === 'pallida-fredda-sudata', testo: 'La cute diventa fredda e appiccicosa sotto le dita.' },
+      { id: 's-radiale', se: (p) => p.polsoRadiale === false, testo: 'Al polso non senti più niente: cerchi il carotideo, e c\'è.' },
+      { id: 's-o2', se: (p) => p.tag.includes('o2') && p.spo2 > 97, testo: 'Con l\'ossigeno la saturazione risale e respira un po\' meglio.' },
+    ],
+
+    azioni: {
+      necessarie: [
+        { id: 'valuta-scena', entro: 60, peso: 3 },
+        { id: 'dpi', entro: 90, peso: 1 },
+        { id: 'chiedi-vvf', entro: 150, peso: 2 },
+        { id: 'collare', entro: 240, peso: 3 },
+        { id: ['o2-reservoir', 'o2-maschera'], entro: 300, peso: 2, label: 'Ossigeno a flusso adeguato' },
+        { id: 'misura-pa', entro: 300, peso: 2 },
+        { id: 'esposizione', entro: 360, peso: 2 },
+        { id: 'domanda:evento', entro: 420, peso: 2 },
+        { id: 'riferisci-infermiere', entro: 480, peso: 1 },
+        { id: 'allerta-co', entro: 540, peso: 1 },
+        { id: 'ked', entro: 660, peso: 3 },
+        { id: 'spinale', entro: 840, peso: 2 },
+        { id: 'carica', entro: 960, peso: 3 },
+      ],
+      utili: ['allontana-curiosi', 'refill', 'colorito', 'polso-radiale', 'conta-fr', 'monitor', 'rassicura', 'copri', 'accesso-prepara', 'inf-accesso', 'domanda:durata-dolore'],
+      dannose: [
+        {
+          id: 'sposta-sicurezza', penalita: 3,
+          perche: 'Estrarlo di peso dall\'abitacolo si fa solo con un pericolo imminente e nessuna alternativa. Qui la scena si mette in sicurezza, e per tirarlo fuori c\'è il KED: è nato per questo — tutelare il rachide mentre si estrae un infortunato da un veicolo (Bolognin :9301).',
+        },
+        {
+          id: 'telo', penalita: 2,
+          perche: 'Il telo portaferiti serve per spazi stretti e scale, non per un traumatizzato seduto in auto: non immobilizza niente.',
+        },
+        {
+          id: 'zucchero-os',
+          perche: 'La glicemia è normale e ha un addome che potrebbe finire in sala operatoria: non si dà niente per bocca.',
+        },
+      ],
+    },
+
+    chiave: 'La dinamica è un dato clinico. Il volante ferma il tronco ma non gli organi, che proseguono in avanti: quel volante deformato vale più dei parametri di adesso. Il giovane compensa a lungo — la sistolica sta su e il differenziale si stringe — e quando cede, cede in fretta.',
+    trappola: 'Prima la scena: traffico e liquidi, e i vigili del fuoco non ci sono ancora. Un soccorritore investito è un secondo paziente e un mezzo in meno per tutti. Poi il rachide, che si protegge già dalla A e non dopo. E non fidarti dei numeri: sono quasi normali perché ha trent\'anni, non perché stia bene.',
+    ragguaglio: 'Uomo di circa trent\'anni, nessuna patologia nota, nessuna terapia. Incidente auto contro palo ad alta velocità riferita dal testimone, senza frenata, cintura allacciata, airbag esploso, volante e parabrezza deformati. Cosciente e orientato, dolore toracico e addominale alto, dispnea. All\'arrivo FC 106, PA 128/91 con differenziale ristretto, FR 24, SpO₂ 96%, cute pallida, riempimento capillare 2,4 secondi. Segno della cintura sul torace e addome alto teso. Collare, ossigeno ad alti flussi, estricazione con KED e immobilizzazione su tavola spinale. Sospette lesioni interne da dinamica maggiore.',
+  },
 ];
 
 export const CASI_INDICE = Object.fromEntries(CASI.map((c) => [c.id, c]));

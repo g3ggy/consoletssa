@@ -74,29 +74,6 @@ export const DETTAGLI_ARRIVO = {
 
 
 
-  /* ------------------------------------------------------------------ */
-  incidente: {
-    deriva: { FC: +1.4, SpO2: -0.3, PA: -1.8 },
-    arrivo: {
-      testo: "Auto contro palo, in carreggiata. Il traffico continua a scorrere a fianco senza rallentare, sotto la vettura c'è una pozza di liquido. I vigili del fuoco non sono ancora arrivati. Il conducente è dentro e si muove.",
-      domanda: "Prima cosa?",
-      scelte: [
-        { t: "Metto in sicurezza la scena e chiedo i vigili del fuoco", ok: true,
-          w: "Traffico e liquidi. Un soccorritore investito è un secondo paziente e un mezzo in meno per tutti." },
-        { t: "Vado subito al finestrino: è cosciente e parla", ok: false,
-          w: "Lui è vivo adesso; il rischio adesso sei tu. La scena viene prima del paziente, sempre." },
-        { t: "Lo faccio uscire dall'auto e lo porto al sicuro", ok: false,
-          w: "L'estricazione immediata si fa solo con un pericolo imminente e nessuna alternativa. Qui il rachide è a rischio e la scena si può mettere in sicurezza." },
-      ],
-    },
-    situazione: "Uomo seduto al posto di guida, cosciente e collaborante. Parabrezza infranto a ragnatela, volante deformato, airbag esploso, cintura allacciata. Dice di avere male al torace e all'addome alto e di sentirsi «senza fiato». La dinamica qui è un dato clinico: quel volante ha preso il suo torace, e i parametri normali di adesso non escludono niente.",
-    azioniSbagliate: [
-      { t: "Gli faccio fare un respiro profondo per capire quanto gli fa male",
-        w: "Non serve a niente e in un torace traumatizzato fa solo male." },
-      { t: "Aspetto i vigili del fuoco senza toccare nulla",
-        w: "Nell'attesa la scena la metti in sicurezza tu: cunei, freno a mano, quadro spento — e intanto tieni la testa e parli col paziente." },
-    ],
-  },
 
   /* ------------------------------------------------------------------ */
   anticoagulante: {

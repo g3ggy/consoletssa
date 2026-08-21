@@ -328,3 +328,80 @@ test('i documenti dicono quello che il paziente non può dire', () => {
   i.esegui('cerca-documenti', 'tu');
   assert.ok(i.diario.some((r) => /diabet/i.test(r.testo)), 'la tessera dice che è diabetico');
 });
+
+/* ==================== incidente-v3 ================================== */
+
+const inc = () => CASI.find((c) => c.id === 'incidente-v3');
+
+test('incidente-v3 arriva compensato: i numeri non dicono ancora niente', () => {
+  const caso = inc();
+  assert.ok(caso, 'manca incidente-v3');
+  const i = avvia(caso);
+  assert.ok(i.stato.pas > 110, `la sistolica tiene ancora: invece è ${i.stato.pas}`);
+  assert.ok(i.stato.fc > 100, `ma il cuore corre: invece è ${i.stato.fc}`);
+  /* Il differenziale che si stringe è il segno precoce: si legge prima
+     che la sistolica si muova. */
+  assert.ok(i.stato.pas - i.stato.pad < 42, 'il differenziale si è già stretto');
+  assert.equal(i.stato.coscienza, 'A');
+});
+
+test('la pressione non ti avvisa: mentre sanguina sale', () => {
+  const i = avvia(inc());
+  const allArrivo = i.stato.pas;
+  lasciaPassare(i, 15);
+  /* Il dolore spinge, i vasi stringono: la sistolica sale mentre il
+     sangue se ne va. È il motivo per cui chi guarda solo la pressione
+     si accorge di tutto quando è tardi. */
+  assert.ok(i.stato.pas >= allArrivo, `dopo un quarto d'ora è ${i.stato.pas}, era ${allArrivo}`);
+  assert.ok(i.stato.perdita > 0.25, 'e intanto ha perso più di un quarto del sangue');
+  assert.ok(i.stato.fc > 125, 'quello che si è mosso è la frequenza');
+});
+
+test('e quando il compenso cede, cede di colpo', () => {
+  const i = avvia(inc());
+  lasciaPassare(i, 20);
+  const prima = i.stato.pas;
+  lasciaPassare(i, 10);
+  assert.ok(i.stato.pas < 90, `mezz'ora e la pressione è a ${i.stato.pas}`);
+  assert.ok(prima - i.stato.pas > 40, 'non scende piano: crolla');
+  assert.notEqual(i.stato.coscienza, 'A');
+});
+
+test('la dinamica la sa il testimone, non il paziente', () => {
+  const caso = inc();
+  assert.ok(caso.anamnesi.interlocutori.some((x) => x.id === 'testimone'));
+  const i = avvia(caso);
+
+  const daLui = i.chiedi('evento');
+  assert.equal(daLui.risposta.qualita, 'vaga', 'lui ricorda poco: è stato un attimo');
+  assert.deepEqual(i.saputo, {});
+
+  i.rivolgitiA('testimone');
+  i.chiedi('evento');
+  assert.ok(i.saputo['dinamica-maggiore'], 'il testimone ti dà la velocità e la frenata che non c\'è');
+});
+
+test('ha male, quindi l\'OPQRST si può fare', () => {
+  const i = avvia(inc());
+  assert.ok(i.stato.dolore > 0);
+  assert.ok(i.domandeDisponibili().some((d) => d.id === 'irradiazione'));
+});
+
+test('la dinamica è scritta anche addosso, se lo guardi', () => {
+  const caso = inc();
+  assert.ok(caso.diarioAzioni?.esposizione, 'esporre il paziente deve dire cosa si vede');
+  const i = avvia(caso);
+  i.esegui('esposizione', 'tu');
+  assert.ok(i.diario.some((r) => /cintura|volante/i.test(r.testo)));
+});
+
+test('tirarlo fuori di peso è un errore, e il debriefing lo dice', () => {
+  const caso = inc();
+  const nomi = caso.azioni.dannose.map((d) => d.id);
+  assert.ok(nomi.includes('sposta-sicurezza'), 'l\'estricazione rapida qui non è giustificata');
+  const i = avvia(caso);
+  i.esegui('sposta-sicurezza', 'tu');
+  const p = i.chiudi();
+  assert.equal(p.dannose.length, 1);
+  assert.match(p.dannose[0].perche, /rachide|estricazione/i);
+});
