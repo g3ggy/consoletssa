@@ -308,6 +308,21 @@ const ELENCO = [
     spiega: 'Miosi serrata orienta agli oppiacei, midriasi fissa a un danno grave.',
   },
   {
+    /* I tre segni sono quelli del Bolognin :4112-4125: far sorridere o
+       mostrare i denti, far tenere le braccia estese dieci secondi a
+       occhi chiusi, far ripetere una frase. «L'alterazione di ciascuno
+       dei tre segni è fortemente suggestiva per un ictus.» In inglese
+       lo stesso schema è il FAST, dove la T sta per Time.
+
+       Il catalogo dice cosa fai; cosa trovi lo dice il caso con
+       `diarioAzioni`, perché il deficit è di questo paziente e non
+       della fisiologia. Non è `unaVolta`: in viaggio si ricontrolla. */
+    id: 'esame-neurologico', cat: 'D', label: 'Esame neurologico rapido',
+    durata: 30, chi: ['tu'],
+    diario: 'Le chiedi di sorridere, di tenere le braccia avanti a occhi chiusi, di ripetere una frase.',
+    spiega: 'Faccia, braccia, linguaggio. Basta che uno dei tre sia alterato. E serve anche a escludere: l\'ipoglicemia imita l\'ictus in tutto.',
+  },
+  {
     id: 'misura-glicemia', cat: 'D', label: 'Misura la glicemia', durata: 30, chi: ['tu'],
     rileva: 'glicemia',
     diario: (p) => `Glicemia ${Math.round(p.glicemia)} mg/dl.`,

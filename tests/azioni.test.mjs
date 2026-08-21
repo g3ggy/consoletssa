@@ -116,3 +116,12 @@ test('c\'è come cercare i documenti addosso a chi non ha nessuno con sé', () =
   assert.ok(az.durata > 0 && az.durata <= 60);
   assert.ok(az.chi.includes('tu'));
 });
+
+test('c\'è l\'esame neurologico, e si può rifare', () => {
+  const az = AZIONI['esame-neurologico'];
+  assert.ok(az, 'manca l\'azione esame-neurologico');
+  assert.equal(az.cat, 'D', 'sta in D, con la coscienza');
+  assert.ok(az.durata > 0 && az.durata <= 60);
+  assert.ok(az.chi.includes('tu'));
+  assert.ok(!az.unaVolta, 'in viaggio si ricontrolla: non è una sola volta');
+});
