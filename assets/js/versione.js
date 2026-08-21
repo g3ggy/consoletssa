@@ -13,11 +13,12 @@
    (e la stessa stringa in cima a sw.js).
    ===================================================================== */
 
-export const VERSIONE = '1.9.2';
+export const VERSIONE = '1.10.0';
 export const DATA_VERSIONE = '21 agosto 2026';
 
 /** Cosa è cambiato, dalla più recente. Le prime tre finiscono nel pannello. */
 export const NOVITA = [
+  { v: '1.10.0', t: 'Ictus e sincope passano al motore a tempo, e sono i primi due casi in cui i parametri stanno bene. Nella sincope il prezzo \u00e8 fisico: la tiri su prima del tempo e sviene una seconda volta. Nell\'ictus \u00e8 il tempo e l\'informazione — il debriefing conta i minuti dall\'esordio e ti dice quante delle cose che il ragguaglio dice sei davvero in grado di sostenere. E lei \u00e8 afasica, non confusa: capisce tutto.' },
   { v: '1.9.2', t: 'Corretto un errore negli scenari a domande: le due risposte su come si apre il ragguaglio dicevano l\'opposto dei ragguagli scritti sotto. \u00abChi \u00e8\u00bb sta per primo sempre — quello che cambia \u00e8 il secondo posto, la patologia che decide il trattamento oppure l\'orario che lo decide.' },
   { v: '1.9.1', t: 'Auto contro palo passa al motore a tempo. Il volante ferma il tronco ma non gli organi: arriva con ottocento millilitri già persi dentro l\'addome e la pressione che non lo dice — anzi sale, perché il dolore la spinge, mentre il differenziale si stringe e la frequenza corre. Poi il compenso cede di colpo. La dinamica non gliela chiedi a lui, che era dentro l\'urto: la sa chi ha visto. E se lo esponi, quella dinamica ce l\'ha scritta addosso.' },
   { v: '1.9.0', t: 'L\'ipoglicemico in strada passa al motore a tempo, ed è il primo caso in cui una finestra si chiude da sola: arriva a 55 di glicemia, ancora vigile, e lo zucchero per bocca si può ancora dare. Fra tre minuti no. I passanti dicono che è ubriaco — è la risposta sbagliata, e niente te lo segnala: la verità ce l\'ha lui in tasca, o nel glucometro. Gli scenari già convertiti non compaiono più due volte nella lista.' },
