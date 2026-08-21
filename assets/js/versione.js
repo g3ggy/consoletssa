@@ -13,11 +13,12 @@
    (e la stessa stringa in cima a sw.js).
    ===================================================================== */
 
-export const VERSIONE = '1.9.1';
+export const VERSIONE = '1.9.2';
 export const DATA_VERSIONE = '21 agosto 2026';
 
 /** Cosa è cambiato, dalla più recente. Le prime tre finiscono nel pannello. */
 export const NOVITA = [
+  { v: '1.9.2', t: 'Corretto un errore negli scenari a domande: le due risposte su come si apre il ragguaglio dicevano l\'opposto dei ragguagli scritti sotto. \u00abChi \u00e8\u00bb sta per primo sempre — quello che cambia \u00e8 il secondo posto, la patologia che decide il trattamento oppure l\'orario che lo decide.' },
   { v: '1.9.1', t: 'Auto contro palo passa al motore a tempo. Il volante ferma il tronco ma non gli organi: arriva con ottocento millilitri già persi dentro l\'addome e la pressione che non lo dice — anzi sale, perché il dolore la spinge, mentre il differenziale si stringe e la frequenza corre. Poi il compenso cede di colpo. La dinamica non gliela chiedi a lui, che era dentro l\'urto: la sa chi ha visto. E se lo esponi, quella dinamica ce l\'ha scritta addosso.' },
   { v: '1.9.0', t: 'L\'ipoglicemico in strada passa al motore a tempo, ed è il primo caso in cui una finestra si chiude da sola: arriva a 55 di glicemia, ancora vigile, e lo zucchero per bocca si può ancora dare. Fra tre minuti no. I passanti dicono che è ubriaco — è la risposta sbagliata, e niente te lo segnala: la verità ce l\'ha lui in tasca, o nel glucometro. Gli scenari già convertiti non compaiono più due volte nella lista.' },
   { v: '1.8.1', t: 'Il monitor mostra i tre parametri che misura davvero: frequenza, saturazione e pressione. CO2 e temperatura erano due riquadri fermi a trattini — la temperatura si prende col timpanico e sta fra le rilevazioni, insieme a FR e glicemia. Ogni rilevazione ripetuta lampeggia e dice da quanto ce l\'hai, anche quando il numero non è cambiato: glicemia e temperatura si rifanno quando vuoi.' },
