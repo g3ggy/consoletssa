@@ -108,3 +108,11 @@ test('ci sono le azioni per cercare i segni del compenso', () => {
 test('il refill è più veloce di una pressione: è per questo che si fa prima', () => {
   assert.ok(AZIONI.refill.durata < AZIONI['misura-pa'].durata);
 });
+
+test('c\'è come cercare i documenti addosso a chi non ha nessuno con sé', () => {
+  const az = AZIONI['cerca-documenti'];
+  assert.ok(az, 'manca l\'azione cerca-documenti');
+  assert.equal(az.cat, 'scena');
+  assert.ok(az.durata > 0 && az.durata <= 60);
+  assert.ok(az.chi.includes('tu'));
+});

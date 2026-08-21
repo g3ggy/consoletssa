@@ -65,6 +65,17 @@ const ELENCO = [
     spiega: 'Incastro, materiali instabili, rischio incendio o sostanze pericolose.',
   },
   {
+    /* «Se ci troviamo in strada od in luoghi pubblici, cerchiamo tra i
+       documenti della persona targhette o cartellini, medagliette o
+       quant'altro che attestino che il paziente soffra di malattia
+       cronica» — Bolognin :4299. In casa te lo dicono i familiari; per
+       strada te lo dice il portafogli, o non te lo dice nessuno. */
+    id: 'cerca-documenti', cat: 'scena', label: 'Cerca documenti e tessere sanitarie',
+    durata: 40, chi: ['tu', 'autista'], unaVolta: true,
+    diario: 'Cerchi nelle tasche e nel portafogli: documenti, tessere, schemi di terapia.',
+    spiega: 'Per strada non c\'è un familiare che risponda. Una tessera di malattia cronica o uno schema di terapia valgono un\'anamnesi, e stanno in tasca al paziente.',
+  },
+  {
     id: 'sposta-sicurezza', cat: 'scena', label: 'Sposta il paziente in zona sicura',
     durata: 90, chi: ['tu', 'autista'], unaVolta: true, applica: () => ({ tag: 'al-sicuro' }),
     diario: 'Paziente spostato lontano dalla fonte di pericolo.',

@@ -615,3 +615,37 @@ test('la pagella porta quello che hai raccolto e cosa ti sei perso', () => {
   assert.equal(p.anamnesi.voci[0].da, 'il paziente');
   assert.equal(p.anamnesi.avvisi.length, 1, 'la moglie sapeva il nome del farmaco');
 });
+
+/* ============= il diario che il caso riscrive ======================= */
+
+test('un caso può dire lui cosa trovi facendo un\'azione generica', () => {
+  const i = avvia({
+    ...casoConAnamnesi(),
+    diarioAzioni: {
+      'misura-glicemia': 'Il glucometro segna un numero che non ti aspettavi.',
+    },
+  });
+  i.esegui('misura-glicemia', 'tu');
+  const testi = i.diario.map((r) => r.testo);
+  assert.ok(testi.some((t) => /non ti aspettavi/.test(t)), 'il testo del caso ha la precedenza');
+  assert.ok(!testi.some((t) => /^Glicemia \d/.test(t)), 'e sostituisce quello del catalogo');
+});
+
+test('il testo del caso può essere una funzione dello stato', () => {
+  const i = avvia({
+    ...casoConAnamnesi(),
+    diarioAzioni: {
+      'misura-glicemia': (p) => `Nel portafogli, e il glucometro segna ${Math.round(p.glicemia)}.`,
+    },
+  });
+  i.esegui('misura-glicemia', 'tu');
+  assert.ok(i.diario.some((r) => /Nel portafogli, e il glucometro segna \d+\./.test(r.testo)));
+});
+
+test('senza diarioAzioni resta il testo del catalogo', () => {
+  const i = avvia(casoConAnamnesi());
+  i.esegui('misura-glicemia', 'tu');
+  /* Il catalogo di prova non dà un `diario` a questa azione: senza
+     override si ripiega sull'etichetta, ed è quella che deve comparire. */
+  assert.ok(i.diario.some((r) => r.testo === 'Misura la glicemia'));
+});

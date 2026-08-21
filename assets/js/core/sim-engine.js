@@ -390,7 +390,14 @@ export function creaIntervento(caso, opzioni = {}) {
       letture = { ...letture, [az.rileva]: { t, val: valoreGrezzo(az.rileva, s) } };
     }
 
-    const testo = typeof az.diario === 'function' ? az.diario(proietta()) : (az.diario || az.label);
+    /* Il catalogo dice cosa fai, il caso può dire cosa trovi: cercare i
+       documenti è la stessa azione dappertutto, ma la tessera di
+       diabetico nel portafogli sta solo in questo scenario. Stessa
+       impostazione di `effettiAzioni`, applicata al testo. */
+    const suo = caso.diarioAzioni?.[id];
+    const testo = suo
+      ? (typeof suo === 'function' ? suo(proietta()) : suo)
+      : (typeof az.diario === 'function' ? az.diario(proietta()) : (az.diario || az.label));
     scrivi(chi === 'tu' ? 'azione' : 'squadra', chi === 'tu' ? testo : `${etichettaMembro(chi)}: ${testo}`, id);
   }
 
