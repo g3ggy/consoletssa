@@ -30,6 +30,7 @@ import {
   PAZIENTE, aChi, interlocutoriDi, puoRispondere, rispostaA, domandeDisponibili,
   revisioneAnamnesi,
 } from './anamnesi.js';
+import { revisioneRagguaglio } from './ragguaglio.js';
 import { DOMANDE } from '../data/domande.js';
 
 /* Chiavi che derivano nel tempo secondo `decorso`. */
@@ -672,6 +673,10 @@ export function creaIntervento(caso, opzioni = {}) {
           allaPartenza: caso.esordio * 60 + t,
         }
         : null,
+      /* Il ragguaglio scritto nel caso resta e si legge com'è: serve a
+         sapere come si dice. Questo è quanto di quel testo sei in grado
+         di sostenere davvero. */
+      ragguaglio: revisioneRagguaglio(caso, { fatte, saputo, letture }),
       esitoPaziente,
       gravitaIniziale: gIniziale,
       gravitaFinale: gFinale,

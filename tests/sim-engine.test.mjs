@@ -666,3 +666,41 @@ test('un caso che non lo dichiara non ha il conto, e non rompe', () => {
   const p = i.chiudi();
   assert.equal(p.esordio, null);
 });
+
+/* ============= il ragguaglio a confronto ============================ */
+
+function casoConRagguaglio() {
+  return {
+    ...casoConAnamnesi(),
+    ragguaglioVoci: [
+      { t: 'Prende il Cardicor', da: 'sapere:betabloccante' },
+      { t: 'Glicemia rilevata', da: 'lettura:glicemia' },
+      { t: 'Trasportato', da: 'azione:misura-pa' },
+      { t: 'Uomo adulto' },
+    ],
+  };
+}
+
+test('chi non fa niente ha solo la voce che non dipende da niente', () => {
+  const i = avvia(casoConRagguaglio());
+  const p = i.chiudi();
+  assert.equal(p.ragguaglio.totale, 4);
+  assert.equal(p.ragguaglio.tue, 1);
+});
+
+test('quello che raccogli si vede nel confronto', () => {
+  const i = avvia(casoConRagguaglio());
+  i.rivolgitiA('moglie');
+  i.chiedi('terapia');                 // rivela 'betabloccante'
+  i.esegui('misura-glicemia', 'tu');   // lettura glicemia
+  i.esegui('misura-pa', 'tu');         // azione misura-pa
+  const p = i.chiudi();
+  assert.equal(p.ragguaglio.tue, 4, 'adesso il ragguaglio è tutto tuo');
+});
+
+test('un caso senza voci ha un confronto vuoto, non un errore', () => {
+  const i = avvia(casoConAnamnesi());
+  const p = i.chiudi();
+  assert.equal(p.ragguaglio.totale, 0);
+  assert.deepEqual(p.ragguaglio.voci, []);
+});
