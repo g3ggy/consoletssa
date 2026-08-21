@@ -13,11 +13,12 @@
    (e la stessa stringa in cima a sw.js).
    ===================================================================== */
 
-export const VERSIONE = '1.11.0';
-export const DATA_VERSIONE = '21 agosto 2026';
+export const VERSIONE = '1.12.0';
+export const DATA_VERSIONE = '22 agosto 2026';
 
 /** Cosa è cambiato, dalla più recente. Le prime tre finiscono nel pannello. */
 export const NOVITA = [
+  { v: '1.12.0', t: 'Le simulazioni smettono di essere una lista da spuntare. Ogni gesto adesso ha un momento in cui ha senso: la glicemia si misura a chi ha la coscienza alterata o a un diabetico, il collare a chi ha un trauma, il reservoir a chi \u00e8 davvero ipossico \u2014 e chi lo fa fuori da l\u00ec se lo sente dire, con la fonte del manuale, e si vede quanti secondi gli sono costati e quale finestra ha mancato per colpa loro. La regola guarda solo quello che sai in quel momento, mai quello che scoprirai dopo. E il banco ti chiede cosa pensi di avere davanti, con le diciassette classi della scheda ARES: appena visto il paziente e poi tutte le volte che vuoi, cos\u00ec alla fine sa dirti non solo se l\'hai capito, ma a che minuto.' },
   { v: '1.11.0', t: 'L\'allarme adrenergico diventa un asse del motore: frequenza, pressione, cute, respiro e pupille escono tutti dallo stesso numero, e quel numero lo alzano il sangue che manca, l\'ossigeno che manca, lo zucchero che manca, il dolore — e quello che viene da fuori. È il capitolo 27 messo nel motore: gli stessi segni per cause diverse. Da qui l\'ipoglicemico è finalmente tachicardico e sudato, l\'infartuato pallido, la sincope non ha più una frequenza finta, e le pupille sono un parametro vero invece di un\'azione che non rilevava niente. Con l\'asse arriva il cardiopalmo dopo la festa: nessun antidoto da dare, l\'ambiente calmo che funziona davvero, e la domanda sulle sostanze che rende solo se la fai in disparte.' },
   { v: '1.10.0', t: 'Ictus e sincope passano al motore a tempo, e sono i primi due casi in cui i parametri stanno bene. Nella sincope il prezzo \u00e8 fisico: la tiri su prima del tempo e sviene una seconda volta. Nell\'ictus \u00e8 il tempo e l\'informazione — il debriefing conta i minuti dall\'esordio e ti dice quante delle cose che il ragguaglio dice sei davvero in grado di sostenere. E lei \u00e8 afasica, non confusa: capisce tutto.' },
   { v: '1.9.2', t: 'Corretto un errore negli scenari a domande: le due risposte su come si apre il ragguaglio dicevano l\'opposto dei ragguagli scritti sotto. \u00abChi \u00e8\u00bb sta per primo sempre — quello che cambia \u00e8 il secondo posto, la patologia che decide il trattamento oppure l\'orario che lo decide.' },

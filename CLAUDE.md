@@ -57,17 +57,20 @@ assets/js/
     fisiologia.js     riserve → allarme → compenso → parametri visibili. Pura
     anamnesi.js       chi risponde, cosa dice, cosa rivela. Logica pura
     ragguaglio.js     quanto del ragguaglio modello sai davvero sostenere
+    giudizio.js       il gesto ci stava, e quanto tempo e' costato quello che no. Pura
     manual.js markdown.js ribbon.js
   data/               solo dati, nessun DOM
     casi.js           casi per il motore a tempo (formato 3: offese, non derive)
     offese.js         catalogo delle offese: che cosa fa male al paziente
     domande.js        le dodici domande dell'anamnesi: sei SAMPLE, sei OPQRST
+    indicazioni.js    quando un gesto e' indicato, con la fonte del manuale accanto
+    classi-patologia.js  le diciassette classi della scheda ARES 118
     scenari.js        i 12 scenari a domande (motore vecchio)
     scenari-arrivo.js arrivo/situazione/azioniSbagliate/deriva per ogni scenario
     azioni.js         catalogo azioni della palette
     carte.js  carte-autoverifica.js  cartellini.js  anatomy.js
   modules/            una vista ciascuno
-    studio corpo monitor simulazioni intervento ripasso progressi
+    studio corpo monitor simulazioni intervento debriefing ripasso progressi
 tests/                node --test, solo logica pura (niente DOM)
 vendor/               three.js r160 + GLTFLoader, copiati dentro
 content/manuale.md    il manuale che il modulo Studio legge
@@ -98,6 +101,29 @@ scarica), PEA nell'emorragia e nell'ipossia (non scarica).
 I segni del compenso — refill, colorito, sete — **non compaiono nel diario da
 soli**: ci sono le azioni che li cercano. Chi guarda solo il monitor non vede
 niente finché non è tardi, ed è la lezione del banco.
+
+Dal 1.12.0 un'azione può dichiarare **quando è indicata**. La regola sta in
+`data/indicazioni.js` — ventitré voci, una per ogni gesto dove il manuale ha
+davvero qualcosa da dire, ognuna con la fonte accanto — e `core/giudizio.js` la
+applica. Tre cose contano:
+
+- il verdetto si dà **nell'istante in cui l'azione parte**, non quando finisce:
+  la spinale dura tre minuti, e in tre minuti puoi scoprire qualcosa che rende
+  sensato un gesto che quando l'hai deciso non lo era;
+- il predicato riceve **solo il conoscibile** — la coscienza, i parametri che
+  hai già misurato, quello che l'anamnesi ti ha dato, cosa hai già fatto, che
+  tipo di caso è, e le chiavi che il caso mette in `notoAllArrivo` perché si
+  vedono dal colpo d'occhio. Mai lo stato vero del paziente: se no il banco ti
+  direbbe che la glicemia andava misurata solo dopo che l'hai misurata;
+- il superfluo **non toglie punti**: costa i secondi che ha preso, e quei
+  secondi si vedono accanto alle finestre che hai mancato.
+
+Insieme al giudizio, il banco chiede **cosa pensi di avere davanti**: le
+diciassette classi della scheda ARES, una prima impressione obbligatoria dopo
+il colpo d'occhio e poi tutti i ripensamenti che vuoi. Dichiarare non costa
+tempo — è un pensiero, non un gesto — e il debriefing dice da dove sei partito,
+quante volte hai cambiato idea e **a che minuto** ci sei arrivato. Il sospetto
+non influenza mai il giudizio delle azioni: sarebbe barabile.
 
 L'**anamnesi** funziona allo stesso modo: le domande stanno nel catalogo, le
 risposte nei casi. Ci si gira verso una persona e da lì tutte le domande vanno a
@@ -191,6 +217,18 @@ ricarica-e-svuota-cache, ma la cura è bumpare sempre tutti e tre i punti.
   sola perdita di sangue: un caso che tocca `dolore`, `glicemia`, `ossigenazione`
   o `tonoAutonomo` muove anche quelli. E il dolore **non va sommato due volte**:
   entra nell'asse dentro `circolo`, non in `parametriVisibili`.
+- **`richiede` e `indicazione` non sono la stessa cosa.** `richiede` **blocca**
+  l'azione (a un incosciente lo zucchero per bocca non lo dai e basta).
+  L'indicazione **non blocca mai**: ti lascia fare e ti dice che non serviva.
+  Confonderle vuol dire impedire gesti che il soccorritore ha il diritto di fare
+  sbagliando.
+- **`letture.pa` è la stringa `'128/78'`, non un numero.** Un predicato che
+  scrive `c.letture.pa < 90` confronta una stringa con un numero e non fallisce:
+  restituisce `false` per sempre, in silenzio. Il contesto espone anche `pas`
+  come numero, ed è quello che i predicati usano.
+- **`rispondiDecisione` scrive in `fatte` senza passare da `completa`**: quelle
+  voci non hanno `giudizio` e non devono averlo — una decisione non è un gesto.
+  Chi legge `f.giudizio` deve reggere l'assenza.
 - **Un'offesa può tendere a un bersaglio invece di consumare** (è il caso del
   `simpaticomimetico`). Un caso così non peggiora da solo e lo dichiara con
   `peggioraDaSolo: false`, se no il collaudo lo dà per rotto.
@@ -249,7 +287,24 @@ condizionate dai tag. Specifica e piano restano come storia della decisione:
 - `docs/superpowers/specs/2026-08-21-tono-autonomo-design.md`
 - `docs/superpowers/plans/2026-08-21-tono-autonomo.md`
 
-**Il prossimo pezzo** sono i cinque scenari che restano: la seconda metà del
+**Fatto in 1.12.0.** Il **giudizio clinico**: le indicazioni con la fonte, il
+tempo buttato, e il sospetto sulle diciassette classi ARES. Il test
+«quello che un caso chiede, il giudizio lo approva» in `tests/casi.test.mjs` è
+il pezzo che ripaga: se un caso pretende un gesto che il giudizio considera
+superfluo, uno dei due è sbagliato, e si scopre prima che lo impari un
+volontario. Specifica e piano restano come storia della decisione:
+
+- `docs/superpowers/specs/2026-08-22-giudizio-clinico-design.md`
+- `docs/superpowers/plans/2026-08-22-giudizio-clinico.md`
+
+**Il prossimo pezzo** è **A2, la dotazione**: i presidi veri dello zaino e
+dell'ambulanza come azioni, le misure dove contano, un inventario sfogliabile.
+Un presidio sbagliato è un caso particolare di azione non indicata, quindi
+eredita il meccanismo da qui senza aggiungerci niente. Poi la **scheda ARES
+compilabile** — le diciassette classi nascono qui e servono lì — e le **carte di
+ripasso** rifatte.
+
+Restano anche i cinque scenari: la seconda metà del
 gruppo **A** — anafilassi, anticoagulante — e il gruppo **B** — bpco,
 schiacciamento, arresto (tre meccanismi che il motore non ha). Ognuno ha la sua
 specifica da scrivere.
