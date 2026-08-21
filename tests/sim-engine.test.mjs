@@ -704,3 +704,13 @@ test('un caso senza voci ha un confronto vuoto, non un errore', () => {
   assert.equal(p.ragguaglio.totale, 0);
   assert.deepEqual(p.ragguaglio.voci, []);
 });
+
+test('un effetto sul tono autonomo va nelle riserve, non sui parametri', () => {
+  const i = avvia({
+    ...casoConAnamnesi(),
+    eventi: [{ id: 'scarica', t: 30, effetto: { tonoAutonomo: 1.4 } }],
+  });
+  const prima = i.stato.fc;
+  i.avanza(60);
+  assert.ok(i.stato.fc > prima + 40, `la frequenza deve seguire il tono: era ${prima}, è ${i.stato.fc}`);
+});

@@ -257,7 +257,7 @@ export function creaIntervento(caso, opzioni = {}) {
      parametri: un'azione che dice `dolore: -2` deve toglierlo davvero al
      paziente, non al numero scritto sul monitor — che tanto al calcolo
      successivo tornerebbe com'era. */
-  const RISERVE = ['volemia', 'ossigenazione', 'glicemia', 'contrattilita', 'tonoVascolare', 'dolore'];
+  const RISERVE = ['volemia', 'ossigenazione', 'glicemia', 'contrattilita', 'tonoVascolare', 'dolore', 'tonoAutonomo'];
 
   /** Applica un oggetto-effetto: delta numerici, campi diretti, tag, arresto. */
   function applicaEffetto(eff) {
