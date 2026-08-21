@@ -711,3 +711,22 @@ test('chi chiede la prima impressione ha una risposta giusta da dare', () => {
       `${c.id}: ne propone ${c.sospettiPlausibili.length}, ne servono da tre a sei`);
   });
 });
+
+test('quello che un caso chiede, il giudizio lo approva', () => {
+  /* Se un caso pretende un gesto che il giudizio considera superfluo,
+     uno dei due è sbagliato — e il volontario che si fida della pagella
+     imparerebbe la cosa storta. Meglio scoprirlo qui. */
+  CASI.filter((c) => c.motore === 3).forEach((c) => {
+    const i = avvia(c);
+    if (c.classe) i.dichiaraSospetto(c.classe);
+    c.azioni.necessarie.forEach((n) => {
+      const id = [].concat(n.id)[0];
+      if (String(id).startsWith('domanda:')) { i.chiedi(String(id).slice(8)); return; }
+      i.esegui(id, (AZIONI[id]?.chi || ['tu'])[0]);
+      rispondiSeServe(i);
+    });
+    i.fatte.filter((f) => f.giudizio && f.giudizio.ok === false).forEach((f) => {
+      assert.fail(`${c.id}: chiede «${f.id}» ma il giudizio dice che non serviva — ${f.giudizio.perche}`);
+    });
+  });
+});

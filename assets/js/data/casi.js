@@ -241,8 +241,8 @@ export const CASI = [
       interlocutori: [{ id: 'figlio', label: 'il figlio' }],
       risposte: {
         disturbi: {
-          paziente: { t: '«Un peso qui in mezzo. Come se ci fosse qualcuno seduto sopra.»', qualita: 'buona' },
-          figlio: { t: '«Dice che è il petto. È tutto sudato, guardi.»', qualita: 'buona' },
+          paziente: { t: '«Un peso qui in mezzo. Come se ci fosse qualcuno seduto sopra.»', qualita: 'buona', rivela: ['dolore-toracico'] },
+          figlio: { t: '«Dice che è il petto. È tutto sudato, guardi.»', qualita: 'buona', rivela: ['dolore-toracico'] },
         },
         allergie: {
           paziente: { t: '«Nessuna.»', qualita: 'buona' },
@@ -281,7 +281,9 @@ export const CASI = [
           paziente: { t: '«Otto. Forse nove.»', qualita: 'buona' },
         },
         'durata-dolore': {
-          paziente: { t: '«Da quaranta minuti buoni, e non molla.»', qualita: 'buona' },
+          /* Chi ha chiesto da quanto dura il dolore sa che un dolore
+             toracico c'è: da lì in poi l'ECG è indicato. */
+          paziente: { t: '«Da quaranta minuti buoni, e non molla.»', qualita: 'buona', rivela: ['dolore-toracico'] },
         },
       },
     },
@@ -350,7 +352,6 @@ export const CASI = [
       necessarie: [
         { id: 'valuta-scena', entro: 60, peso: 1 },
         { id: 'posizione-seduta', entro: 150, peso: 2 },
-        { id: ['o2-maschera', 'o2-reservoir'], entro: 240, peso: 2, label: 'Ossigeno a flusso adeguato' },
         { id: 'monitor', entro: 240, peso: 2 },
         { id: 'misura-pa', entro: 300, peso: 2 },
         { id: 'domanda:durata-dolore', entro: 300, peso: 2 },
@@ -360,7 +361,13 @@ export const CASI = [
         { id: 'riferisci-infermiere', entro: 420, peso: 2 },
         { id: 'carica', entro: 660, peso: 3 },
       ],
-      utili: ['rassicura', 'accesso-prepara', 'allerta-co', 'conta-fr', 'misura-glicemia'],
+      /* L'ossigeno stava fra i necessari per abitudine. Le ERC 2025 cap. 12
+         :154 dicono di titolarlo su una saturazione di 94-98%: questo
+         paziente sta a 95 e parla a frasi complete, e per di più il
+         copione lo faceva dare PRIMA di attaccare il monitor, cioè senza
+         sapere il numero. Resta utile — se scende, serve — ma non toglie
+         punti a chi prima misura. */
+      utili: ['o2-maschera', 'o2-reservoir', 'rassicura', 'accesso-prepara', 'allerta-co', 'conta-fr', 'misura-glicemia'],
       dannose: [
         { id: 'antishock', penalita: 3, perche: 'Sdraiarlo aumenta il ritorno venoso al cuore e peggiora il respiro: nel dolore toracico si trasporta seduto, salvo che sia pallido e ipoteso.' },
         { id: 'spinale', perche: 'Non è un trauma: tre minuti buttati mentre il miocardio soffre.' },
@@ -385,6 +392,10 @@ export const CASI = [
        alcolica: le classi che sbagliano vanno offerte, non nascoste. */
     classe: 'C08',
     sospettiPlausibili: ['C04', 'C05', 'C07', 'C08'],
+    /* L'eloquio impastato ce l'hai nelle orecchie dal colpo d'occhio: non
+       serve chiederlo, e la glicemia da lì in poi è indicata — anche se
+       l'alito sa di alcol, che è tutta la lezione del caso. */
+    notoAllArrivo: ['deficit'],
 
     dispatch: {
       codice: 'VERDE',
@@ -719,6 +730,9 @@ export const CASI = [
     classe: 'C02',
     classeAnche: ['C04'],
     sospettiPlausibili: ['C02', 'C04', 'C08'],
+    /* Che sia svenuta te l'ha detto la centrale e te lo ridice lei: è il
+       dato da cui partono l'antishock e la glicemia. */
+    notoAllArrivo: ['sincope'],
 
     dispatch: {
       codice: 'VERDE',
@@ -887,6 +901,9 @@ export const CASI = [
     capitoli: ['cap-22', 'cap-25'],
     classe: 'C04',
     sospettiPlausibili: ['C02', 'C04', 'C08'],
+    /* La bocca asimmetrica e il braccio che non si alza si vedono dalla
+       porta: il deficit è già in mano prima di qualunque domanda. */
+    notoAllArrivo: ['deficit', 'afasia'],
 
     dispatch: {
       codice: 'ROSSO',

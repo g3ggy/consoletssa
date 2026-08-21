@@ -73,14 +73,21 @@ export const INDICAZIONI = {
     fonte: 'Bolognin :2786-2800',
   },
 
+  /* Il trauma è l'eccezione, e ha una fonte sua: il Bolognin :6424-6427
+     mette il reservoir a 12-15 l/min sul traumatizzato in respiro
+     spontaneo, «da regolare per ottenere un range di saturimetria tra il
+     94% e il 98%». Prima di aver messo il saturimetro non sai quanto ne
+     serve, e in un trauma non aspetti di saperlo. Dopo sì: se il numero
+     c'è, vale il numero. */
   'o2-reservoir': {
     quando: (c) => (c.letture.spo2 !== undefined && c.letture.spo2 < 90)
       || c.coscienza !== 'A'
-      || (c.letture.spo2 === undefined && c.saputo.dispnea),
+      || (c.letture.spo2 === undefined && (c.saputo.dispnea || c.caso.tipo === 'trauma')),
     perche: 'Il reservoir è l\'alto flusso: si tiene per chi è davvero '
-      + 'ipossico, sotto 90, o per chi non è vigile. Metterlo a chi ha una '
+      + 'ipossico, sotto 90, per chi non è vigile, o per il traumatizzato a '
+      + 'cui la saturazione non l\'hai ancora presa. Metterlo a chi ha una '
       + 'desaturazione lieve consuma la bombola e non aggiunge nulla.',
-    fonte: 'Bolognin :2786-2800',
+    fonte: 'Bolognin :2786-2800 e :6424-6427 (il trauma)',
   },
 
   /* ---------------------------- C: circolo -------------------------- */
@@ -174,13 +181,17 @@ export const INDICAZIONI = {
   /* ---------------------------- D: coscienza ------------------------ */
 
   'misura-glicemia': {
+    /* La sincope conta anche se adesso il paziente è vigile: una perdita
+       di coscienza c'è stata, e l'ipoglicemia è una delle cause che la
+       spiegano. Trovarlo sveglio non la esclude, la nasconde. */
     quando: (c) => c.coscienza !== 'A'
-      || Boolean(c.saputo.diabetico || c.saputo.insulina || c.saputo.deficit),
-    perche: 'La glicemia si misura a chi ha la coscienza alterata, a un '
-      + 'diabetico noto, o davanti a un deficit neurologico — perché '
-      + 'un\'ipoglicemia imita l\'ictus e va esclusa. A un paziente vigile e '
-      + 'orientato, senza niente che punti da quella parte, il numero non '
-      + 'cambia quello che fai.',
+      || Boolean(c.saputo.diabetico || c.saputo.insulina || c.saputo.deficit
+        || c.saputo.sincope),
+    perche: 'La glicemia si misura a chi ha la coscienza alterata o l\'ha '
+      + 'persa poco fa, a un diabetico noto, o davanti a un deficit '
+      + 'neurologico — perché un\'ipoglicemia imita l\'ictus e va esclusa. A '
+      + 'un paziente vigile e orientato, senza niente che punti da quella '
+      + 'parte, il numero non cambia quello che fai.',
     fonte: 'ERC 2025 cap. 12 :1125',
   },
 

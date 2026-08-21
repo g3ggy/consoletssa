@@ -520,8 +520,16 @@ export function creaIntervento(caso, opzioni = {}) {
       coscienza: s.coscienza,
       letture: lette,
       /* `saputo` è `{ chiave: { da, t } }`: ai predicati serve solo sapere
-         se la chiave c'è. */
-      saputo: Object.fromEntries(Object.keys(saputo).map((k) => [k, true])),
+         se la chiave c'è. Accanto a quello che hai chiesto sta quello che
+         hai VISTO: la bocca storta dell'ictus e l'eloquio impastato non
+         te li rivela nessuna domanda, li hai davanti dal colpo d'occhio.
+         Sono due cose diverse e restano separate: `notoAllArrivo` entra
+         nel giudizio ma non in `saputo`, così il ragguaglio continua a
+         pretendere che tu l'abbia chiesto davvero. */
+      saputo: {
+        ...Object.fromEntries((caso.notoAllArrivo || []).map((k) => [k, true])),
+        ...Object.fromEntries(Object.keys(saputo).map((k) => [k, true])),
+      },
       tag: s.tag,
       caso: { tipo: caso.tipo },
     };
