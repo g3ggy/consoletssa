@@ -260,6 +260,32 @@ function aggiornaDiario() {
   n.diarioBox.scrollTop = n.diarioBox.scrollHeight;
 }
 
+/* La prima impressione, una volta sola dopo il colpo d'occhio. Non tutte
+   e diciassette le classi: le quattro o cinque che il caso dichiara
+   plausibili, più «non lo so» che è sempre in fondo e non è un ripiego —
+   davanti a certi pazienti è la sola risposta onesta. */
+function aggiornaPrimaImpressione() {
+  const p = sim.primaImpressione;
+  if (!p) { n.impressione.hidden = true; mount(n.impressione); return; }
+
+  n.impressione.hidden = false;
+  const opzioni = el('div.opts', {}, p.opzioni.map((codice) => {
+    const b = el('button.opt', { type: 'button' }, [nomeClasse(codice)]);
+    b.addEventListener('click', () => {
+      sim.dichiaraSospetto(codice);
+      aggiornaTutto();
+    });
+    return b;
+  }));
+
+  mount(n.impressione,
+    el('p.step-num', { style: { margin: '0' }, text: 'prima di toccarlo' }),
+    el('h3', { text: 'Cosa pensi che sia?' }),
+    el('p.impressione-nota', { text: 'Si cambia quando vuoi, mentre raccogli.' }),
+    opzioni);
+  n.impressione.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+}
+
 /* ============================= DECISIONE ============================ */
 function aggiornaDecisione() {
   const d = sim.decisionePendente;
@@ -452,6 +478,7 @@ function aggiornaTutto() {
   aggiornaSquadra();
   aggiornaSospetto();
   aggiornaDiario();
+  aggiornaPrimaImpressione();
   aggiornaDecisione();
   aggiornaPalette();
   aggiornaTempo();
@@ -476,6 +503,11 @@ export function render(params) {
   const diario = el('div.diario', { role: 'log', 'aria-live': 'polite', 'aria-relevant': 'additions' });
   const diarioBox = el('div.diario-box', {}, [diario]);
   const decisione = el('div.decisione.step', { hidden: true, role: 'alertdialog', 'aria-live': 'assertive' });
+  /* Riusa le classi della decisione: stesso peso visivo, e nessuno stile
+     nuovo da scrivere. */
+  const impressione = el('div.impressione.decisione.step', {
+    hidden: true, role: 'alertdialog', 'aria-live': 'assertive',
+  });
   const ecgBox = el('div', { hidden: true });
   const paletteTabs = el('div.palette-tabs');
   const paletteLista = el('div.palette-lista');
@@ -556,6 +588,7 @@ export function render(params) {
           el('div.box', {}, [el('p.lbl', { text: 'La scena' }), el('p', { text: caso.scena.testo })]),
           el('div.box', {}, [el('p.lbl', { text: 'Colpo d\'occhio' }), el('p', { text: caso.colpoOcchio.testo })]),
         ]),
+        impressione,
         decisione,
         ecgBox,
         el('p.lbl', { style: { marginTop: '18px' }, text: 'Diario dell\'intervento' }),
@@ -581,7 +614,7 @@ export function render(params) {
   mount(radice, vista);
 
   n = {
-    radice, mon, squadra, diario, diarioBox, decisione,
+    radice, mon, squadra, diario, diarioBox, decisione, impressione,
     sospetto: { box: boxSospetto, sel: selSospetto, quando: quandoSospetto },
     paletteTabs, paletteLista, tempoBarra, tempoTacche, tempoTxt, ecg: ecgBox,
     chiudiPalette: () => togglePalette(false),
