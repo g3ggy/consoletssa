@@ -36,3 +36,32 @@ export function puoRispondere(idInterlocutore, coscienza) {
   if (coscienza === 'A' || coscienza === 'V') return { ok: true };
   return { ok: false, motivo: 'Non risponde alle domande: chiedi a chi c\'è.' };
 }
+
+/**
+ * Cosa risponde questa persona a questa domanda, adesso.
+ *
+ * @param {object} domanda        la voce del catalogo
+ * @param {object} anamnesi       il blocco `anamnesi` del caso
+ * @param {string} interlocutore  a chi l'hai chiesto
+ * @param {string} coscienza      AVPU del paziente in questo momento
+ * @returns {{testo: string, qualita: string, rivela: string[], ripiego: string|null}}
+ */
+export function rispostaA({ domanda, anamnesi, interlocutore, coscienza }) {
+  const scritta = anamnesi?.risposte?.[domanda.id]?.[interlocutore];
+
+  /* Nessuno è obbligato a sapere tutto: se il caso non ha scritto la
+     risposta per questa persona, quella persona non lo sa. È il modo di
+     dire «chiedilo a qualcun altro» senza scriverlo trentasei volte. */
+  if (!scritta) {
+    return { testo: domanda.nonSo, qualita: 'vaga', rivela: [], ripiego: 'nonSo' };
+  }
+
+  return {
+    testo: scritta.t,
+    qualita: scritta.qualita || 'buona',
+    /* Solo una risposta buona rivela qualcosa: una vaga ti lascia dove
+       eri, una sbagliata ti porta altrove. */
+    rivela: scritta.qualita === 'buona' ? [...(scritta.rivela || [])] : [],
+    ripiego: null,
+  };
+}
