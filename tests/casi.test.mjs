@@ -54,6 +54,10 @@ test('ogni caso dichiara le chiavi che il motore si aspetta', () => {
   });
 });
 
+/* Un caso senza offese non ha niente che consumi le riserve: il paziente
+   resta com'è, e deve restarci senza che il motore inventi nulla. */
+const puoPeggiorare = (c) => c.motore !== 3 || (c.fisiologia.offese || []).length > 0;
+
 test('senza fare nulla il paziente peggiora, e nessun caso esplode', () => {
   CASI.forEach((c) => {
     const i = avvia(c);
@@ -62,8 +66,13 @@ test('senza fare nulla il paziente peggiora, e nessun caso esplode', () => {
       rispondiSeServe(i);
     }
     const p = i.chiudi();
-    assert.ok(['peggiorato', 'morto'].includes(p.esitoPaziente),
-      `${c.id}: senza far nulla dovrebbe peggiorare, invece è ${p.esitoPaziente}`);
+    if (puoPeggiorare(c)) {
+      assert.ok(['peggiorato', 'morto'].includes(p.esitoPaziente),
+        `${c.id}: senza far nulla dovrebbe peggiorare, invece è ${p.esitoPaziente}`);
+    } else {
+      assert.equal(p.esitoPaziente, 'stabile',
+        `${c.id}: non ha offese, quindi non deve peggiorare da solo`);
+    }
     assert.equal(p.punti, 0, `${c.id}: senza far nulla il punteggio deve essere zero`);
   });
 });
@@ -141,7 +150,10 @@ test('i casi di formato 3 dichiarano offese, non derive', () => {
   CASI.filter((c) => c.motore === 3).forEach((c) => {
     assert.ok(c.fisiologia, `${c.id}: manca il blocco fisiologia`);
     assert.ok(c.fisiologia.base, `${c.id}: manca la base`);
-    assert.ok(c.fisiologia.offese?.length, `${c.id}: nessuna offesa dichiarata`);
+    /* Un caso di formato 3 dichiara il blocco `fisiologia`, non per
+       forza un'offesa: l'ictus non ha niente che consuma riserve, e un
+       paziente che non peggiora è legittimo. */
+    assert.ok(Array.isArray(c.fisiologia.offese), `${c.id}: le offese devono essere un elenco, anche vuoto`);
     assert.ok(!c.decorso, `${c.id}: ha ancora il decorso vecchio`);
     assert.ok(!c.iniziale, `${c.id}: ha ancora i parametri iniziali scritti a mano`);
   });
