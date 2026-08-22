@@ -3,14 +3,16 @@
    I test di questo progetto girano senza DOM, quindi qui non si misura
    davvero un rendering: si legge il CSS come testo e si controlla che
    certe regole ci siano o non ci siano. È un controllo indiretto, e va
-   preso per quello che è — ma le due cose che guarda sono difetti veri,
-   trovati su un iPad da 11 pollici, e un test testuale basta a impedire
-   che tornino.
+   preso per quello che è — ma tutto quello che guarda sono difetti veri,
+   trovati usando la console su un iPad e su un telefono, e un test
+   testuale basta a impedire che tornino:
 
-   Il primo è il numero di versione sparito da telefono. Il secondo è
-   l'iPad in verticale — 834 punti — che finiva sotto la soglia dei 900
-   e prendeva il layout pensato per il telefono: tutto in colonna, e
-   pagine da tremila pixel su uno schermo grande. */
+   · il numero di versione, che spariva proprio da telefono;
+   · l'iPad in verticale — 834 punti — che finiva sotto la soglia dei 900
+     e prendeva il layout pensato per il telefono;
+   · il canvas con l'altezza in percentuale, che su Safari faceva crescere
+     il monitor senza fine;
+   · la barra delle categorie che si spostava sotto il dito. */
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -86,6 +88,21 @@ test('nessun canvas prende l\'altezza in percentuale', () => {
         `${nome}: «${selettore}» dà al canvas un'altezza in percentuale`);
     });
   });
+});
+
+test('la barra delle categorie sta ferma sotto il dito', () => {
+  /* Due fastidi segnalati sul mezzo, che sono lo stesso fastidio: la
+     barra che si sposta mentre cerchi un gesto. Il contatore delle azioni
+     rimaste cambia da 8 a 7 e senza larghezza minima accorcia il tab,
+     spostando tutti quelli dopo; e un trascinamento verticale sulla barra
+     scappava al pannello e alla pagina sotto. */
+  const testo = css('intervento.css');
+  const barra = /\.palette-tabs \{([^}]*)\}/.exec(testo)?.[1] || '';
+  assert.match(barra, /position:\s*sticky/, 'la barra delle categorie non è ancorata in cima');
+  assert.match(barra, /touch-action:\s*pan-x/, 'un trascinamento verticale sulla barra scappa al pannello');
+
+  const pasticca = /\.pcat i \{([^}]*)\}/.exec(testo)?.[1] || '';
+  assert.match(pasticca, /min-width/, 'il contatore non ha larghezza minima: il tab si accorcia e i vicini si spostano');
 });
 
 test('il tablet in verticale non prende il layout del telefono', () => {

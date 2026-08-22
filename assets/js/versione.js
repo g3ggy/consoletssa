@@ -13,11 +13,12 @@
    (e la stessa stringa in cima a sw.js).
    ===================================================================== */
 
-export const VERSIONE = '1.13.3';
+export const VERSIONE = '1.13.4';
 export const DATA_VERSIONE = '22 agosto 2026';
 
 /** Cosa è cambiato, dalla più recente. Le prime tre finiscono nel pannello. */
 export const NOVITA = [
+  { v: '1.13.4', t: 'La barra delle categorie nella palette sta ferma: resta incollata in cima al pannello, un trascinamento verticale non se la porta più dietro, e il contatore delle azioni rimaste ha una larghezza fissa — prima passando da otto a sette il tab si accorciava e tutti quelli dopo si spostavano sotto il dito mentre stavi cercando un gesto.' },
   { v: '1.13.3', t: 'Il monitor non cresce più all\'infinito su iPad. Il canvas del tracciato prendeva l\'altezza in percentuale da un contenitore che un\'altezza non ce l\'aveva: Safari ripiegava sull\'altezza interna del canvas, che raddoppia a ogni fotogramma su uno schermo Retina — e il pannello diventava un rettangolo nero lungo quanto la pagina, senza tracciato né parametri. Adesso l\'altezza è in pixel, come per gli altri tracciati che non hanno mai dato problemi.' },
   { v: '1.13.2', t: 'Il tablet smette di essere un telefono gigante. Su un iPad in verticale la console prendeva il layout del telefono — tutto in colonna, il monitor largo quanto lo schermo, il diario sotto la piega e una pagina lunga il triplo — perché il confine fra telefono e scrivania era uno solo. Adesso da 820 punti in su il monitor sta a fianco, e il manuale tiene la stessa misura di riga che ha su schermo largo invece di stirarsi. E il numero di versione, che serve proprio a chi legge da telefono per sapere se ha la copia aggiornata, sotto i 900 punti era nascosto: adesso si vede in fondo alla barra, dappertutto.' },
   { v: '1.13.1', t: 'Nel dolore toracico l\'ossigeno torna fra le cose da fare, non fra quelle che puoi fare: sta nella lista dei compiti del soccorritore del manuale, e gli occhialini sono nominati proprio lì. Quale presidio resta però una scelta tua — il reservoir a chi satura 95 è alto flusso per niente, e il banco continua a dirtelo.' },
