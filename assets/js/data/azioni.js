@@ -48,13 +48,24 @@ const ELENCO = [
   },
   {
     id: 'allontana-curiosi', cat: 'scena', label: 'Allontana i curiosi', durata: 45,
-    chi: ['tu', 'autista'], applica: () => ({ tag: 'scena-libera' }),
+    chi: ['tu', 'autista'],
+    /* Una volta liberato lo spazio è liberato: rifarlo non aggiunge
+       niente e occupa una persona per quarantacinque secondi. Il
+       guardiano è il tag che lascia, come per i presidi. */
+    richiede: (p) => !p.tag.includes('scena-libera'),
+    motivoBloccato: 'Lo spazio attorno al paziente è già libero.',
+    applica: () => ({ tag: 'scena-libera' }),
     diario: 'Curiosi allontanati, spazio liberato attorno al paziente.',
     spiega: 'Servono spazio per lavorare e riservatezza per il paziente.',
   },
   {
     id: 'gestisci-familiari', cat: 'scena', label: 'Prendi da parte i familiari', durata: 60,
-    chi: ['tu', 'autista'], applica: () => ({ tag: 'familiari-gestiti' }),
+    chi: ['tu', 'autista'],
+    /* Stesso guardiano dei curiosi: presi da parte una volta, sono presi
+       da parte. */
+    richiede: (p) => !p.tag.includes('familiari-gestiti'),
+    motivoBloccato: 'I familiari sono già stati presi da parte.',
+    applica: () => ({ tag: 'familiari-gestiti' }),
     diario: 'Familiari accompagnati in un\'altra stanza e informati.',
     spiega: 'Toglierli dalla scena serve a loro e a te: si raccolgono meglio le informazioni.',
   },
