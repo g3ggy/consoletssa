@@ -204,3 +204,51 @@ test('sull\'adulto il sondino è il 16 o il 18', () => {
   assert.equal(indicata('sondino-16', conVomito).ok, true);
   assert.equal(indicata('sondino-6', conVomito).ok, false);
 });
+
+/* ============= quale andava usato al posto di quello =============== */
+
+test('quando bocci un presidio, il banco dice quale andava usato', () => {
+  /* Dolore toracico noto, saturazione 95: il reservoir è alto flusso per
+     niente, ma l'ossigeno ci vuole. L'alternativa esce dalle stesse
+     regole che hanno bocciato il gesto, quindi non può contraddirle — e
+     siccome le misure di una famiglia stanno in catalogo dalla più
+     leggera alla più pesante, la prima indicata è la più leggera che
+     bastava. Nel dolore toracico sono gli occhialini. */
+  const c = {
+    coscienza: 'A', letture: { spo2: 95 }, saputo: { 'dolore-toracico': true },
+    tag: [], caso: { tipo: 'medico' },
+  };
+  const v = indicata('o2-reservoir', c);
+  assert.equal(v.ok, false);
+  assert.ok(v.invece, 'nessuna alternativa proposta');
+  assert.equal(v.invece.id, 'o2-occhialini');
+  assert.ok(v.invece.perche && v.invece.fonte, 'l\'alternativa non porta perché e fonte');
+  assert.match(v.invece.label, /occhialini/i);
+});
+
+test('se nessuna sorella era indicata non se ne inventa una', () => {
+  /* Paziente che respira bene e non ha dolore al petto: nessun presidio
+     dell'ossigeno serviva, e dirlo è un'informazione utile quanto l'altra. */
+  const c = {
+    coscienza: 'A', letture: { spo2: 99 }, saputo: {}, tag: [], caso: { tipo: 'medico' },
+  };
+  const v = indicata('o2-reservoir', c);
+  assert.equal(v.ok, false);
+  assert.equal(v.invece, null);
+});
+
+test('un\'azione senza famiglia non ha alternative da proporre', () => {
+  const c = { coscienza: 'A', letture: {}, saputo: {}, tag: [], caso: { tipo: 'medico' } };
+  const v = indicata('collare', c);
+  assert.equal(v.ok, false);
+  assert.equal(v.invece, null);
+});
+
+test('un gesto indicato non si porta dietro nessuna alternativa', () => {
+  const c = {
+    coscienza: 'A', letture: { spo2: 88 }, saputo: {}, tag: [], caso: { tipo: 'medico' },
+  };
+  const v = indicata('o2-reservoir', c);
+  assert.equal(v.ok, true);
+  assert.equal(v.invece, null);
+});
