@@ -8,6 +8,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import { creaIntervento, gravita } from '../assets/js/core/sim-engine.js';
+import { AZIONI } from '../assets/js/data/azioni.js';
 
 /* ------------------- caso di prova, minimo ma completo --------------- */
 const AZIONI_PROVA = {
@@ -896,4 +897,25 @@ test('chi non dichiara mai niente non ha sospetto, e non esplode', () => {
   const i = avvia(casoConAnamnesi());
   const p = i.chiudi();
   assert.equal(p.sospetto, null, 'senza classe dichiarata non c\'è niente da valutare');
+});
+
+/* ========================== la bombola ================================ */
+
+test('il reservoir consuma la bombola, e il debriefing lo dice', () => {
+  const i = creaIntervento(casoProva(), { azioni: AZIONI });
+  i.esegui('o2-reservoir', 'tu');       // 40s di montaggio, poi eroga 15 l/min
+  i.avanza(600);
+  const p = i.chiudi();
+  assert.ok(p.bombola, 'la pagella non racconta la bombola');
+  assert.ok(p.bombola.erogati >= 150, `attesi almeno 150 litri, erogati ${p.bombola.erogati}`);
+  assert.ok(p.bombola.residui < 400);
+});
+
+test('una bombola quasi vuota finisce, e l\'ossigeno se ne va con lei', () => {
+  // 2 litri a 20 bar sono 40 litri: meno di tre minuti a 15 l/min
+  const i = creaIntervento(casoProva({ bombola: { litri: 2, bar: 20 } }), { azioni: AZIONI });
+  i.esegui('o2-reservoir', 'tu');
+  i.avanza(600);
+  assert.equal(i.stato.tag.includes('o2'), false, 'la maschera eroga ancora da una bombola vuota');
+  assert.ok(i.diario.some((r) => /bombola/i.test(r.testo)), 'il diario non avvisa che è finita');
 });

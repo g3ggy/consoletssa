@@ -30,6 +30,7 @@ import {
   PAZIENTE, aChi, interlocutoriDi, puoRispondere, rispostaA, domandeDisponibili,
 } from './anamnesi.js';
 import { indicata } from './giudizio.js';
+import { creaBombola, conFlusso, consuma } from './bombola.js';
 import { DOMANDE } from '../data/domande.js';
 import { CLASSI, nomeClasse } from '../data/classi-patologia.js';
 import { compilaPagella, gravita } from './pagella.js';
@@ -122,6 +123,11 @@ export function creaIntervento(caso, opzioni = {}) {
   let decisionePendente = null;
   let arrestoA = null;
   let storico = [];                 // { t, pas, fc, spo2 } per il grafico finale
+
+  /* Quanto ossigeno c'è, e quanto ne sta uscendo. Il caso può dichiarare
+     una bombola già scarica: è la trappola del controllo mezzo non
+     fatto, e allora finisce davvero durante l'intervento. */
+  let bombola = creaBombola(caso.bombola);
 
   /* Cosa pensi di avere davanti, e da che minuto. Ogni cambio resta:
      alla fine conta da dove sei partito, dove sei arrivato e QUANDO ci
@@ -387,6 +393,9 @@ export function creaIntervento(caso, opzioni = {}) {
     fatte = [...fatte, { id, chi, t, giudizio }];
 
     if (az.applica) applicaEffetto(az.applica(proietta(), contesto()));
+    /* Il presidio che hai messo decide quanto ossigeno esce. La maschera
+       è una sola: il flusso nuovo sostituisce il vecchio. */
+    if (az.flusso) bombola = conFlusso(bombola, az.flusso);
     // un caso può dare a un'azione generica un effetto tutto suo:
     // la posizione seduta fa bene al dispnoico e male allo shockato
     const extra = caso.effettiAzioni?.[id];
@@ -444,6 +453,7 @@ export function creaIntervento(caso, opzioni = {}) {
       if (decisionePendente || ancora.esito !== 'in-corso') break;
       t += 1;
       restanti -= 1;
+      consumaOssigeno();
       completaPendenti();
       verificaArrestoFisiologico();
       verificaArresto();
@@ -452,6 +462,18 @@ export function creaIntervento(caso, opzioni = {}) {
       if (t % 15 === 0) campiona();
     }
     return t;
+  }
+
+  /* L'ossigeno esce mentre il tempo passa. Quando la bombola finisce non
+     c'è un allarme che lo dice: il pallone del reservoir si affloscia, e
+     te ne accorgi guardando. */
+  function consumaOssigeno() {
+    const prima = bombola;
+    bombola = consuma(bombola, 1, t);
+    if (bombola.finitaA !== null && prima.finitaA === null) {
+      applicaEffetto({ togliTag: 'o2' });
+      scrivi('osservazione', 'La bombola è finita: il pallone del reservoir si affloscia e il flusso si ferma.');
+    }
   }
 
   function campiona() {
@@ -708,6 +730,7 @@ export function creaIntervento(caso, opzioni = {}) {
     storico,
     sospetti,
     t,
+    bombola,
   });
 
   function chiudi() {
@@ -729,6 +752,7 @@ export function creaIntervento(caso, opzioni = {}) {
     get squadra() { return squadra; },
     get decisionePendente() { return decisionePendente; },
     get storico() { return storico; },
+    get bombola() { return bombola; },
     get interlocutore() { return interlocutore; },
     get interlocutori() { return interlocutoriDi(caso); },
     get saputo() { return saputo; },

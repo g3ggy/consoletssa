@@ -14,6 +14,7 @@
 import { revisioneAnamnesi } from './anamnesi.js';
 import { revisioneRagguaglio } from './ragguaglio.js';
 import { tempoButtato } from './giudizio.js';
+import { riepilogo as riepilogoBombola } from './bombola.js';
 import { DOMANDE } from '../data/domande.js';
 import { nomeClasse } from '../data/classi-patologia.js';
 
@@ -61,6 +62,7 @@ export function compilaPagella(caso, dati) {
   const {
     s, statoIniziale, catalogo = {}, fatte = [], raccolte = [],
     saputo = {}, letture = {}, storico = [], sospetti = [], t = 0,
+    bombola = null,
   } = dati;
   const conf = caso.azioni || {};
 
@@ -139,6 +141,10 @@ export function compilaPagella(caso, dati) {
     ragguaglio: revisioneRagguaglio(caso, { fatte, saputo, letture }),
     esitoPaziente,
     tempoButtato: buttato,
+    /* Quanto ossigeno è uscito, e per quanto sarebbe bastato ancora.
+       `null` se non ne hai dato: senza erogazione non c'è niente da
+       raccontare. */
+    bombola: riepilogoBombola(bombola),
     sospetto: revisioneSospetto(caso, sospetti),
     gravitaIniziale: gIniziale,
     gravitaFinale: gFinale,
