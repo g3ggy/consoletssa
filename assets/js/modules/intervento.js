@@ -7,7 +7,7 @@
    sta in debriefing.js.
    ===================================================================== */
 
-import { el, mount, $, formatSeconds, clamp } from '../core/dom.js';
+import { el, mount, $, formatSeconds, clamp, fold } from '../core/dom.js';
 import { icon, toast } from '../core/ui.js';
 import { creaLifepak } from '../core/lifepak.js';
 import { setRibbonRhythm } from '../core/ribbon.js';
@@ -25,6 +25,10 @@ let chiusure = [];
 let n = null;              // riferimenti ai nodi che si aggiornano
 let categoriaAperta = 'valutazione';
 let paletteAperta = false;
+/* Cosa c'è scritto nella casella di ricerca della palette. Con testo
+   dentro, l'elenco scavalca la categoria aperta e mostra tutte le
+   corrispondenze insieme — è il punto della ricerca. */
+let ricercaTesto = '';
 /* Quale famiglia di presidi è aperta, e per chi. Si apre toccando «Fallo
    tu»: prima si sceglie chi lo fa, poi quale pezzo prende in mano. */
 let famigliaAperta = null;
@@ -365,6 +369,30 @@ function esegui(id, chi) {
   aggiornaTutto();
 }
 
+/* La riga di una domanda: usata sia nel pannello dell'anamnesi sia nei
+   risultati della ricerca, che possono incrociarla con azioni di
+   qualunque categoria. */
+function rigaDomanda(d) {
+  const gia = sim.raccolte.some((r) => r.domanda === d.id && r.interlocutore === sim.interlocutore);
+  return el(`div.pal-riga${gia ? '.gia-chiesta' : ''}`, {}, [
+    el('div.az-testo', {}, [
+      el('b', {}, [el('span.anam-lettera', { text: d.lettera }), d.testo]),
+      el('span', { text: gia ? 'Gliel\'hai già chiesto' : `Schema ${d.schema}` }),
+    ]),
+    el('div.az-meta', {}, [el('span.durata', { text: `${d.durata}s` })]),
+    el('div.az-btn', {}, [
+      el('button.btn.sm.pri', {
+        type: 'button',
+        onclick: () => {
+          const esito = sim.chiedi(d.id);
+          if (!esito.ok) { toast('Non ora', esito.motivo, 'warn'); return; }
+          aggiornaTutto();
+        },
+      }, ['Chiedi']),
+    ]),
+  ]);
+}
+
 /* La barra di chi hai davanti, e sotto le domande che gli puoi fare.
    Un tocco per domanda: chi si è girato verso la moglie continua a
    parlare con lei finché non si gira di nuovo. */
@@ -379,27 +407,7 @@ function pannelloAnamnesi() {
     },
   }, [persona.label])));
 
-  const disponibili = sim.domandeDisponibili();
-  const righe = disponibili.map((d) => {
-    const gia = sim.raccolte.some((r) => r.domanda === d.id && r.interlocutore === sim.interlocutore);
-    return el(`div.pal-riga${gia ? '.gia-chiesta' : ''}`, {}, [
-      el('div.az-testo', {}, [
-        el('b', {}, [el('span.anam-lettera', { text: d.lettera }), d.testo]),
-        el('span', { text: gia ? 'Gliel\'hai già chiesto' : `Schema ${d.schema}` }),
-      ]),
-      el('div.az-meta', {}, [el('span.durata', { text: `${d.durata}s` })]),
-      el('div.az-btn', {}, [
-        el('button.btn.sm.pri', {
-          type: 'button',
-          onclick: () => {
-            const esito = sim.chiedi(d.id);
-            if (!esito.ok) { toast('Non ora', esito.motivo, 'warn'); return; }
-            aggiornaTutto();
-          },
-        }, ['Chiedi']),
-      ]),
-    ]);
-  });
+  const righe = sim.domandeDisponibili().map(rigaDomanda);
 
   return el('div.anam', {}, [
     el('div.anam-head', {}, [el('span', { text: 'parli con' }), barra]),
@@ -502,10 +510,39 @@ function righeDellaCategoria(inCategoria) {
   }).filter(Boolean);
 }
 
+/* ============================== RICERCA ============================= */
+/* Con sessanta azioni in undici categorie il problema vero è ricordarsi
+   dove sta un gesto, non eseguirlo: la ricerca guarda tutte le
+   categorie insieme, non solo quella aperta.
+
+   Le famiglie di presidi (Guedel, sondini, ossigeno, agocannule) qui si
+   DISTENDONO invece di restare compattate in una riga: ogni misura ha
+   già un'etichetta e una spiegazione proprie (`data/presidi.js`, es.
+   «Cannula orofaringea — mis. 3 gialla»), quindi `rigaAzione` le mostra
+   bene una per una. Chi cerca «guedel» sta già scegliendo, e vuole
+   vedere le sei misure. Sotto una categoria restano compattate perché
+   lì il problema è l'opposto: non farsi sommergere da righe che quasi
+   mai servono tutte insieme. */
+function conCategoria(riga, etichetta) {
+  const label = riga.querySelector('.az-testo b');
+  if (label) label.prepend(el('span.pal-cat', { text: etichetta }));
+  return riga;
+}
+
+function risultatiRicerca(testo, disponibili) {
+  const azioni = disponibili
+    .filter((az) => fold(az.label).includes(testo) || fold(az.spiega || '').includes(testo))
+    .map((az) => conCategoria(rigaAzione(az), CATEGORIE.find((c) => c.id === az.cat)?.label || az.cat));
+
+  const domande = sim.domandeDisponibili()
+    .filter((d) => fold(d.testo).includes(testo))
+    .map((d) => conCategoria(rigaDomanda(d), 'Anamnesi'));
+
+  return [...azioni, ...domande];
+}
+
 function aggiornaPalette() {
   const disponibili = sim.azioniDisponibili();
-  const inCategoria = azioniDi(categoriaAperta)
-    .filter((a) => disponibili.some((d) => d.id === a.id));
 
   mount(n.paletteTabs, ...CATEGORIE.map((c) => {
     const quante = c.id === 'anamnesi'
@@ -514,10 +551,24 @@ function aggiornaPalette() {
     return el('button.pcat', {
       type: 'button',
       'aria-pressed': String(c.id === categoriaAperta),
-      onclick: () => { categoriaAperta = c.id; aggiornaPalette(); },
+      onclick: () => {
+        categoriaAperta = c.id;
+        // toccare una categoria è "sfoglio questa": la ricerca si esce
+        ricercaTesto = '';
+        if (n.ricercaInput) n.ricercaInput.value = '';
+        aggiornaPalette();
+      },
       title: c.desc,
     }, [c.label, el('i', { text: String(quante) })]);
   }));
+
+  const testo = fold(ricercaTesto.trim());
+  if (testo) {
+    const righe = risultatiRicerca(testo, disponibili);
+    mount(n.paletteLista, ...(righe.length ? righe
+      : [el('p.palette-vuota', { text: `Nessun gesto trovato per «${ricercaTesto.trim()}».` })]));
+    return;
+  }
 
   /* L'anamnesi non è fatta di azioni: è fatta di domande, e prima delle
      domande c'è la persona a cui le fai. */
@@ -525,6 +576,9 @@ function aggiornaPalette() {
     mount(n.paletteLista, pannelloAnamnesi());
     return;
   }
+
+  const inCategoria = azioniDi(categoriaAperta)
+    .filter((a) => disponibili.some((d) => d.id === a.id));
 
   if (!inCategoria.length) {
     mount(n.paletteLista, el('p.palette-vuota', { text: 'Niente da fare in questa categoria, adesso.' }));
@@ -601,6 +655,16 @@ export function render(params) {
     hidden: true, role: 'alertdialog', 'aria-live': 'assertive',
   });
   const ecgBox = el('div', { hidden: true });
+  /* Sopra la barra delle categorie: sul telefono resta a portata di
+     pollice. `type="search"` dà la crocetta di sistema per svuotarla,
+     e anche quella fa scattare `oninput`. */
+  const ricercaInput = el('input.pal-ricerca', {
+    type: 'search',
+    autocomplete: 'off',
+    placeholder: 'Cerca un gesto — es. «glicemia»',
+    'aria-label': 'Cerca un gesto in tutte le categorie',
+    oninput: (e) => { ricercaTesto = e.target.value; aggiornaPalette(); },
+  });
   const paletteTabs = el('div.palette-tabs');
   const paletteLista = el('div.palette-lista');
   const tempoBarra = el('i');
@@ -637,6 +701,7 @@ export function render(params) {
       el('span.spacer'),
       el('button.btn.sm.palette-chiudi', { type: 'button' }, ['Chiudi']),
     ]),
+    el('div.pal-ricerca-box', {}, [icon('search'), ricercaInput]),
     paletteTabs,
     paletteLista,
   ]);
@@ -708,7 +773,7 @@ export function render(params) {
   n = {
     radice, mon, squadra, diario, diarioBox, decisione, impressione,
     sospetto: { box: boxSospetto, sel: selSospetto, quando: quandoSospetto },
-    paletteTabs, paletteLista, tempoBarra, tempoTacche, tempoTxt, ecg: ecgBox,
+    paletteTabs, paletteLista, ricercaInput, tempoBarra, tempoTacche, tempoTxt, ecg: ecgBox,
     chiudiPalette: () => togglePalette(false),
   };
 
@@ -716,6 +781,7 @@ export function render(params) {
   categoriaAperta = 'scena';
   famigliaAperta = null;
   membroFamiglia = 'tu';
+  ricercaTesto = '';
   setTimeout(() => { aggiornaTutto(); }, 0);
 
   return radice;

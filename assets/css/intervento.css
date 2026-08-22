@@ -119,6 +119,25 @@
   display: flex; align-items: center; gap: var(--sp-2);
   padding: var(--sp-3) var(--sp-4); border-bottom: 1px solid var(--line);
 }
+/* La casella di ricerca sta fra l'intestazione e la barra delle
+   categorie: entrambe sono fuori dalla lista che scorre (`.palette-lista`
+   ha lo scroll suo), quindi restano visibili da sole, senza bisogno di
+   un `position: sticky` in più. */
+.pal-ricerca-box {
+  display: flex; align-items: center; gap: 8px;
+  margin: var(--sp-3) var(--sp-4) 0;
+  padding: 8px 12px;
+  border: 1px solid var(--line); border-radius: var(--r-full);
+  background: var(--surface-2); color: var(--ink-3);
+}
+.pal-ricerca-box svg { width: 16px; height: 16px; flex: 0 0 auto; }
+.pal-ricerca {
+  flex: 1; min-width: 0; border: 0; background: transparent; color: var(--ink);
+  font: inherit; font-size: var(--fs-base);
+}
+.pal-ricerca:focus { outline: none; }
+.pal-ricerca::placeholder { color: var(--ink-3); }
+
 .palette-tabs {
   display: flex; gap: 5px; overflow-x: auto; padding: var(--sp-3) var(--sp-4);
   border-bottom: 1px solid var(--line);
@@ -166,6 +185,15 @@
 }
 .az-testo b { display: block; font-size: var(--fs-base); font-weight: 600; }
 .az-testo span { display: block; color: var(--ink-3); font-size: var(--fs-sm); line-height: 1.4; margin-top: 2px; }
+/* Il bollino di categoria nei risultati della ricerca: dice dove sta il
+   gesto, non solo come si chiama. `.az-testo span` è a blocchi (sopra):
+   un secondo class lo scavalca per specificità, come già `.anam-lettera`. */
+.az-testo .pal-cat {
+  display: inline-block; margin: 0 7px 0 0; padding: 1px 7px;
+  border-radius: var(--r-full); background: var(--surface-3); color: var(--ink-3);
+  font-family: var(--mono); font-size: var(--fs-xs);
+  text-transform: uppercase; letter-spacing: .04em; vertical-align: middle;
+}
 .az-meta { font-family: var(--mono); font-size: var(--fs-xs); color: var(--ink-3); }
 .az-btn { grid-column: 1 / -1; display: flex; gap: 6px; flex-wrap: wrap; }
 @media (min-width: 720px) {
