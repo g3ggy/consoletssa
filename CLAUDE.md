@@ -59,12 +59,14 @@ assets/js/
     ragguaglio.js     quanto del ragguaglio modello sai davvero sostenere
     giudizio.js       il gesto ci stava, e quanto tempo e' costato quello che no. Pura
     pagella.js        com'e' andata: punti, esito, sospetto, tempo buttato. Pura
+    bombola.js        quanto ossigeno resta, e per quanto. Pura
     manual.js markdown.js ribbon.js
   data/               solo dati, nessun DOM
     casi.js           casi per il motore a tempo (formato 3: offese, non derive)
     offese.js         catalogo delle offese: che cosa fa male al paziente
     domande.js        le dodici domande dell'anamnesi: sei SAMPLE, sei OPQRST
     indicazioni.js    quando un gesto e' indicato, con la fonte del manuale accanto
+    presidi.js        le famiglie dei presidi: Guedel, sondini, ossigeno, aghi
     classi-patologia.js  le diciassette classi della scheda ARES 118
     scenari.js        i 12 scenari a domande (motore vecchio)
     scenari-arrivo.js arrivo/situazione/azioniSbagliate/deriva per ogni scenario
@@ -233,6 +235,14 @@ ricarica-e-svuota-cache, ma la cura è bumpare sempre tutti e tre i punti.
 - **Un'offesa può tendere a un bersaglio invece di consumare** (è il caso del
   `simpaticomimetico`). Un caso così non peggiora da solo e lo dichiara con
   `peggioraDaSolo: false`, se no il collaudo lo dà per rotto.
+- **Una famiglia di presidi non usa `unaVolta`.** `unaVolta` vale per un id
+  solo: con sei Guedel distinte le metteresti tutte e sei. Quello che serve è
+  il tag che la prima lascia (`cannula`, `ev-pronto`), letto da `richiede`.
+  L'ossigeno è l'eccezione e tiene `unaVolta`: cambiare presidio strada
+  facendo è lecito, ed è quello che si fa quando il paziente peggiora.
+- **La riga del capofamiglia nella palette ha bisogno di una `spiega` sua.**
+  Senza, si descrive con quella della prima misura: «Ossigeno» finiva per
+  spiegare gli occhialini, e «Prepara il materiale» il 14 arancione.
 - I parametri di un caso convertito **si calibrano, non si copiano** dal vecchio:
   si chiama `parametriVisibili` da uno script e si guardano i numeri. Quelli
   scritti a mano nel motore a domande spesso non stanno in piedi con la
@@ -298,12 +308,23 @@ volontario. Specifica e piano restano come storia della decisione:
 - `docs/superpowers/specs/2026-08-22-giudizio-clinico-design.md`
 - `docs/superpowers/plans/2026-08-22-giudizio-clinico.md`
 
-**Il prossimo pezzo** è **A2, la dotazione**: i presidi veri dello zaino e
-dell'ambulanza come azioni, le misure dove contano, un inventario sfogliabile.
-Un presidio sbagliato è un caso particolare di azione non indicata, quindi
-eredita il meccanismo da qui senza aggiungerci niente. Poi la **scheda ARES
-compilabile** — le diciassette classi nascono qui e servono lì — e le **carte di
-ripasso** rifatte.
+**Fatto in 1.13.0.** **A2, la dotazione**: i presidi veri con le loro misure
+— sei cannule di Guedel col colore della check-list, quattro sondini di
+aspirazione, quattro agocannule, cinque presidi dell'ossigeno — generati da
+`data/presidi.js` e giudicati dalle indicazioni come qualsiasi altro gesto. La
+palette mostra una riga per famiglia e apre le misure al tocco, che su un
+telefono è la differenza fra sei righe e quindici. E la bombola si consuma: il
+flusso, che era un numero nell'etichetta, adesso costa litri, e il debriefing
+dice quanti ne restano e per quanti minuti di trasporto bastano. Specifica e
+piano restano come storia della decisione:
+
+- `docs/superpowers/specs/2026-08-22-dotazione-presidi-design.md`
+- `docs/superpowers/plans/2026-08-22-dotazione-presidi.md`
+
+**Il prossimo pezzo** è la **scheda ARES compilabile** — le diciassette classi
+nascono in 1.12.0 e servono lì — insieme all'**inventario sfogliabile** dello
+zaino e dell'ambulanza, che pesca dalla stessa check-list da cui vengono i
+presidi. Poi le **carte di ripasso** rifatte.
 
 Restano anche i cinque scenari: la seconda metà del
 gruppo **A** — anafilassi, anticoagulante — e il gruppo **B** — bpco,
