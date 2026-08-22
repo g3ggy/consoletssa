@@ -188,6 +188,37 @@ function sezioneTempoButtato(p) {
   ]);
 }
 
+/* L'ossigeno che è uscito. Non è un voto: è il numero che sul mezzo
+   nessuno guarda finché non serve, e che decide se la maschera arriva
+   fino al pronto soccorso o si ferma per strada. */
+function sezioneBombola(p) {
+  const b = p.bombola;
+  if (!b) return null;
+
+  const titolo = b.finitaA !== null
+    ? `La bombola è finita al minuto ${Math.floor(b.finitaA / 60)}`
+    : `${b.erogati} litri erogati, ${b.residui} ne restano`;
+
+  const nota = b.finitaA !== null
+    ? 'Da lì in poi la maschera era addosso al paziente senza erogare niente. '
+      + 'Il livello si controlla a inizio turno, non quando serve.'
+    : (b.minutiResidui !== null
+      ? `Allo stesso flusso basterebbero altri ${b.minutiResidui} minuti: `
+        + 'quanto dura il trasporto lo sai tu.'
+      : 'Il flusso era già chiuso quando avete consegnato.');
+
+  return el('section.dbox.deb-sez', {}, [
+    el('div.t', { text: 'l\'ossigeno che hai dato' }),
+    el('h3', { text: titolo }),
+    el('p.deb-nota', { text: nota }),
+    el('p.deb-nota', {
+      text: `Bombola da ${b.litri} litri a ${b.bar} bar: ${b.contenuto} litri. `
+        + 'Il conto è volume per atmosfere, e l\'autonomia è i litri diviso il flusso.',
+    }),
+    el('small.deb-fonte', { text: 'Bolognin :3372-3395' }),
+  ]);
+}
+
 /* Il riconoscimento. Nessun punteggio: quello che conta è QUANDO ci sei
    arrivato, e se ci sei arrivato cambiando idea o restando fermo su
    quello che avevi pensato dalla porta. */
@@ -270,7 +301,7 @@ export function mostraDebriefing(sim, n) {
       ]),
     ]),
 
-    ...[sezioneSospetto(p), sezioneTempoButtato(p)].filter(Boolean),
+    ...[sezioneSospetto(p), sezioneTempoButtato(p), sezioneBombola(p)].filter(Boolean),
 
     el('div.dbox', {}, [
       el('div.t', { text: 'come è andato il paziente' }),
