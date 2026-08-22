@@ -291,7 +291,7 @@ test('senza RCP l\'arresto porta alla morte, con la RCP no', () => {
 
 /* ======================== Task 4 — pagella ========================== */
 
-test('la pagella pesa necessarie, ritardi e dannose', () => {
+test('la pagella pesa le necessarie e le dannose, e segna i ritardi senza punirli', () => {
   const caso = casoProva({
     azioni: {
       necessarie: [{ id: 'antishock', entro: 120, peso: 3 }, { id: 'monitor', entro: 120, peso: 2 }],
@@ -302,14 +302,16 @@ test('la pagella pesa necessarie, ritardi e dannose', () => {
   const i = avvia(caso);
   i.esegui('antishock', 'tu');       // entro il tempo -> peso pieno
   i.avanza(200);
-  i.esegui('monitor', 'tu');         // in ritardo -> meta'
+  i.esegui('monitor', 'tu');         // in ritardo -> vale lo stesso, ma si vede
   i.esegui('seduta', 'tu');          // dannosa
 
   const p = i.chiudi();
   const anti = p.necessarie.find((r) => r.id === 'antishock');
   const mon = p.necessarie.find((r) => r.id === 'monitor');
   assert.equal(anti.punti, 3);
-  assert.equal(mon.punti, 1);
+  assert.equal(mon.punti, 2, 'il ritardo dimezza ancora i punti');
+  assert.equal(anti.ritardo, false);
+  assert.equal(mon.ritardo, true, 'il ritardo non è più raccontato');
   assert.equal(p.dannose.length, 1);
   assert.match(p.dannose[0].perche, /ritorno venoso/);
 });
@@ -945,4 +947,29 @@ test('finita la manovra tornano liberi tutti e due', () => {
   i.avanza(200);
   const liberi = Object.values(i.squadra).filter((m) => m.liberoA <= i.t).length;
   assert.equal(liberi, 3, 'qualcuno è rimasto occupato dopo la fine');
+});
+
+/* =================== il cronometro non è un voto ==================== */
+
+test('il punteggio non guarda l\'orologio', () => {
+  /* Lo stesso identico giro di azioni, fatto subito e fatto tardi, deve
+     valere lo stesso: quello che cambia è come sta il paziente, e quello
+     si vede altrove. Il cronometro non è un voto. */
+  const caso = casoProva({
+    azioni: { necessarie: [{ id: 'antishock', entro: 60, peso: 3 }], utili: [], dannose: [] },
+  });
+
+  const svelto = creaIntervento(caso, { azioni: AZIONI });
+  svelto.esegui('antishock', 'tu');
+  const pSvelto = svelto.chiudi();
+
+  const tardo = creaIntervento(caso, { azioni: AZIONI });
+  tardo.avanza(600);
+  tardo.esegui('antishock', 'tu');
+  const pTardo = tardo.chiudi();
+
+  assert.equal(pTardo.punti, pSvelto.punti, 'chi ha fatto la stessa cosa più tardi ha preso meno punti');
+  assert.equal(pTardo.punti, 3, 'la voce necessaria non vale il suo peso pieno');
+  /* Il ritardo resta scritto, perché raccontarlo serve: è punirlo che non serve. */
+  assert.equal(pTardo.necessarie[0].ritardo, true);
 });

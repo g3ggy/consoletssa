@@ -91,7 +91,13 @@ export function compilaPagella(caso, dati) {
       t: fatto?.t ?? null,
       entro: n.entro ?? null,
       peso,
-      punti: !fatto ? 0 : (inTempo ? peso : peso / 2),
+      /* Fatto o non fatto. Il `entro` resta e si racconta — «l'hai fatto
+         al minuto 7» — ma non dimezza più niente: nel soccorso
+         territoriale, salvo i casi in cui il tempo È la terapia, non si
+         corre, si stabilizza e si trasporta. Il tempo continua a costare
+         dove costa davvero: mentre temporeggi le riserve si consumano, le
+         finestre si chiudono da sole e il paziente lo consegni peggio. */
+      punti: fatto ? peso : 0,
       ritardo: Boolean(fatto && !inTempo),
     };
   });
