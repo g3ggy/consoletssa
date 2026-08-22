@@ -14,6 +14,7 @@
 import { revisioneAnamnesi } from './anamnesi.js';
 import { revisioneRagguaglio } from './ragguaglio.js';
 import { tempoButtato } from './giudizio.js';
+import { inversioni } from './sequenza.js';
 import { riepilogo as riepilogoBombola } from './bombola.js';
 import { DOMANDE } from '../data/domande.js';
 import { nomeClasse } from '../data/classi-patologia.js';
@@ -147,6 +148,8 @@ export function compilaPagella(caso, dati) {
     ragguaglio: revisioneRagguaglio(caso, { fatte, saputo, letture }),
     esitoPaziente,
     tempoButtato: buttato,
+    /* Non tolgono punti: si raccontano. Sono metodo, non cronometro. */
+    inversioni: inversioni(fatte),
     /* Quanto ossigeno è uscito, e per quanto sarebbe bastato ancora.
        `null` se non ne hai dato: senza erogazione non c'è niente da
        raccontare. */
