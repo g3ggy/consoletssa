@@ -25,6 +25,8 @@
    azioni          necessarie / utili / dannose per la pagella
    ===================================================================== */
 
+import { IDS } from './presidi.js';
+
 export const CASI = [
   /* ================================================================= */
   {
@@ -173,7 +175,7 @@ export const CASI = [
         { id: 'coperta', entro: 420, peso: 1 },
         { id: 'riferisci-infermiere', entro: 360, peso: 2 },
         { id: 'allerta-co', entro: 420, peso: 1 },
-        { id: 'accesso-prepara', entro: 420, peso: 1 },
+        { id: [...IDS.ago], entro: 420, peso: 1, label: 'Materiale per l\'accesso venoso' },
         { id: 'inf-accesso', entro: 480, peso: 1 },
         { id: 'inf-liquidi', entro: 540, peso: 2 },
         { id: 'carica', entro: 780, peso: 2 },
@@ -367,7 +369,7 @@ export const CASI = [
          copione lo faceva dare PRIMA di attaccare il monitor, cioè senza
          sapere il numero. Resta utile — se scende, serve — ma non toglie
          punti a chi prima misura. */
-      utili: ['o2-maschera', 'o2-reservoir', 'rassicura', 'accesso-prepara', 'allerta-co', 'conta-fr', 'misura-glicemia'],
+      utili: ['o2-maschera', 'o2-reservoir', 'rassicura', ...IDS.ago, 'allerta-co', 'conta-fr', 'misura-glicemia'],
       dannose: [
         { id: 'antishock', penalita: 3, perche: 'Sdraiarlo aumenta il ritorno venoso al cuore e peggiora il respiro: nel dolore toracico si trasporta seduto, salvo che sia pallido e ipoteso.' },
         { id: 'spinale', perche: 'Non è un trauma: tre minuti buttati mentre il miocardio soffre.' },
@@ -695,7 +697,7 @@ export const CASI = [
         { id: 'spinale', entro: 840, peso: 2 },
         { id: 'carica', entro: 960, peso: 3 },
       ],
-      utili: ['allontana-curiosi', 'refill', 'colorito', 'polso-radiale', 'conta-fr', 'monitor', 'rassicura', 'copri', 'accesso-prepara', 'inf-accesso', 'domanda:durata-dolore'],
+      utili: ['allontana-curiosi', 'refill', 'colorito', 'polso-radiale', 'conta-fr', 'monitor', 'rassicura', 'copri', ...IDS.ago, 'inf-accesso', 'domanda:durata-dolore'],
       dannose: [
         {
           id: 'sposta-sicurezza', penalita: 3,

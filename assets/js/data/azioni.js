@@ -434,7 +434,10 @@ const ELENCO = [
   {
     id: 'inf-accesso', cat: 'infermiere', label: 'Accesso venoso', durata: 90,
     chi: ['infermiere'], unaVolta: true,
-    richiede: (p, ctx) => ctx.haFatto('accesso-prepara'),
+    /* Non conta quale calibro hai preparato: conta che il materiale sia
+       sul telo. Il calibro sbagliato lo dice l'indicazione, non un
+       blocco — `richiede` impedisce, e qui non c'è niente da impedire. */
+    richiede: (p) => p.tag.includes('ev-pronto'),
     motivoBloccato: 'L\'infermiere ti chiede il materiale: preparalo prima.',
     applica: () => ({ tag: 'ev' }),
     diario: 'Accesso venoso reperito.',
