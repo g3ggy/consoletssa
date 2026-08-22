@@ -590,8 +590,11 @@ export function creaIntervento(caso, opzioni = {}) {
       return { ok: false, motivo: motivo || 'Non è possibile adesso.' };
     }
 
-    const servono = az.servono || 1;
     const liberi = membriLiberi(az);
+    /* I DPI non sono una scelta di chi: li mette chi c'è, tutti. Il
+       `Math.max(1, …)` serve perché un equipaggio con tutti occupati non
+       deve dare zero e passare il controllo qui sotto. */
+    const servono = az.tuttaLaSquadra ? Math.max(1, liberi.length) : (az.servono || 1);
     if (liberi.length < servono) {
       return { ok: false, motivo: `Serve un'altra persona: questa manovra si fa in ${A_PAROLE[servono] || servono}.` };
     }

@@ -31,9 +31,13 @@ export const CATEGORIE = [
 const ELENCO = [
   /* ============================== SCENA ============================= */
   {
-    id: 'dpi', cat: 'scena', label: 'Indossa i DPI', durata: 20, chi: ['tu', 'autista'],
+    /* Non è una scelta: i DPI li mette tutto l'equipaggio, sempre. Finché
+       il banco chiedeva CHI li indossa, insegnava che qualcuno può non
+       metterli. */
+    id: 'dpi', cat: 'scena', label: 'Indossa i DPI', durata: 20,
+    chi: ['tu', 'autista', 'infermiere'], tuttaLaSquadra: true,
     unaVolta: true, applica: () => ({ tag: 'dpi' }),
-    diario: 'Guanti e occhiali indossati.',
+    diario: 'Guanti e occhiali indossati da tutto l\'equipaggio.',
     spiega: 'Prima di toccare chiunque. Il rischio infettivo non si vede.',
   },
   {

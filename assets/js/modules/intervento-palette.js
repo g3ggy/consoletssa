@@ -74,15 +74,26 @@ function rigaAzione(ctx, az, onScegli) {
   ]);
 
   const bottoni = el('div.az-btn');
+  const agisci = onScegli || ((id, chi) => ctx.esegui(id, chi));
+  const servono = az.tuttaLaSquadra ? liberi.length : (az.servono || 1);
+  const soloUno = (testo) => bottoni.append(el('button.btn.sm.pri', {
+    type: 'button',
+    onclick: () => agisci(az.id, principale),
+  }, [testo]));
+
   if (!principale) {
     bottoni.append(el('span.badge.b-no', { text: 'occupati' }));
+  } else if (servono > 1 || az.tuttaLaSquadra) {
+    /* Quando la manovra prende più di una persona non c'è niente da
+       scegliere: si fa in due, o la fa la squadra. Il bottone dice
+       quello che succede. */
+    soloUno(az.tuttaLaSquadra ? 'Tutta la squadra' : 'Fatelo in due');
+  } else if (az.chi.length === 1 || liberi.length === 1) {
+    /* Un solo candidato libero: nessuna scelta da fare. */
+    soloUno(principale === 'tu' ? 'Fallo tu' : `Chiedi a ${NOMI_MEMBRO[principale].toLowerCase()}`);
   } else {
-    const agisci = onScegli || ((id, chi) => ctx.esegui(id, chi));
-    bottoni.append(el('button.btn.sm.pri', {
-      type: 'button',
-      onclick: () => agisci(az.id, principale),
-    }, [principale === 'tu' ? 'Fallo tu' : `Chiedi a ${NOMI_MEMBRO[principale].toLowerCase()}`]));
-
+    /* Qui la scelta è vera: puoi farlo tu, o chiederlo mentre fai altro. */
+    soloUno(principale === 'tu' ? 'Fallo tu' : `Chiedi a ${NOMI_MEMBRO[principale].toLowerCase()}`);
     liberi.filter((m) => m !== principale).forEach((m) => {
       bottoni.append(el('button.btn.sm', {
         type: 'button',
