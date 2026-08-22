@@ -240,6 +240,15 @@ ricarica-e-svuota-cache, ma la cura è bumpare sempre tutti e tre i punti.
   il tag che la prima lascia (`cannula`, `ev-pronto`), letto da `richiede`.
   L'ossigeno è l'eccezione e tiene `unaVolta`: cambiare presidio strada
   facendo è lecito, ed è quello che si fa quando il paziente peggiora.
+- **A un canvas non si dà mai l'altezza in percentuale.** `.lp-onda` aveva
+  `height: 100%` dentro un contenitore con la sola `min-height`: una
+  percentuale contro un'altezza indefinita vale `auto`, e `auto` per un
+  canvas è la sua altezza *intrinseca*, cioè l'attributo `height` — che
+  `createCanvasHost` scrive moltiplicando per il rapporto di pixel. Su
+  Retina raddoppia a ogni fotogramma e il monitor cresce senza fine.
+  **Chrome risolve la percentuale e non lo mostra: si vede solo su Safari,
+  cioè su iPhone e iPad**, che è dove stanno i colleghi. Altezze in pixel,
+  e `tests/stili.test.mjs` lo controlla.
 - **Un iPad in verticale è largo 834 punti**, cioè sotto la soglia dei 900:
   senza una fascia per i tablet prende il layout del telefono, e su undici
   pollici si vede — tutto in colonna, pagine tre volte più lunghe. Le due

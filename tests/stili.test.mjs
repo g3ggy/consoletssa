@@ -63,6 +63,31 @@ test('il numero di versione non si nasconde sugli schermi piccoli', () => {
     });
 });
 
+test('nessun canvas prende l\'altezza in percentuale', () => {
+  /* Il difetto che ha mangiato un pomeriggio: `.lp-onda` aveva
+     `height: 100%` dentro un contenitore con la sola `min-height`. Una
+     percentuale contro un'altezza indefinita vale `auto`, e `auto` per un
+     canvas è la sua altezza INTRINSECA — l'attributo `height`, che
+     `createCanvasHost` moltiplica per il rapporto di pixel dello schermo.
+     Su un Retina raddoppia a ogni fotogramma: il monitor cresceva
+     all'infinito. Chrome risolve la percentuale e nasconde il problema,
+     Safari su iPad no.
+
+     L'unica eccezione è il canvas di three.js: `#stage` ha un
+     `aspect-ratio`, quindi la sua altezza è definita e la percentuale si
+     risolve davvero. */
+  const AMMESSI = ['#stage canvas'];
+  ['lifepak.css', 'app.css', 'intervento.css', 'modules.css', 'mobile.css'].forEach((nome) => {
+    css(nome).split('\n').forEach((riga) => {
+      if (!/canvas|\.lp-onda/.test(riga)) return;
+      if (!/height:\s*\d+%/.test(riga)) return;
+      const selettore = riga.split('{')[0].trim();
+      assert.ok(AMMESSI.includes(selettore),
+        `${nome}: «${selettore}» dà al canvas un'altezza in percentuale`);
+    });
+  });
+});
+
 test('il tablet in verticale non prende il layout del telefono', () => {
   /* Un iPad da 11 pollici in verticale è largo 834 punti. Finché le due
      colonne dell'intervento partivano da 1080, lì dentro finiva tutto in

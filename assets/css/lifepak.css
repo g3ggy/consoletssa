@@ -81,7 +81,17 @@
 
 /* ------------------------------- canali ---------------------------- */
 .lp-canali { display: grid; grid-template-rows: 1fr 1fr; }
-.lp-onda { display: block; width: 100%; height: 100%; min-height: 60px; background: #000; }
+/* ATTENZIONE, qui si è già pagato: l'altezza del canvas NON va in
+   percentuale. `.lp-corpo` ha una `min-height`, cioè un'altezza
+   indefinita, e una percentuale contro un'altezza indefinita vale
+   `auto` — che per un canvas significa la sua altezza INTRINSECA, cioè
+   l'attributo `height`. Quell'attributo lo scrive `createCanvasHost`
+   moltiplicando per il rapporto di pixel dello schermo: su un display
+   Retina raddoppia a ogni fotogramma, e il monitor cresce all'infinito.
+   Chrome risolve la percentuale e non lo mostra; Safari su iPad sì.
+   I due canvas che non hanno mai dato problemi — il ribbon e quello
+   della simulazione — sono proprio quelli con l'altezza in pixel. */
+.lp-onda { display: block; width: 100%; height: 116px; background: #000; }
 .lp-pleth { opacity: 0; transition: opacity .3s var(--ease); }
 .lp-pleth.attiva { opacity: 1; }
 
@@ -102,7 +112,7 @@
   .lp-box:last-child { border-right: 0; }
   .lp-canali { order: 1; grid-template-rows: 1fr; }
   .lp-pleth { display: none; }
-  .lp-onda { min-height: 54px; }
+  .lp-onda { height: 54px; }
   .lp-num { font-size: 26px; }
 }
 
