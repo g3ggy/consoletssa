@@ -227,6 +227,11 @@ function aggiornaMonitor() {
 }
 
 /* ============================== SQUADRA ============================= */
+/* Il numero accanto a chi è occupato NON è un conto alla rovescia: qui
+   l'orologio è a turni, e scorre solo quando qualcuno agisce. Chi guarda
+   «40s» fermo per tre secondi veri pensa che il banco sia rotto, e invece
+   sta funzionando: il tempo è condiviso, e cala quando lo fai passare tu.
+   Per questo si scrive «gli restano 40s» e non «40s». */
 function aggiornaSquadra() {
   mount(n.squadra, ...Object.entries(sim.squadra).map(([id, m]) => {
     const occupato = m.liberoA > sim.t;
@@ -234,7 +239,9 @@ function aggiornaSquadra() {
     return el(`div.membro${occupato ? '.occupato' : ''}`, {}, [
       el('b', { text: NOMI_MEMBRO[id] }),
       el('span', {
-        text: occupato && az ? `${az.label} · ${m.liberoA - sim.t}s` : 'libero',
+        text: occupato && az
+          ? `${az.label} · ${id === 'tu' ? 'ti' : 'gli'} restano ${m.liberoA - sim.t}s`
+          : 'libero',
       }),
     ]);
   }));
