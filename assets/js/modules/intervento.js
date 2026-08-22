@@ -7,13 +7,13 @@
    sta in debriefing.js.
    ===================================================================== */
 
-import { el, mount, $, formatSeconds, clamp, fold } from '../core/dom.js';
+import { el, mount, $, formatSeconds, clamp } from '../core/dom.js';
 import { icon, toast } from '../core/ui.js';
 import { creaLifepak } from '../core/lifepak.js';
 import { setRibbonRhythm } from '../core/ribbon.js';
 import { creaIntervento } from '../core/sim-engine.js';
-import { AZIONI, CATEGORIE, azioniDi } from '../data/azioni.js';
-import { FAMIGLIE_META } from '../data/presidi.js';
+import { AZIONI } from '../data/azioni.js';
+import { costruisciTabs, costruisciLista } from './intervento-palette.js';
 import { CASI, CASI_INDICE } from '../data/casi.js';
 import { cartellino, badgeCriticita } from '../core/cartellino.js';
 import { foglioEcg12 } from '../core/ecg12.js';
@@ -369,223 +369,39 @@ function esegui(id, chi) {
   aggiornaTutto();
 }
 
-/* La riga di una domanda: usata sia nel pannello dell'anamnesi sia nei
-   risultati della ricerca, che possono incrociarla con azioni di
-   qualunque categoria. */
-function rigaDomanda(d) {
-  const gia = sim.raccolte.some((r) => r.domanda === d.id && r.interlocutore === sim.interlocutore);
-  return el(`div.pal-riga${gia ? '.gia-chiesta' : ''}`, {}, [
-    el('div.az-testo', {}, [
-      el('b', {}, [el('span.anam-lettera', { text: d.lettera }), d.testo]),
-      el('span', { text: gia ? 'Gliel\'hai già chiesto' : `Schema ${d.schema}` }),
-    ]),
-    el('div.az-meta', {}, [el('span.durata', { text: `${d.durata}s` })]),
-    el('div.az-btn', {}, [
-      el('button.btn.sm.pri', {
-        type: 'button',
-        onclick: () => {
-          const esito = sim.chiedi(d.id);
-          if (!esito.ok) { toast('Non ora', esito.motivo, 'warn'); return; }
-          aggiornaTutto();
-        },
-      }, ['Chiedi']),
-    ]),
-  ]);
+/* Un esito del motore che non richiede altro che dirlo: le domande e il
+   girarsi verso un'altra persona non cambiano niente della palette. */
+function riferisci(esito) {
+  if (!esito.ok) { toast('Non ora', esito.motivo, 'warn'); return; }
+  aggiornaTutto();
 }
 
-/* La barra di chi hai davanti, e sotto le domande che gli puoi fare.
-   Un tocco per domanda: chi si è girato verso la moglie continua a
-   parlare con lei finché non si gira di nuovo. */
-function pannelloAnamnesi() {
-  const barra = el('div.anam-chi', {}, sim.interlocutori.map((persona) => el('button.anam-p', {
-    type: 'button',
-    'aria-pressed': String(persona.id === sim.interlocutore),
-    onclick: () => {
-      const esito = sim.rivolgitiA(persona.id);
-      if (!esito.ok) { toast('Non ora', esito.motivo, 'warn'); return; }
-      aggiornaTutto();
+/* La palette sta in `intervento-palette.js`: qui resta solo il contesto
+   che le serve — cosa sa del motore, e cosa può cambiare della vista. */
+function contestoPalette() {
+  return {
+    sim, NOMI_MEMBRO, esegui,
+    chiedi: (id) => riferisci(sim.chiedi(id)),
+    rivolgitiA: (id) => riferisci(sim.rivolgitiA(id)),
+    categoriaAperta, famigliaAperta, membroFamiglia, ricercaTesto,
+    apriCategoria: (id) => {
+      categoriaAperta = id;
+      ricercaTesto = '';
+      if (n.ricercaInput) n.ricercaInput.value = '';
+      aggiornaPalette();
     },
-  }, [persona.label])));
-
-  const righe = sim.domandeDisponibili().map(rigaDomanda);
-
-  return el('div.anam', {}, [
-    el('div.anam-head', {}, [el('span', { text: 'parli con' }), barra]),
-    ...righe,
-  ]);
-}
-
-/* La riga di un'azione singola: è quella che c'è sempre stata. */
-function rigaAzione(az, onScegli) {
-  const liberi = sim.membriLiberi(az);
-  const principale = liberi.includes('tu') ? 'tu' : liberi[0];
-  const riga = el('div.pal-riga', {}, [
-    el('div.az-testo', {}, [
-      el('b', { text: az.label }),
-      el('span', { text: az.spiega }),
-    ]),
-    el('div.az-meta', {}, [
-      el('span.durata', { text: `${az.durata}s` }),
-    ]),
-  ]);
-
-  const bottoni = el('div.az-btn');
-  if (!principale) {
-    bottoni.append(el('span.badge.b-no', { text: 'occupati' }));
-  } else {
-    const agisci = onScegli || ((id, chi) => esegui(id, chi));
-    bottoni.append(el('button.btn.sm.pri', {
-      type: 'button',
-      onclick: () => agisci(az.id, principale),
-    }, [principale === 'tu' ? 'Fallo tu' : `Chiedi a ${NOMI_MEMBRO[principale].toLowerCase()}`]));
-
-    liberi.filter((m) => m !== principale).forEach((m) => {
-      bottoni.append(el('button.btn.sm', {
-        type: 'button',
-        onclick: () => agisci(az.id, m),
-      }, [NOMI_MEMBRO[m]]));
-    });
-  }
-  riga.append(bottoni);
-  return riga;
-}
-
-/* La riga di una famiglia: un capofamiglia solo, e sotto — quando la
-   apri — le misure vere. Sul telefono è la differenza fra sei righe e
-   quindici. Aprirla non costa tempo: è un pensiero, non un gesto. */
-function rigaFamiglia(idFamiglia, voci) {
-  const meta = FAMIGLIE_META[idFamiglia];
-  const prima = voci[0];
-  const aperta = famigliaAperta === idFamiglia;
-
-  /* Il capofamiglia si comporta come un'azione qualunque — stessi
-     bottoni, stessa scelta di chi lo fa — solo che invece di partire
-     apre le misure. */
-  const finto = { ...prima, label: meta.label, spiega: meta.spiega, durata: prima.durata };
-  const riga = rigaAzione(finto, (_id, chi) => {
-    famigliaAperta = aperta ? null : idFamiglia;
-    membroFamiglia = chi;
-    aggiornaPalette();
-  });
-  riga.classList.add('pal-fam');
-  /* Sul capofamiglia la durata non si scrive: le misure di una famiglia
-     non costano tutte uguale — montare un reservoir non è mettere due
-     occhialini — e il secondo giusto sta scritto sul bottone di ognuna. */
-  const meta2 = riga.querySelector('.az-meta');
-  meta2.replaceChildren(el('span.pal-quante', { text: `${voci.length} misure` }));
-
-  if (!aperta) return riga;
-
-  const misure = el('div.pal-misure', {}, [
-    el('p.pal-come', {}, [
-      meta.comeSiMisura,
-      el('small', { text: meta.fonteMisura }),
-    ]),
-    el('div.pal-scelte', {}, voci.map((v) => {
-      const b = el('button.pal-mis', {
-        type: 'button',
-        onclick: () => { famigliaAperta = null; esegui(v.id, membroFamiglia); },
-      }, [
-        v.colore ? el('i.pal-colore', { style: { background: v.colore } }) : null,
-        el('b', { text: v.etichettaMisura }),
-        el('span', { text: `${v.durata}s` }),
-      ].filter(Boolean));
-      return b;
-    })),
-  ]);
-  riga.append(misure);
-  return riga;
-}
-
-/* Le azioni della categoria, con le famiglie compattate in una riga
-   sola. L'ordine è quello del catalogo: la prima voce di una famiglia
-   tiene il posto di tutte. */
-function righeDellaCategoria(inCategoria) {
-  const viste = new Set();
-  return inCategoria.map((az) => {
-    if (!az.famiglia) return rigaAzione(az);
-    if (viste.has(az.famiglia)) return null;
-    viste.add(az.famiglia);
-    return rigaFamiglia(az.famiglia, inCategoria.filter((x) => x.famiglia === az.famiglia));
-  }).filter(Boolean);
-}
-
-/* ============================== RICERCA ============================= */
-/* Con sessanta azioni in undici categorie il problema vero è ricordarsi
-   dove sta un gesto, non eseguirlo: la ricerca guarda tutte le
-   categorie insieme, non solo quella aperta.
-
-   Le famiglie di presidi (Guedel, sondini, ossigeno, agocannule) qui si
-   DISTENDONO invece di restare compattate in una riga: ogni misura ha
-   già un'etichetta e una spiegazione proprie (`data/presidi.js`, es.
-   «Cannula orofaringea — mis. 3 gialla»), quindi `rigaAzione` le mostra
-   bene una per una. Chi cerca «guedel» sta già scegliendo, e vuole
-   vedere le sei misure. Sotto una categoria restano compattate perché
-   lì il problema è l'opposto: non farsi sommergere da righe che quasi
-   mai servono tutte insieme. */
-function conCategoria(riga, etichetta) {
-  const label = riga.querySelector('.az-testo b');
-  if (label) label.prepend(el('span.pal-cat', { text: etichetta }));
-  return riga;
-}
-
-function risultatiRicerca(testo, disponibili) {
-  const azioni = disponibili
-    .filter((az) => fold(az.label).includes(testo) || fold(az.spiega || '').includes(testo))
-    .map((az) => conCategoria(rigaAzione(az), CATEGORIE.find((c) => c.id === az.cat)?.label || az.cat));
-
-  const domande = sim.domandeDisponibili()
-    .filter((d) => fold(d.testo).includes(testo))
-    .map((d) => conCategoria(rigaDomanda(d), 'Anamnesi'));
-
-  return [...azioni, ...domande];
+    apriFamiglia: (idFamiglia, chi) => {
+      famigliaAperta = idFamiglia;
+      membroFamiglia = chi;
+      aggiornaPalette();
+    },
+  };
 }
 
 function aggiornaPalette() {
-  const disponibili = sim.azioniDisponibili();
-
-  mount(n.paletteTabs, ...CATEGORIE.map((c) => {
-    const quante = c.id === 'anamnesi'
-      ? sim.domandeDisponibili().length
-      : azioniDi(c.id).filter((a) => disponibili.some((d) => d.id === a.id)).length;
-    return el('button.pcat', {
-      type: 'button',
-      'aria-pressed': String(c.id === categoriaAperta),
-      onclick: () => {
-        categoriaAperta = c.id;
-        // toccare una categoria è "sfoglio questa": la ricerca si esce
-        ricercaTesto = '';
-        if (n.ricercaInput) n.ricercaInput.value = '';
-        aggiornaPalette();
-      },
-      title: c.desc,
-    }, [c.label, el('i', { text: String(quante) })]);
-  }));
-
-  const testo = fold(ricercaTesto.trim());
-  if (testo) {
-    const righe = risultatiRicerca(testo, disponibili);
-    mount(n.paletteLista, ...(righe.length ? righe
-      : [el('p.palette-vuota', { text: `Nessun gesto trovato per «${ricercaTesto.trim()}».` })]));
-    return;
-  }
-
-  /* L'anamnesi non è fatta di azioni: è fatta di domande, e prima delle
-     domande c'è la persona a cui le fai. */
-  if (categoriaAperta === 'anamnesi') {
-    mount(n.paletteLista, pannelloAnamnesi());
-    return;
-  }
-
-  const inCategoria = azioniDi(categoriaAperta)
-    .filter((a) => disponibili.some((d) => d.id === a.id));
-
-  if (!inCategoria.length) {
-    mount(n.paletteLista, el('p.palette-vuota', { text: 'Niente da fare in questa categoria, adesso.' }));
-    return;
-  }
-
-  mount(n.paletteLista, ...righeDellaCategoria(inCategoria));
+  const ctx = contestoPalette();
+  mount(n.paletteTabs, ...costruisciTabs(ctx));
+  mount(n.paletteLista, ...costruisciLista(ctx));
 }
 
 /* ========================== BARRA DEL TEMPO ========================= */
