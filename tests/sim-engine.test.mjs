@@ -973,3 +973,41 @@ test('il punteggio non guarda l\'orologio', () => {
   /* Il ritardo resta scritto, perché raccontarlo serve: è punirlo che non serve. */
   assert.equal(pTardo.necessarie[0].ritardo, true);
 });
+
+/* ============== l'equipaggio senza infermiere, e l'ALS ============== */
+
+test('senza infermiere le azioni sanitarie non si possono fare', () => {
+  const i = creaIntervento(casoProva(), { azioni: AZIONI, membri: ['tu', 'autista'] });
+  assert.equal(i.azioniDisponibili().some((a) => a.cat === 'infermiere'), false,
+    'compaiono azioni che a bordo non può fare nessuno');
+});
+
+test('l\'automedica arriva, e da lì le azioni sanitarie ci sono', () => {
+  const i = creaIntervento(casoProva(), { azioni: AZIONI, membri: ['tu', 'autista'] });
+  /* Il materiale si prepara comunque: `inf-accesso` lo pretende, e senza
+     il test proverebbe soltanto che un `richiede` non è soddisfatto. */
+  i.esegui('ago-18', 'tu');
+  i.esegui('richiedi-automedica', 'tu');
+  i.avanza(60);
+  assert.equal(i.squadra.medico, undefined, 'il medico è arrivato troppo presto');
+  i.avanza(480);
+  assert.ok(i.squadra.medico, 'l\'automedica non è mai arrivata');
+  assert.ok(i.diario.some((r) => /automedica|medico/i.test(r.testo)), 'il diario non dice che è arrivata');
+  assert.ok(i.azioniDisponibili().some((a) => a.id === 'inf-accesso'),
+    'con il medico sul posto le azioni sanitarie devono esserci');
+  assert.ok(i.esegui('inf-accesso', 'medico').ok, 'il medico non riesce a farle');
+});
+
+test('senza nessun sanitario quell\'azione non compare, per quanto sia pronta', () => {
+  /* Stesso materiale preparato, ma a bordo non c'è chi la faccia: la
+     differenza fra «manca il presupposto» e «manca la persona». */
+  const i = creaIntervento(casoProva(), { azioni: AZIONI, membri: ['tu', 'autista'] });
+  i.esegui('ago-18', 'tu');
+  assert.equal(i.azioniDisponibili().some((a) => a.id === 'inf-accesso'), false);
+});
+
+test('chi non la chiama non se la vede arrivare', () => {
+  const i = creaIntervento(casoProva(), { azioni: AZIONI, membri: ['tu', 'autista'] });
+  i.avanza(900);
+  assert.equal(i.squadra.medico, undefined);
+});

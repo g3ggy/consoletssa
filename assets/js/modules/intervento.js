@@ -35,7 +35,7 @@ let famigliaAperta = null;
 let membroFamiglia = 'tu';
 let modalitaEsame = false;
 
-const NOMI_MEMBRO = { tu: 'Tu', autista: 'Autista', infermiere: 'Infermiere' };
+const NOMI_MEMBRO = { tu: 'Tu', autista: 'Autista', infermiere: 'Infermiere', medico: 'Medico' };
 
 /* Quali parametri del monitor si rilevano con quale azione. */
 const AZIONE_PER_PARAMETRO = {
@@ -460,6 +460,12 @@ function aggiornaTutto() {
 export function render(params) {
   const idCaso = params?.[0];
   const caso = CASI_INDICE[idCaso] || CASI[0];
+  /* `#/intervento/shock-v3/msb` parte senza infermiere: fuori dal Lazio
+     l'ambulanza è di soli soccorritori, e quando serve una vena o un
+     farmaco si chiama l'automedica e la si aspetta. */
+  const membri = params?.[1] === 'msb'
+    ? ['tu', 'autista']
+    : ['tu', 'autista', 'infermiere'];
 
   const radice = el('div');
   const mon = costruisciMonitor();
@@ -600,7 +606,7 @@ export function render(params) {
     chiudiPalette: () => togglePalette(false),
   };
 
-  sim = creaIntervento(caso, { azioni: AZIONI });
+  sim = creaIntervento(caso, { azioni: AZIONI, membri });
   categoriaAperta = 'scena';
   famigliaAperta = null;
   membroFamiglia = 'tu';

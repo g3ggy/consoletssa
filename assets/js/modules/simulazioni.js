@@ -842,15 +842,37 @@ export function render() {
   /* I casi del motore nuovo stanno in cima: sono interventi veri, con il
      paziente che evolve. Gli altri restano nel formato a domande finché
      non vengono convertiti. */
+  /* Con che equipaggio esci. In Lazio l'ambulanza porta un infermiere;
+     fuori spesso no, e allora la vena e il farmaco non li ha nessuno a
+     bordo: chiami l'automedica e la aspetti. La scelta sta qui e non
+     dentro le schede perché vale per tutte, e sulle schede non ci
+     starebbero due bottoni per caso senza farle diventare illeggibili
+     sul telefono. */
+  let equipaggio = 'msa';
+  const equipaggioChips = [
+    { k: 'msa', l: 'Con infermiere', d: 'Come in Lazio: a bordo c\'è chi mette una vena.' },
+    { k: 'msb', l: 'Senza infermiere', d: 'Soli soccorritori: per una vena o un farmaco serve l\'automedica.' },
+  ].map((e) => el('button.chip', {
+    type: 'button', 'aria-pressed': String(equipaggio === e.k), 'data-e': e.k, title: e.d,
+  }, [e.l]));
+  equipaggioChips.forEach((c) => c.addEventListener('click', () => {
+    equipaggio = c.dataset.e;
+    equipaggioChips.forEach((x) => x.setAttribute('aria-pressed', String(x === c)));
+  }));
+
   const nuovi = el('div.card', { style: { marginBottom: '16px' } }, [
     el('div.row', {}, [
       el('p.lbl', { style: { margin: '0' }, text: 'Interventi in tempo simulato' }),
       el('span.badge.b-ok', { text: 'nuovo' }),
     ]),
     el('p', { style: { color: 'var(--ink-3)', fontSize: '14px', margin: '8px 0 12px' },
-      text: 'Il paziente peggiora se non intervieni, ogni azione costa tempo e puoi dividerti il lavoro con autista e infermiere.' }),
+      text: 'Il paziente peggiora se non intervieni, ogni azione costa tempo e puoi dividerti il lavoro con l\'autista e — se ce l\'hai — con l\'infermiere.' }),
+    el('div.row', { style: { marginBottom: '12px' } }, [
+      el('span.lbl', { style: { margin: '0' }, text: 'Equipaggio' }), ...equipaggioChips,
+    ]),
     el('div.pickgrid', {}, CASI.map((c) => el('button.pickcard', {
-      type: 'button', onclick: () => navigate('intervento', c.id),
+      type: 'button',
+      onclick: () => navigate('intervento', c.id, equipaggio === 'msb' ? 'msb' : null),
     }, [
       el('b', { text: c.titolo }),
       el('span', { text: c.dispatch.testo }),

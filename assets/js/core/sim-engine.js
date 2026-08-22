@@ -86,6 +86,12 @@ export function creaIntervento(caso, opzioni = {}) {
   const membri = opzioni.membri || ['tu', 'autista', 'infermiere'];
   const COSTO_DELEGA = opzioni.costoDelega ?? 5;
 
+  /* Quanto ci mette l'automedica ad arrivare. ASSUNZIONE NOSTRA: dipende
+     da dove sei, e un caso può dichiarare il suo tempo. Otto minuti è la
+     via di mezzo fra una città e una statale di provincia. */
+  const ATTESA_ALS = caso.attesaAls ?? 480;
+  let alsChiamataA = null;
+
   /* Le indicazioni si possono sostituire dall'esterno per i test, come il
      catalogo delle azioni. Nell'uso vero sono quelle di `indicazioni.js`,
      che `giudizio.js` importa da sé. */
@@ -427,13 +433,15 @@ export function creaIntervento(caso, opzioni = {}) {
     /* La riga del giudizio va nel diario sempre: è la UI che la nasconde
        in modalità esame, perché è una scelta di presentazione e non del
        motore. */
+    if (id === 'richiedi-automedica' && alsChiamataA === null) alsChiamataA = t;
+
     if (giudizio && giudizio.ok === false) {
       const alternativa = giudizio.invece ? ` Andava ${giudizio.invece.label}.` : '';
       scrivi('giudizio', `Non era indicata: ${giudizio.perche}${alternativa}`, id);
     }
   }
 
-  const etichettaMembro = (chi) => ({ tu: 'Tu', autista: 'Autista', infermiere: 'Infermiere' }[chi] || chi);
+  const etichettaMembro = (chi) => ({ tu: 'Tu', autista: 'Autista', infermiere: 'Infermiere', medico: 'Medico' }[chi] || chi);
 
   /* Le grandezze si leggono come le legge un soccorritore: la frequenza
      è un numero intero, la temperatura ha un decimale. */
@@ -463,6 +471,7 @@ export function creaIntervento(caso, opzioni = {}) {
       t += 1;
       restanti -= 1;
       consumaOssigeno();
+      verificaAls();
       completaPendenti();
       verificaArrestoFisiologico();
       verificaArresto();
@@ -471,6 +480,16 @@ export function creaIntervento(caso, opzioni = {}) {
       if (t % 15 === 0) campiona();
     }
     return t;
+  }
+
+  /* L'automedica arriva quando arriva: la chiami e aspetti. Chi la chiama
+     al minuto dieci se la vede al diciotto, e intanto il paziente
+     peggiora — la lezione non ha bisogno di essere votata. */
+  function verificaAls() {
+    if (alsChiamataA === null || squadra.medico) return;
+    if (t < alsChiamataA + ATTESA_ALS) return;
+    squadra = { ...squadra, medico: { liberoA: t, azione: null } };
+    scrivi('osservazione', 'L\'automedica è sul posto: il medico prende in carico la parte sanitaria.');
   }
 
   /* L'ossigeno esce mentre il tempo passa. Quando la bombola finisce non
@@ -564,13 +583,22 @@ export function creaIntervento(caso, opzioni = {}) {
       /* Una manovra a due mani non compare se non c'è chi la faccia in
          due: mostrarla e poi rifiutarla sarebbe peggio. */
       if (membriLiberi(az).length < (az.servono || 1)) return false;
+      /* Un'azione che nessuno a bordo può eseguire non si mostra: senza
+         infermiere i farmaci non ci sono, e finché non arriva
+         l'automedica non c'è niente da chiedere. */
+      if (!candidati(az).some((m) => squadra[m])) return false;
       if (az.richiede && !az.richiede(s, ctx)) return false;
       return true;
     });
   }
 
+  /* Il medico dell'automedica fa quello che a bordo farebbe l'infermiere:
+     il catalogo dichiara un solo ruolo sanitario e chi lo incarna dipende
+     da chi c'è. */
+  const candidati = (az) => (az.chi || []).flatMap((m) => (m === 'infermiere' ? ['infermiere', 'medico'] : [m]));
+
   function membriLiberi(az) {
-    return (az.chi || []).filter((m) => squadra[m] && squadra[m].liberoA <= t);
+    return candidati(az).filter((m) => squadra[m] && squadra[m].liberoA <= t);
   }
 
   function esegui(id, chi = 'tu') {
@@ -581,7 +609,7 @@ export function creaIntervento(caso, opzioni = {}) {
       return { ok: false, motivo: 'Prima dì cosa pensi di avere davanti.' };
     }
     if (ancora.esito !== 'in-corso') return { ok: false, motivo: 'L\'intervento è chiuso.' };
-    if (!az.chi?.includes(chi)) return { ok: false, motivo: `${etichettaMembro(chi)} non può eseguire questa azione.` };
+    if (!candidati(az).includes(chi)) return { ok: false, motivo: `${etichettaMembro(chi)} non può eseguire questa azione.` };
     if (!squadra[chi] || squadra[chi].liberoA > t) return { ok: false, motivo: `${etichettaMembro(chi)} è occupato.` };
     if (az.unaVolta && fatte.some((f) => f.id === az.id)) return { ok: false, motivo: 'Già fatto.' };
     if (az.richiede && !az.richiede(proietta(), contesto())) {
