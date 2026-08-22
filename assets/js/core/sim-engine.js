@@ -35,6 +35,11 @@ import { creaBombola, conFlusso, consuma } from './bombola.js';
 import { DOMANDE } from '../data/domande.js';
 import { CLASSI, nomeClasse } from '../data/classi-patologia.js';
 import { compilaPagella, gravita } from './pagella.js';
+import {
+  etichettaMembro, versoIlMembro, aParole, creaSquadra, aggiungiMembro,
+  candidati, membriLiberi as liberiFra, quantiServono, impegnatiPer, occupa, libera,
+} from './squadra.js';
+import { valoreGrezzo, scaduta, valore as valoreDi, eta as etaDi } from './letture.js';
 
 /* `gravita` sta con la pagella, che è l'unica cosa che la usa. Si
    riespone da qui perché è da qui che tutti se la sono sempre presa. */
@@ -42,12 +47,6 @@ export { gravita };
 
 /* Chiavi che derivano nel tempo secondo `decorso`. */
 const DERIVATE = ['pas', 'pad', 'fc', 'spo2', 'temp', 'glicemia', 'fr', 'dolore'];
-
-/* Quanto resta valida una rilevazione singola prima di essere rifatta. */
-const VALIDITA_LETTURA = 120;
-
-/* Grandezze che il monitor tiene sotto controllo di continuo. */
-const CONTINUE = ['fc', 'spo2', 'ritmo'];
 
 /* Estremi oltre i quali il numero non è più un dato clinico ma un errore di
    calcolo. Non sono valori "normali" — quelli stanno nel manuale — sono il
@@ -67,10 +66,6 @@ const LIMITI_FISIOLOGICI = {
   glicemia: [5, 700],
   dolore: [0, 10],
 };
-
-/* «Si fa in due» si legge, «si fa in 2» no: il rifiuto è una frase che un
-   volontario legge di corsa, e la cifra in mezzo alla frase inciampa. */
-const A_PAROLE = { 2: 'due', 3: 'tre', 4: 'quattro' };
 
 const arrotonda = (v, cifre = 4) => {
   const k = 10 ** cifre;
@@ -128,7 +123,7 @@ export function creaIntervento(caso, opzioni = {}) {
   let letture = {};                 // { chiave: { t, val } }
   let fatte = [];                   // { id, chi, t }
   let pendenti = [];                // { fineA, id, chi, impegnati }
-  let squadra = Object.fromEntries(membri.map((m) => [m, { liberoA: 0, azione: null }]));
+  let squadra = creaSquadra(membri);
   let eventiScattati = [];
   let sogliePassate = [];
   let decisionePendente = null;
@@ -400,10 +395,7 @@ export function creaIntervento(caso, opzioni = {}) {
   function completa({ id, chi, impegnati, giudizio }) {
     const az = catalogo[id];
     if (!az) return;
-    squadra = { ...squadra };
-    (impegnati || [chi]).forEach((m) => {
-      if (squadra[m]) squadra[m] = { ...squadra[m], azione: null };
-    });
+    squadra = libera(squadra, impegnati || [chi]);
     fatte = [...fatte, { id, chi, t, giudizio }];
 
     if (az.applica) applicaEffetto(az.applica(proietta(), contesto()));
@@ -441,33 +433,8 @@ export function creaIntervento(caso, opzioni = {}) {
     }
   }
 
-  const etichettaMembro = (chi) => ({ tu: 'Tu', autista: 'Autista', infermiere: 'Infermiere', medico: 'Medico' }[chi] || chi);
-
-  /* In italiano la preposizione si fonde con l'articolo, e «chiedi a
-     infermiere» non è italiano. Stessa ragione per cui gli interlocutori
-     dell'anamnesi si dichiarano con l'articolo davanti. */
-  const A_CHI = { autista: 'all\'autista', infermiere: 'all\'infermiere', medico: 'al medico' };
-
   /* Le grandezze si leggono come le legge un soccorritore: la frequenza
      è un numero intero, la temperatura ha un decimale. */
-  const DECIMALI = { temp: 1 };
-  function valoreGrezzo(chiave, s) {
-    if (chiave === 'pa') return `${Math.round(s.pas)}/${Math.round(s.pad)}`;
-    if (chiave === 'avpu') return s.coscienza;
-    if (chiave === 'ritmo') return s.ritmo;
-    if (chiave === 'polso') return s.polsoRadiale ? 'presente' : 'assente';
-    if (chiave === 'refill') return `${s.refill} s`;
-    if (chiave === 'cute') return ({
-      normale: 'normale', pallida: 'pallida',
-      'pallida-fredda-sudata': 'pallida, fredda, sudata',
-    })[s.cute] || s.cute;
-    if (chiave === 'sete') return s.sete ? 'ha sete' : 'no';
-    const v = s[chiave];
-    if (typeof v !== 'number') return v;
-    const d = DECIMALI[chiave] ?? 0;
-    return d ? Number(v.toFixed(d)) : Math.round(v);
-  }
-
   /** Fa scorrere il tempo di `dt` secondi, un secondo per volta. */
   function avanza(dt) {
     let restanti = Math.max(0, Math.round(dt));
@@ -493,7 +460,7 @@ export function creaIntervento(caso, opzioni = {}) {
   function verificaAls() {
     if (alsChiamataA === null || squadra.medico) return;
     if (t < alsChiamataA + ATTESA_ALS) return;
-    squadra = { ...squadra, medico: { liberoA: t, azione: null } };
+    squadra = aggiungiMembro(squadra, 'medico', t);
     scrivi('osservazione', 'L\'automedica è sul posto: il medico prende in carico la parte sanitaria.');
   }
 
@@ -597,14 +564,9 @@ export function creaIntervento(caso, opzioni = {}) {
     });
   }
 
-  /* Il medico dell'automedica fa quello che a bordo farebbe l'infermiere:
-     il catalogo dichiara un solo ruolo sanitario e chi lo incarna dipende
-     da chi c'è. */
-  const candidati = (az) => (az.chi || []).flatMap((m) => (m === 'infermiere' ? ['infermiere', 'medico'] : [m]));
-
-  function membriLiberi(az) {
-    return candidati(az).filter((m) => squadra[m] && squadra[m].liberoA <= t);
-  }
+  /* La squadra vive qui — cambia a ogni gesto — ma le regole su di lei
+     stanno in `core/squadra.js`: questo è solo il legame fra le due. */
+  const membriLiberi = (az) => liberiFra(az, squadra, t);
 
   function esegui(id, chi = 'tu') {
     const az = catalogo[id];
@@ -625,21 +587,16 @@ export function creaIntervento(caso, opzioni = {}) {
     }
 
     const liberi = membriLiberi(az);
-    /* I DPI non sono una scelta di chi: li mette chi c'è, tutti. Il
-       `Math.max(1, …)` serve perché un equipaggio con tutti occupati non
-       deve dare zero e passare il controllo qui sotto. */
-    const servono = az.tuttaLaSquadra ? Math.max(1, liberi.length) : (az.servono || 1);
+    const servono = quantiServono(az, liberi);
     if (liberi.length < servono) {
-      return { ok: false, motivo: `Serve un'altra persona: questa manovra si fa in ${A_PAROLE[servono] || servono}.` };
+      return { ok: false, motivo: `Serve un'altra persona: questa manovra si fa in ${aParole(servono)}.` };
     }
-    /* Chi hai scelto tiene il posto, gli altri si prendono fra i liberi.
-       È il motivo per cui `pendenti` porta l'elenco intero: alla fine
-       vanno liberati tutti, non solo il primo. */
-    const impegnati = [chi, ...liberi.filter((m) => m !== chi)].slice(0, servono);
+    /* `pendenti` porta l'elenco intero degli impegnati: alla fine vanno
+       liberati tutti, non solo il primo. */
+    const impegnati = impegnatiPer(chi, liberi, servono);
 
     const fineA = t + az.durata;
-    squadra = { ...squadra };
-    impegnati.forEach((m) => { squadra[m] = { liberoA: fineA, azione: az.id }; });
+    squadra = occupa(squadra, impegnati, fineA, az.id);
     /* Il verdetto si dà ADESSO, con quello che sai adesso: se la manovra
        dura tre minuti e nel frattempo scopri qualcosa, il gesto che hai
        deciso resta quello che hai deciso. Viaggia dentro `pendenti` fino
@@ -652,7 +609,7 @@ export function creaIntervento(caso, opzioni = {}) {
     } else {
       /* Al sanitario non si ordina: gli si riferisce un quadro. Il gesto è
          lo stesso, la frase no — ed è la frase che insegna. */
-      const verso = A_CHI[chi] || `a ${etichettaMembro(chi).toLowerCase()}`;
+      const verso = versoIlMembro(chi);
       scrivi('azione', az.cat === 'infermiere'
         ? `Riferisci il quadro ${verso}: ${az.label.toLowerCase()}.`
         : `Chiedi ${verso}: ${az.label.toLowerCase()}.`);
@@ -683,26 +640,13 @@ export function creaIntervento(caso, opzioni = {}) {
   }
 
   /* ------------------------------ letture -------------------------- */
+  /* Le regole stanno in `core/letture.js`: qui c'è solo il legame, cioè
+     lo stato di adesso e la risposta a «c'è il monitor attaccato?». */
   const haMonitor = () => proietta().tag.includes('monitor');
 
-  function letturaScaduta(chiave) {
-    if (CONTINUE.includes(chiave) && haMonitor()) return false;
-    const l = letture[chiave];
-    if (!l) return true;
-    return (t - l.t) > VALIDITA_LETTURA;
-  }
-
-  function valore(chiave) {
-    const s = proietta();
-    if (CONTINUE.includes(chiave) && haMonitor()) return valoreGrezzo(chiave, s);
-    return letture[chiave]?.val;
-  }
-
-  function etaLettura(chiave) {
-    if (CONTINUE.includes(chiave) && haMonitor()) return 0;
-    const l = letture[chiave];
-    return l ? t - l.t : null;
-  }
+  const letturaScaduta = (chiave) => scaduta(chiave, letture, t, haMonitor());
+  const valore = (chiave) => valoreDi(chiave, letture, proietta(), haMonitor());
+  const etaLettura = (chiave) => etaDi(chiave, letture, t, haMonitor());
 
   /* ----------------------------- anamnesi -------------------------- */
   const etichettaInterlocutore = (id) => interlocutoriDi(caso).find((i) => i.id === id)?.label || id;
@@ -741,7 +685,7 @@ export function creaIntervento(caso, opzioni = {}) {
     const permesso = puoRispondere(interlocutore, proietta().coscienza);
     if (!permesso.ok) return { ok: false, motivo: permesso.motivo };
 
-    squadra = { ...squadra, tu: { liberoA: t + d.durata, azione: `domanda:${d.id}` } };
+    squadra = occupa(squadra, ['tu'], t + d.durata, `domanda:${d.id}`);
     scrivi('azione', `Chiedi ${aChi(etichettaInterlocutore(interlocutore))}: ${testoDomanda(d, interlocutore)}`, `domanda:${d.id}`);
     avanza(d.durata);
 
@@ -760,7 +704,7 @@ export function creaIntervento(caso, opzioni = {}) {
     r.rivela.forEach((chiave) => { saputo = { ...saputo, [chiave]: { da: interlocutore, t } }; });
 
     scrivi('risposta', r.testo, `risposta:${d.id}`);
-    squadra = { ...squadra, tu: { ...squadra.tu, azione: null } };
+    squadra = libera(squadra, ['tu']);
     notifica();
     return { ok: true, risposta: r };
   }

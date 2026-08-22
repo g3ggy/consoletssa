@@ -59,6 +59,8 @@ assets/js/
     ragguaglio.js     quanto del ragguaglio modello sai davvero sostenere
     giudizio.js       il gesto ci stava, e quanto tempo e' costato quello che no. Pura
     sequenza.js       quello che va fatto prima: scena e DPI. Pura
+    squadra.js        chi c'e', chi e' libero, quanti ne serve un gesto. Pura
+    letture.js        cosa hai misurato, com'e' scritto e da quanto. Pura
     pagella.js        com'e' andata: punti, esito, sospetto, tempo buttato. Pura
     bombola.js        quanto ossigeno resta, e per quanto. Pura
     manual.js markdown.js ribbon.js
@@ -268,14 +270,16 @@ ricarica-e-svuota-cache, ma la cura è bumpare sempre tutti e tre i punti.
   rovescia che scorre da solo non esiste e non si può disegnare con un
   `setInterval`. Per questo il riquadro della squadra dice «gli restano
   40s» e non «40s».
-- **Due file sono oltre le 800 righe** e vanno alleggeriti prima del
-  prossimo pezzo che li tocca:
-  `core/sim-engine.js` (855) — il candidato naturale è la squadra:
-  `candidati`, `membriLiberi`, `etichettaMembro`, `A_CHI`, `A_PAROLE` e il
-  calcolo di quante persone occupa un gesto stanno insieme e dipendono solo
-  da `squadra` e `t`, quindi diventano un `core/squadra.js` puro;
-  `modules/simulazioni.js` (913, già oltre prima della 1.15.0) — il
-  candidato è la barra dei filtri con le sue chip.
+- **`modules/simulazioni.js` è a 913 righe, oltre le 800**, ed era già
+  oltre prima della 1.15.0: è il modulo del motore vecchio. Il prossimo
+  pezzo che entra lì dentro va preceduto da un'estrazione, e il candidato
+  è la barra dei filtri con le sue chip. (`data/casi.js` a 1262 righe è
+  l'altra eccezione, ma è un file di soli dati: sono sette scenari.)
+- **I nomi dei ruoli stanno in un posto solo**, `core/squadra.js`:
+  `NOMI_MEMBRO`, `etichettaMembro` e `versoIlMembro` per la preposizione
+  che si fonde con l'articolo. Erano tre copie — nel motore, in
+  `intervento.js` e in `intervento-palette.js` — e le tre copie sono il
+  modo in cui «chiedi a infermiere» era sopravvissuto.
 - **La ricerca della palette cerca fra le azioni DISPONIBILI**, non nel
   catalogo intero: cercare «cannula» a paziente cosciente non dà niente,
   perché la Guedel lì non si può mettere. È coerente con la palette, ma chi

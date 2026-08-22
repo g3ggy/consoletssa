@@ -13,10 +13,11 @@
 import { el, fold } from '../core/dom.js';
 import { CATEGORIE, azioniDi } from '../data/azioni.js';
 import { FAMIGLIE_META } from '../data/presidi.js';
+import { NOMI_MEMBRO, versoIlMembro } from '../core/squadra.js';
 
 /* `ctx` è quello che la palette ha bisogno di sapere dal modulo:
    { sim, esegui, chiedi, rivolgitiA, categoriaAperta, famigliaAperta,
-     membroFamiglia, ricercaTesto, apriFamiglia, apriCategoria, NOMI_MEMBRO } */
+     membroFamiglia, ricercaTesto, apriFamiglia, apriCategoria } */
 
 /* La riga di una domanda: usata sia nel pannello dell'anamnesi sia nei
    risultati della ricerca, che possono incrociarla con azioni di
@@ -58,13 +59,9 @@ function pannelloAnamnesi(ctx) {
   ]);
 }
 
-/* «Chiedi a autista» non è italiano: la preposizione si fonde con
-   l'articolo, come già fa l'anamnesi con gli interlocutori. */
-const A_CHI = { autista: 'all\'autista', infermiere: 'all\'infermiere', medico: 'al medico' };
-
 /* La riga di un'azione singola: è quella che c'è sempre stata. */
 function rigaAzione(ctx, az, onScegli) {
-  const { sim, NOMI_MEMBRO } = ctx;
+  const { sim } = ctx;
   const liberi = sim.membriLiberi(az);
   const principale = liberi.includes('tu') ? 'tu' : liberi[0];
   const riga = el('div.pal-riga', {}, [
@@ -86,7 +83,7 @@ function rigaAzione(ctx, az, onScegli) {
      infermiere, che è la cosa sbagliata. */
   const etichettaPrincipale = az.cat === 'infermiere'
     ? 'Riferisci e assisti'
-    : (principale === 'tu' ? 'Fallo tu' : `Chiedi ${A_CHI[principale] || `a ${NOMI_MEMBRO[principale].toLowerCase()}`}`);
+    : (principale === 'tu' ? 'Fallo tu' : `Chiedi ${versoIlMembro(principale)}`);
   const soloUno = (testo) => bottoni.append(el('button.btn.sm.pri', {
     type: 'button',
     onclick: () => agisci(az.id, principale),

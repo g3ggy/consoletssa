@@ -12,6 +12,7 @@ import { icon, toast } from '../core/ui.js';
 import { creaLifepak } from '../core/lifepak.js';
 import { setRibbonRhythm } from '../core/ribbon.js';
 import { creaIntervento } from '../core/sim-engine.js';
+import { NOMI_MEMBRO } from '../core/squadra.js';
 import { AZIONI } from '../data/azioni.js';
 import { costruisciTabs, costruisciLista } from './intervento-palette.js';
 import { CASI, CASI_INDICE } from '../data/casi.js';
@@ -35,7 +36,6 @@ let famigliaAperta = null;
 let membroFamiglia = 'tu';
 let modalitaEsame = false;
 
-const NOMI_MEMBRO = { tu: 'Tu', autista: 'Autista', infermiere: 'Infermiere', medico: 'Medico' };
 
 /* Quali parametri del monitor si rilevano con quale azione. */
 const AZIONE_PER_PARAMETRO = {
@@ -363,8 +363,10 @@ function eseguiRapido(id) {
   if (!id || !sim) return;
   const az = AZIONI[id];
   if (!az) return;
-  const chi = az.chi.find((m) => sim.squadra[m]?.liberoA <= sim.t) || az.chi[0];
-  esegui(id, chi);
+  /* `az.chi` non conosce il medico dell'automedica: chi può farlo davvero
+     lo sa il motore, ed è `membriLiberi` a dirlo. */
+  const liberi = sim.membriLiberi(az);
+  esegui(id, liberi.includes('tu') ? 'tu' : (liberi[0] || az.chi[0]));
 }
 
 function esegui(id, chi) {
@@ -387,7 +389,7 @@ function riferisci(esito) {
    che le serve — cosa sa del motore, e cosa può cambiare della vista. */
 function contestoPalette() {
   return {
-    sim, NOMI_MEMBRO, esegui,
+    sim, esegui,
     chiedi: (id) => riferisci(sim.chiedi(id)),
     rivolgitiA: (id) => riferisci(sim.rivolgitiA(id)),
     categoriaAperta, famigliaAperta, membroFamiglia, ricercaTesto,
