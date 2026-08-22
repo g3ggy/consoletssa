@@ -8,7 +8,7 @@
    Per pubblicare una nuova versione basta cambiare CACHE.
    ===================================================================== */
 
-const CACHE = 'consoletssa-1.14.1';
+const CACHE = 'consoletssa-1.15.0';
 
 const PRECACHE = [
   './',
@@ -31,6 +31,7 @@ const PRECACHE = [
   './assets/js/core/waveform.js',
   './assets/js/core/ribbon.js',
   './assets/js/core/sim-engine.js',
+  './assets/js/core/sequenza.js',
   './assets/js/core/bombola.js',
   './assets/js/core/cartellino.js',
   './assets/js/core/lifepak.js',
@@ -51,6 +52,7 @@ const PRECACHE = [
   './assets/js/modules/monitor.js',
   './assets/js/modules/simulazioni.js',
   './assets/js/modules/intervento.js',
+  './assets/js/modules/intervento-palette.js',
   './assets/js/modules/ripasso.js',
   './assets/js/modules/progressi.js',
   './content/manuale.md',

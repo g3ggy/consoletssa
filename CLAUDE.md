@@ -58,6 +58,7 @@ assets/js/
     anamnesi.js       chi risponde, cosa dice, cosa rivela. Logica pura
     ragguaglio.js     quanto del ragguaglio modello sai davvero sostenere
     giudizio.js       il gesto ci stava, e quanto tempo e' costato quello che no. Pura
+    sequenza.js       quello che va fatto prima: scena e DPI. Pura
     pagella.js        com'e' andata: punti, esito, sospetto, tempo buttato. Pura
     bombola.js        quanto ossigeno resta, e per quanto. Pura
     manual.js markdown.js ribbon.js
@@ -74,6 +75,7 @@ assets/js/
     carte.js  carte-autoverifica.js  cartellini.js  anatomy.js
   modules/            una vista ciascuno
     studio corpo monitor simulazioni intervento debriefing ripasso progressi
+    intervento-palette.js  la palette delle azioni, staccata da intervento.js
 tests/                node --test, solo logica pura (niente DOM)
 vendor/               three.js r160 + GLTFLoader, copiati dentro
 content/manuale.md    il manuale che il modulo Studio legge
@@ -249,11 +251,31 @@ ricarica-e-svuota-cache, ma la cura è bumpare sempre tutti e tre i punti.
   `.palette` la eredita, e a parità di specificità vince lei. La casella di
   ricerca delle azioni veniva alta il doppio per questo. Chi mette un campo
   dentro la palette lo scopi dentro il suo contenitore.
-- **`modules/intervento.js` è a 796 righe su 800.** Il prossimo pezzo che
-  entra lì dentro va preceduto da un'estrazione: il candidato naturale è la
-  palette — `rigaAzione`, `rigaFamiglia`, `righeDellaCategoria`,
-  `risultatiRicerca`, `pannelloAnamnesi` — che è coesa e parla col motore
-  solo attraverso `sim`.
+- **`chi` su un'azione sono i candidati, non i partecipanti.** Quante
+  persone occupa il gesto lo dice `servono` (e `tuttaLaSquadra` per i DPI).
+  Prima che esistesse, la tavola spinale nel banco la metteva una persona
+  sola.
+- **Il ruolo sanitario nel catalogo è uno solo**, `chi: ['infermiere']`, e
+  chi lo incarna dipende da chi c'è: l'infermiere di bordo, o il medico
+  dell'automedica quando arriva. La normalizzazione sta in `candidati()`
+  dentro `sim-engine.js`.
+- **Un'azione che nessuno può fare adesso sparisce dalla palette**, non
+  compare col cartellino «occupati»: `azioniDisponibili` scarta quello per
+  cui non ci sono abbastanza persone libere. Il ramo `!principale` in
+  `rigaAzione` resta come rete, ma in pratica non si vede più.
+- **L'orologio del banco è a turni, non a muro.** `sim.t` si muove solo
+  dentro `avanza()`, che gira quando qualcuno agisce: un conto alla
+  rovescia che scorre da solo non esiste e non si può disegnare con un
+  `setInterval`. Per questo il riquadro della squadra dice «gli restano
+  40s» e non «40s».
+- **Due file sono oltre le 800 righe** e vanno alleggeriti prima del
+  prossimo pezzo che li tocca:
+  `core/sim-engine.js` (855) — il candidato naturale è la squadra:
+  `candidati`, `membriLiberi`, `etichettaMembro`, `A_CHI`, `A_PAROLE` e il
+  calcolo di quante persone occupa un gesto stanno insieme e dipendono solo
+  da `squadra` e `t`, quindi diventano un `core/squadra.js` puro;
+  `modules/simulazioni.js` (913, già oltre prima della 1.15.0) — il
+  candidato è la barra dei filtri con le sue chip.
 - **La ricerca della palette cerca fra le azioni DISPONIBILI**, non nel
   catalogo intero: cercare «cannula» a paziente cosciente non dà niente,
   perché la Guedel lì non si può mettere. È coerente con la palette, ma chi
@@ -359,6 +381,33 @@ piano restano come storia della decisione:
 
 - `docs/superpowers/specs/2026-08-22-dotazione-presidi-design.md`
 - `docs/superpowers/plans/2026-08-22-dotazione-presidi.md`
+
+**Fatto in 1.15.0.** La squadra vera e la valutazione che insegna. Un'azione
+dichiara `servono` — quante persone occupa — e le sei manovre che non si
+fanno da soli ne prendono due; i DPI li mette l'equipaggio. Al sanitario si
+riferisce un quadro, non si danno ordini, e si può partire senza infermiere:
+lì `richiedi-automedica` è una mossa vera e il medico arriva quando arriva.
+La pagella non toglie più punti per il tempo — lo paga la fisiologia, che
+c'è già — e quando un presidio è sbagliato il banco dice quale andava usato,
+dedotto dalle regole delle famiglie invece che scritto a mano. `core/sequenza.js`
+segnala le due inversioni che riguardano la sicurezza di chi soccorre: la
+scena e i DPI prima di toccare. Specifica e piano restano come storia della
+decisione:
+
+- `docs/superpowers/specs/2026-08-22-squadra-e-valutazione-design.md`
+- `docs/superpowers/plans/2026-08-22-squadra-e-valutazione.md`
+
+Due scostamenti dal piano, decisi durante l'esecuzione e verificati:
+
+- **il timer della squadra non scorre con un `setInterval`**: l'orologio è a
+  turni e il numero era corretto, era la frase a mentire. Vedi la trappola
+  sopra.
+- **l'alternativa dentro una famiglia è la prima INDICATA in ordine di
+  catalogo**, e dentro l'ossigeno il catalogo va dal flusso più leggero al
+  più pesante: al reservoir sbagliato il banco risponde «occhialini», non
+  «maschera semplice» come ipotizzava il piano. È la lezione giusta — il
+  presidio più leggero che bastava — ma non è quello che il piano si
+  aspettava.
 
 **Il prossimo pezzo** è la **scheda ARES compilabile** — le diciassette classi
 nascono in 1.12.0 e servono lì — insieme all'**inventario sfogliabile** dello
