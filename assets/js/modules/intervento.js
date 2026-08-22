@@ -13,6 +13,7 @@ import { creaLifepak } from '../core/lifepak.js';
 import { setRibbonRhythm } from '../core/ribbon.js';
 import { creaIntervento } from '../core/sim-engine.js';
 import { AZIONI, CATEGORIE, azioniDi } from '../data/azioni.js';
+import { FAMIGLIE_META } from '../data/presidi.js';
 import { CASI, CASI_INDICE } from '../data/casi.js';
 import { cartellino, badgeCriticita } from '../core/cartellino.js';
 import { foglioEcg12 } from '../core/ecg12.js';
@@ -24,6 +25,10 @@ let chiusure = [];
 let n = null;              // riferimenti ai nodi che si aggiornano
 let categoriaAperta = 'valutazione';
 let paletteAperta = false;
+/* Quale famiglia di presidi è aperta, e per chi. Si apre toccando «Fallo
+   tu»: prima si sceglie chi lo fa, poi quale pezzo prende in mano. */
+let famigliaAperta = null;
+let membroFamiglia = 'tu';
 let modalitaEsame = false;
 
 const NOMI_MEMBRO = { tu: 'Tu', autista: 'Autista', infermiere: 'Infermiere' };
@@ -334,6 +339,9 @@ function eseguiRapido(id) {
 function esegui(id, chi) {
   const esito = sim.esegui(id, chi);
   if (!esito.ok) { toast('Non ora', esito.motivo, 'warn'); return; }
+  /* Fatto il gesto, la carta delle misure si chiude: se resta aperta la
+     riga successiva la trova aperta su una famiglia che non c'entra. */
+  famigliaAperta = null;
   aggiornaTutto();
 }
 
@@ -379,6 +387,97 @@ function pannelloAnamnesi() {
   ]);
 }
 
+/* La riga di un'azione singola: è quella che c'è sempre stata. */
+function rigaAzione(az, onScegli) {
+  const liberi = sim.membriLiberi(az);
+  const principale = liberi.includes('tu') ? 'tu' : liberi[0];
+  const riga = el('div.pal-riga', {}, [
+    el('div.az-testo', {}, [
+      el('b', { text: az.label }),
+      el('span', { text: az.spiega }),
+    ]),
+    el('div.az-meta', {}, [
+      el('span.durata', { text: `${az.durata}s` }),
+    ]),
+  ]);
+
+  const bottoni = el('div.az-btn');
+  if (!principale) {
+    bottoni.append(el('span.badge.b-no', { text: 'occupati' }));
+  } else {
+    const agisci = onScegli || ((id, chi) => esegui(id, chi));
+    bottoni.append(el('button.btn.sm.pri', {
+      type: 'button',
+      onclick: () => agisci(az.id, principale),
+    }, [principale === 'tu' ? 'Fallo tu' : `Chiedi a ${NOMI_MEMBRO[principale].toLowerCase()}`]));
+
+    liberi.filter((m) => m !== principale).forEach((m) => {
+      bottoni.append(el('button.btn.sm', {
+        type: 'button',
+        onclick: () => agisci(az.id, m),
+      }, [NOMI_MEMBRO[m]]));
+    });
+  }
+  riga.append(bottoni);
+  return riga;
+}
+
+/* La riga di una famiglia: un capofamiglia solo, e sotto — quando la
+   apri — le misure vere. Sul telefono è la differenza fra sei righe e
+   quindici. Aprirla non costa tempo: è un pensiero, non un gesto. */
+function rigaFamiglia(idFamiglia, voci) {
+  const meta = FAMIGLIE_META[idFamiglia];
+  const prima = voci[0];
+  const aperta = famigliaAperta === idFamiglia;
+
+  /* Il capofamiglia si comporta come un'azione qualunque — stessi
+     bottoni, stessa scelta di chi lo fa — solo che invece di partire
+     apre le misure. */
+  const finto = { ...prima, label: meta.label, spiega: prima.spiega, durata: prima.durata };
+  const riga = rigaAzione(finto, (_id, chi) => {
+    famigliaAperta = aperta ? null : idFamiglia;
+    membroFamiglia = chi;
+    aggiornaPalette();
+  });
+  riga.classList.add('pal-fam');
+  riga.querySelector('.az-meta').append(el('span.pal-quante', { text: `${voci.length} misure` }));
+
+  if (!aperta) return riga;
+
+  const misure = el('div.pal-misure', {}, [
+    el('p.pal-come', {}, [
+      meta.comeSiMisura,
+      el('small', { text: meta.fonteMisura }),
+    ]),
+    el('div.pal-scelte', {}, voci.map((v) => {
+      const b = el('button.pal-mis', {
+        type: 'button',
+        onclick: () => { famigliaAperta = null; esegui(v.id, membroFamiglia); },
+      }, [
+        v.colore ? el('i.pal-colore', { style: { background: v.colore } }) : null,
+        el('b', { text: v.etichettaMisura }),
+        el('span', { text: `${v.durata}s` }),
+      ].filter(Boolean));
+      return b;
+    })),
+  ]);
+  riga.append(misure);
+  return riga;
+}
+
+/* Le azioni della categoria, con le famiglie compattate in una riga
+   sola. L'ordine è quello del catalogo: la prima voce di una famiglia
+   tiene il posto di tutte. */
+function righeDellaCategoria(inCategoria) {
+  const viste = new Set();
+  return inCategoria.map((az) => {
+    if (!az.famiglia) return rigaAzione(az);
+    if (viste.has(az.famiglia)) return null;
+    viste.add(az.famiglia);
+    return rigaFamiglia(az.famiglia, inCategoria.filter((x) => x.famiglia === az.famiglia));
+  }).filter(Boolean);
+}
+
 function aggiornaPalette() {
   const disponibili = sim.azioniDisponibili();
   const inCategoria = azioniDi(categoriaAperta)
@@ -408,38 +507,7 @@ function aggiornaPalette() {
     return;
   }
 
-  mount(n.paletteLista, ...inCategoria.map((az) => {
-    const liberi = sim.membriLiberi(az);
-    const principale = liberi.includes('tu') ? 'tu' : liberi[0];
-    const riga = el('div.pal-riga', {}, [
-      el('div.az-testo', {}, [
-        el('b', { text: az.label }),
-        el('span', { text: az.spiega }),
-      ]),
-      el('div.az-meta', {}, [
-        el('span.durata', { text: `${az.durata}s` }),
-      ]),
-    ]);
-
-    const bottoni = el('div.az-btn');
-    if (!principale) {
-      bottoni.append(el('span.badge.b-no', { text: 'occupati' }));
-    } else {
-      bottoni.append(el('button.btn.sm.pri', {
-        type: 'button',
-        onclick: () => esegui(az.id, principale),
-      }, [principale === 'tu' ? 'Fallo tu' : `Chiedi a ${NOMI_MEMBRO[principale].toLowerCase()}`]));
-
-      liberi.filter((m) => m !== principale).forEach((m) => {
-        bottoni.append(el('button.btn.sm', {
-          type: 'button',
-          onclick: () => esegui(az.id, m),
-        }, [NOMI_MEMBRO[m]]));
-      });
-    }
-    riga.append(bottoni);
-    return riga;
-  }));
+  mount(n.paletteLista, ...righeDellaCategoria(inCategoria));
 }
 
 /* ========================== BARRA DEL TEMPO ========================= */
@@ -622,6 +690,8 @@ export function render(params) {
 
   sim = creaIntervento(caso, { azioni: AZIONI });
   categoriaAperta = 'scena';
+  famigliaAperta = null;
+  membroFamiglia = 'tu';
   setTimeout(() => { aggiornaTutto(); }, 0);
 
   return radice;
