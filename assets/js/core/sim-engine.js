@@ -443,6 +443,11 @@ export function creaIntervento(caso, opzioni = {}) {
 
   const etichettaMembro = (chi) => ({ tu: 'Tu', autista: 'Autista', infermiere: 'Infermiere', medico: 'Medico' }[chi] || chi);
 
+  /* In italiano la preposizione si fonde con l'articolo, e «chiedi a
+     infermiere» non è italiano. Stessa ragione per cui gli interlocutori
+     dell'anamnesi si dichiarano con l'articolo davanti. */
+  const A_CHI = { autista: 'all\'autista', infermiere: 'all\'infermiere', medico: 'al medico' };
+
   /* Le grandezze si leggono come le legge un soccorritore: la frequenza
      è un numero intero, la temperatura ha un decimale. */
   const DECIMALI = { temp: 1 };
@@ -645,7 +650,12 @@ export function creaIntervento(caso, opzioni = {}) {
     if (chi === 'tu') {
       avanza(az.durata);
     } else {
-      scrivi('azione', `Chiedi a ${etichettaMembro(chi).toLowerCase()}: ${az.label.toLowerCase()}.`);
+      /* Al sanitario non si ordina: gli si riferisce un quadro. Il gesto è
+         lo stesso, la frase no — ed è la frase che insegna. */
+      const verso = A_CHI[chi] || `a ${etichettaMembro(chi).toLowerCase()}`;
+      scrivi('azione', az.cat === 'infermiere'
+        ? `Riferisci il quadro ${verso}: ${az.label.toLowerCase()}.`
+        : `Chiedi ${verso}: ${az.label.toLowerCase()}.`);
       avanza(COSTO_DELEGA);
     }
     notifica();

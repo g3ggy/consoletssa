@@ -58,6 +58,10 @@ function pannelloAnamnesi(ctx) {
   ]);
 }
 
+/* «Chiedi a autista» non è italiano: la preposizione si fonde con
+   l'articolo, come già fa l'anamnesi con gli interlocutori. */
+const A_CHI = { autista: 'all\'autista', infermiere: 'all\'infermiere', medico: 'al medico' };
+
 /* La riga di un'azione singola: è quella che c'è sempre stata. */
 function rigaAzione(ctx, az, onScegli) {
   const { sim, NOMI_MEMBRO } = ctx;
@@ -76,6 +80,13 @@ function rigaAzione(ctx, az, onScegli) {
   const bottoni = el('div.az-btn');
   const agisci = onScegli || ((id, chi) => ctx.esegui(id, chi));
   const servono = az.tuttaLaSquadra ? liberi.length : (az.servono || 1);
+  /* Un sanitario non lo comandi: gli riferisci un quadro e decide lui.
+     Il vincolo tecnico è lo stesso di prima — `richiede` pretende il
+     ragguaglio — ma chiamarlo «chiedi a» insegnava che dai ordini a un
+     infermiere, che è la cosa sbagliata. */
+  const etichettaPrincipale = az.cat === 'infermiere'
+    ? 'Riferisci e assisti'
+    : (principale === 'tu' ? 'Fallo tu' : `Chiedi ${A_CHI[principale] || `a ${NOMI_MEMBRO[principale].toLowerCase()}`}`);
   const soloUno = (testo) => bottoni.append(el('button.btn.sm.pri', {
     type: 'button',
     onclick: () => agisci(az.id, principale),
@@ -90,10 +101,10 @@ function rigaAzione(ctx, az, onScegli) {
     soloUno(az.tuttaLaSquadra ? 'Tutta la squadra' : 'Fatelo in due');
   } else if (az.chi.length === 1 || liberi.length === 1) {
     /* Un solo candidato libero: nessuna scelta da fare. */
-    soloUno(principale === 'tu' ? 'Fallo tu' : `Chiedi a ${NOMI_MEMBRO[principale].toLowerCase()}`);
+    soloUno(etichettaPrincipale);
   } else {
     /* Qui la scelta è vera: puoi farlo tu, o chiederlo mentre fai altro. */
-    soloUno(principale === 'tu' ? 'Fallo tu' : `Chiedi a ${NOMI_MEMBRO[principale].toLowerCase()}`);
+    soloUno(etichettaPrincipale);
     liberi.filter((m) => m !== principale).forEach((m) => {
       bottoni.append(el('button.btn.sm', {
         type: 'button',

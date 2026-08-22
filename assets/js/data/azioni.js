@@ -23,7 +23,7 @@ export const CATEGORIE = [
   { id: 'valutazione', label: 'Parametri', desc: 'Rilevazioni' },
   { id: 'immobilizzo', label: 'Immobilizzo', desc: 'Presidi e trasporto' },
   { id: 'comunicazione', label: 'Comunicazione', desc: 'Centrale, infermiere, paziente' },
-  { id: 'infermiere', label: 'Infermiere', desc: 'Da richiedere: li esegue lui' },
+  { id: 'infermiere', label: 'Sanitario', desc: 'Decide lui, sulla base del quadro che gli riferisci' },
   { id: 'anamnesi', label: 'Anamnesi', desc: 'Domande al paziente e a chi c\'è' },
 ];
 
@@ -454,7 +454,7 @@ const ELENCO = [
 
   /* ============================ INFERMIERE ========================== */
   {
-    id: 'inf-accesso', cat: 'infermiere', label: 'Accesso venoso', durata: 90,
+    id: 'inf-accesso', cat: 'infermiere', label: 'Fa reperire un accesso venoso', durata: 90,
     chi: ['infermiere'], unaVolta: true,
     /* Non conta quale calibro hai preparato: conta che il materiale sia
        sul telo. Il calibro sbagliato lo dice l'indicazione, non un
@@ -466,7 +466,7 @@ const ELENCO = [
     spiega: 'Tu prepari e assisti; il gesto è suo.',
   },
   {
-    id: 'inf-liquidi', cat: 'infermiere', label: 'Infusione di liquidi', durata: 60,
+    id: 'inf-liquidi', cat: 'infermiere', label: 'Avvia l\'infusione di liquidi', durata: 60,
     chi: ['infermiere'], unaVolta: true,
     richiede: (p) => p.tag.includes('ev'),
     motivoBloccato: 'Serve prima un accesso venoso.',
@@ -475,7 +475,7 @@ const ELENCO = [
     spiega: 'Riempie il contenitore quando il problema è volume.',
   },
   {
-    id: 'inf-adrenalina', cat: 'infermiere', label: 'Adrenalina intramuscolo', durata: 40,
+    id: 'inf-adrenalina', cat: 'infermiere', label: 'Somministra adrenalina intramuscolo', durata: 40,
     chi: ['infermiere'], unaVolta: true,
     richiede: (p, ctx) => ctx.haFatto('riferisci-infermiere'),
     motivoBloccato: 'L\'infermiere non sa ancora cosa ha davanti: riferiscigli il quadro.',
@@ -484,7 +484,7 @@ const ELENCO = [
     spiega: 'Il farmaco dell\'anafilassi. Il cortisone nell\'acuto arriva troppo tardi.',
   },
   {
-    id: 'inf-naloxone', cat: 'infermiere', label: 'Naloxone', durata: 40, chi: ['infermiere'],
+    id: 'inf-naloxone', cat: 'infermiere', label: 'Somministra naloxone', durata: 40, chi: ['infermiere'],
     unaVolta: true,
     richiede: (p, ctx) => ctx.haFatto('riferisci-infermiere'),
     motivoBloccato: 'Riferisci prima il quadro: pupille, respiro e circostanze.',
@@ -493,7 +493,7 @@ const ELENCO = [
     spiega: 'Antagonista degli oppiacei. Dura meno dell\'oppiaceo: il paziente va comunque portato.',
   },
   {
-    id: 'inf-glucosata', cat: 'infermiere', label: 'Glucosata endovena', durata: 50,
+    id: 'inf-glucosata', cat: 'infermiere', label: 'Somministra glucosata endovena', durata: 50,
     chi: ['infermiere'], unaVolta: true,
     richiede: (p, ctx) => p.tag.includes('ev') && ctx.haLettura('glicemia'),
     motivoBloccato: (p, ctx) => (ctx.haLettura('glicemia')
