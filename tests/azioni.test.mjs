@@ -64,6 +64,8 @@ const TAG_ATTESI = {
   'o2-reservoir': 'o2',
   'o2-maschera': 'o2',
   'o2-occhialini': 'o2',
+  'o2-venturi': 'o2',
+  'o2-nebulizzatore': 'o2',
   pallone: 'pallone',
   'inf-liquidi': 'liquidi',
   'zucchero-os': 'zucchero',
@@ -140,4 +142,14 @@ test('il diario delle pupille dice cosa hai visto', () => {
   assert.equal(typeof az.diario, 'function', 'deve raccontare quello che trova, non una frase fissa');
   assert.match(az.diario({ pupille: 'midriatiche' }), /larghe|midriasi/i);
   assert.match(az.diario({ pupille: 'normali' }), /normoreagenti|normali/i);
+});
+
+test('i presidi con la misura sono nel catalogo, quelli generici non più', () => {
+  ['cannula', 'aspira', 'accesso-prepara'].forEach((id) => {
+    assert.equal(AZIONI[id], undefined, `${id} doveva sparire: adesso ha le misure`);
+  });
+  ['cannula-3', 'sondino-16', 'ago-16', 'o2-venturi', 'o2-nebulizzatore'].forEach((id) => {
+    assert.ok(AZIONI[id], `manca ${id}`);
+    assert.ok(AZIONI[id].famiglia, `${id}: la palette non sa in che famiglia metterlo`);
+  });
 });

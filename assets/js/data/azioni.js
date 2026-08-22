@@ -11,6 +11,8 @@
    Le azioni marcate `chi: ['infermiere']` si possono solo richiedere.
    ===================================================================== */
 
+import { VOCI_PRESIDI } from './presidi.js';
+
 export const CATEGORIE = [
   { id: 'scena', label: 'Scena', desc: 'Sicurezza, persone, richieste di supporto' },
   { id: 'A', label: 'A — vie aeree', desc: 'Pervietà e rachide cervicale' },
@@ -97,27 +99,15 @@ const ELENCO = [
     diario: 'Mandibola sublussata mantenendo l\'allineamento del rachide.',
     spiega: 'La manovra per aprire le vie aeree quando c\'è sospetto di trauma cervicale.',
   },
-  {
-    id: 'cannula', cat: 'A', label: 'Cannula orofaringea', durata: 25, chi: ['tu'],
-    unaVolta: true, richiede: (p) => p.coscienza === 'P' || p.coscienza === 'U',
-    motivoBloccato: 'Il paziente ha ancora il riflesso faringeo: la vomiterebbe.',
-    applica: () => ({ viePervie: true, tag: 'cannula' }),
-    diario: 'Cannula orofaringea posizionata.',
-    spiega: 'Solo nel paziente senza riflesso faringeo, misurata dall\'incisivo all\'angolo mandibolare.',
-  },
+
+  /* Le sei Guedel e i quattro sondini stanno in `presidi.js`: sono
+     generati, perché scrivere sei volte la stessa azione con un numero
+     diverso è il modo migliore per farne divergere cinque. */
   {
     id: 'aspiratore-prepara', cat: 'A', label: 'Prepara l\'aspiratore', durata: 30,
     chi: ['tu', 'autista'], unaVolta: true, applica: () => ({ tag: 'aspiratore-pronto' }),
     diario: 'Aspiratore montato e pronto.',
     spiega: 'Averlo pronto prima che serva: quando serve, servono secondi.',
-  },
-  {
-    id: 'aspira', cat: 'A', label: 'Aspira le secrezioni', durata: 40, chi: ['tu'],
-    richiede: (p) => p.tag.includes('aspiratore-pronto'),
-    motivoBloccato: 'L\'aspiratore non è ancora pronto.',
-    applica: () => ({ viePervie: true, spo2: +2 }),
-    diario: 'Cavo orale aspirato.',
-    spiega: 'Gorgoglio uguale liquidi: si aspira in uscita, mai alla cieca in profondità.',
   },
   {
     id: 'collare', cat: 'A', label: 'Applica il collare cervicale', durata: 60,
@@ -132,27 +122,6 @@ const ELENCO = [
     chi: ['tu', 'autista'], rileva: 'fr',
     diario: (p) => `Frequenza respiratoria ${Math.round(p.fr)} atti/min.`,
     spiega: 'Si conta guardando il torace, senza annunciarlo: se sa di essere contato, cambia ritmo.',
-  },
-  {
-    id: 'o2-occhialini', cat: 'B', label: 'Ossigeno con occhialini, 2-4 l/min', durata: 30,
-    chi: ['tu', 'autista'], unaVolta: true,
-    applica: () => ({ tag: 'o2' }),
-    diario: 'Ossigeno con occhialini nasali.',
-    spiega: 'Flussi bassi quando la saturazione è appena sotto e il paziente respira bene.',
-  },
-  {
-    id: 'o2-maschera', cat: 'B', label: 'Maschera semplice, 6-8 l/min', durata: 30,
-    chi: ['tu', 'autista'], unaVolta: true,
-    applica: () => ({ tag: 'o2' }),
-    diario: 'Ossigeno con maschera semplice.',
-    spiega: 'Via di mezzo. Sotto i 5 l/min la maschera semplice fa rirespirare anidride carbonica.',
-  },
-  {
-    id: 'o2-reservoir', cat: 'B', label: 'Maschera con reservoir, 12-15 l/min', durata: 40,
-    chi: ['tu', 'autista'], unaVolta: true,
-    applica: () => ({ tag: 'o2' }),
-    diario: 'Ossigeno ad alti flussi con reservoir.',
-    spiega: 'Quadro critico o saturazione bassa: si parte alti e si scende, non il contrario.',
   },
   {
     id: 'pallone', cat: 'B', label: 'Ventila con pallone-maschera', durata: 45, chi: ['tu'],
@@ -266,12 +235,6 @@ const ELENCO = [
   },
 
   /* -------------------- assistenza all'infermiere ------------------- */
-  {
-    id: 'accesso-prepara', cat: 'C', label: 'Prepara il materiale per l\'accesso venoso',
-    durata: 45, chi: ['tu', 'autista'], unaVolta: true, applica: () => ({ tag: 'ev-pronto' }),
-    diario: 'Laccio, agocannula, cerotto e deflussore pronti sul telo.',
-    spiega: 'Il soccorritore non punge, ma può far trovare tutto pronto: sono minuti guadagnati.',
-  },
   {
     id: 'flebo-monta', cat: 'C', label: 'Monta la flebo', durata: 40, chi: ['tu', 'autista'],
     unaVolta: true, applica: () => ({ tag: 'flebo-pronta' }),
@@ -515,6 +478,11 @@ const ELENCO = [
     diario: 'Glucosata endovena: il paziente si riprende.',
     spiega: 'Per l\'ipoglicemico che non può deglutire.',
   },
+
+  /* I presidi con la misura: Guedel, sondini, ossigeno, agocannule.
+     Sono azioni come tutte le altre — hanno solo un `famiglia` in più,
+     che serve alla palette per raggrupparle. */
+  ...VOCI_PRESIDI,
 ];
 
 export const AZIONI = Object.fromEntries(ELENCO.map((a) => [a.id, a]));
