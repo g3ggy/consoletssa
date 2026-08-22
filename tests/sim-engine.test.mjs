@@ -919,3 +919,30 @@ test('una bombola quasi vuota finisce, e l\'ossigeno se ne va con lei', () => {
   assert.equal(i.stato.tag.includes('o2'), false, 'la maschera eroga ancora da una bombola vuota');
   assert.ok(i.diario.some((r) => /bombola/i.test(r.testo)), 'il diario non avvisa che è finita');
 });
+
+/* ===================== le manovre a due mani ======================== */
+
+test('una manovra a due mani occupa due persone', () => {
+  const i = creaIntervento(casoProva(), { azioni: AZIONI });
+  const esito = i.esegui('spinale', 'tu');
+  assert.ok(esito.ok, `rifiutata: ${esito.motivo}`);
+  /* La spinale dura tre minuti: mentre è in corso non deve restare
+     nessuno libero, perché la stanno facendo in due. */
+  const occupati = Object.values(i.squadra).filter((m) => m.liberoA > 0).length;
+  assert.equal(occupati, 2, 'la spinale ha occupato una persona sola');
+});
+
+test('senza due persone libere la manovra non parte', () => {
+  const i = creaIntervento(casoProva(), { azioni: AZIONI, membri: ['tu'] });
+  const esito = i.esegui('spinale', 'tu');
+  assert.equal(esito.ok, false);
+  assert.match(esito.motivo, /due/i, `motivo poco chiaro: ${esito.motivo}`);
+});
+
+test('finita la manovra tornano liberi tutti e due', () => {
+  const i = creaIntervento(casoProva(), { azioni: AZIONI });
+  i.esegui('spinale', 'tu');
+  i.avanza(200);
+  const liberi = Object.values(i.squadra).filter((m) => m.liberoA <= i.t).length;
+  assert.equal(liberi, 3, 'qualcuno è rimasto occupato dopo la fine');
+});

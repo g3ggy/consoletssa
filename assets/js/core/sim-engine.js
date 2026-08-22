@@ -68,6 +68,10 @@ const LIMITI_FISIOLOGICI = {
   dolore: [0, 10],
 };
 
+/* «Si fa in due» si legge, «si fa in 2» no: il rifiuto è una frase che un
+   volontario legge di corsa, e la cifra in mezzo alla frase inciampa. */
+const A_PAROLE = { 2: 'due', 3: 'tre', 4: 'quattro' };
+
 const arrotonda = (v, cifre = 4) => {
   const k = 10 ** cifre;
   return Math.round(v * k) / k;
@@ -117,7 +121,7 @@ export function creaIntervento(caso, opzioni = {}) {
   let diario = [];
   let letture = {};                 // { chiave: { t, val } }
   let fatte = [];                   // { id, chi, t }
-  let pendenti = [];                // { fineA, id, chi }
+  let pendenti = [];                // { fineA, id, chi, impegnati }
   let squadra = Object.fromEntries(membri.map((m) => [m, { liberoA: 0, azione: null }]));
   let eventiScattati = [];
   let sogliePassate = [];
@@ -387,10 +391,13 @@ export function creaIntervento(caso, opzioni = {}) {
     dovute.forEach((p) => completa(p));
   }
 
-  function completa({ id, chi, giudizio }) {
+  function completa({ id, chi, impegnati, giudizio }) {
     const az = catalogo[id];
     if (!az) return;
-    squadra = { ...squadra, [chi]: { ...squadra[chi], azione: null } };
+    squadra = { ...squadra };
+    (impegnati || [chi]).forEach((m) => {
+      if (squadra[m]) squadra[m] = { ...squadra[m], azione: null };
+    });
     fatte = [...fatte, { id, chi, t, giudizio }];
 
     if (az.applica) applicaEffetto(az.applica(proietta(), contesto()));
@@ -553,6 +560,9 @@ export function creaIntervento(caso, opzioni = {}) {
     const ctx = contesto();
     return Object.values(catalogo).filter((az) => {
       if (az.unaVolta && fatte.some((f) => f.id === az.id)) return false;
+      /* Una manovra a due mani non compare se non c'è chi la faccia in
+         due: mostrarla e poi rifiutarla sarebbe peggio. */
+      if (membriLiberi(az).length < (az.servono || 1)) return false;
       if (az.richiede && !az.richiede(s, ctx)) return false;
       return true;
     });
@@ -580,14 +590,25 @@ export function creaIntervento(caso, opzioni = {}) {
       return { ok: false, motivo: motivo || 'Non è possibile adesso.' };
     }
 
+    const servono = az.servono || 1;
+    const liberi = membriLiberi(az);
+    if (liberi.length < servono) {
+      return { ok: false, motivo: `Serve un'altra persona: questa manovra si fa in ${A_PAROLE[servono] || servono}.` };
+    }
+    /* Chi hai scelto tiene il posto, gli altri si prendono fra i liberi.
+       È il motivo per cui `pendenti` porta l'elenco intero: alla fine
+       vanno liberati tutti, non solo il primo. */
+    const impegnati = [chi, ...liberi.filter((m) => m !== chi)].slice(0, servono);
+
     const fineA = t + az.durata;
-    squadra = { ...squadra, [chi]: { liberoA: fineA, azione: az.id } };
+    squadra = { ...squadra };
+    impegnati.forEach((m) => { squadra[m] = { liberoA: fineA, azione: az.id }; });
     /* Il verdetto si dà ADESSO, con quello che sai adesso: se la manovra
        dura tre minuti e nel frattempo scopri qualcosa, il gesto che hai
        deciso resta quello che hai deciso. Viaggia dentro `pendenti` fino
        al completamento. */
     const giudizio = indicata(id, contestoGiudizio(), indicazioni);
-    pendenti = [...pendenti, { fineA, id, chi, giudizio }];
+    pendenti = [...pendenti, { fineA, id, chi, impegnati, giudizio }];
 
     if (chi === 'tu') {
       avanza(az.durata);

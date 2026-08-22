@@ -124,7 +124,10 @@ const ELENCO = [
     spiega: 'Si conta guardando il torace, senza annunciarlo: se sa di essere contato, cambia ritmo.',
   },
   {
-    id: 'pallone', cat: 'B', label: 'Ventila con pallone-maschera', durata: 45, chi: ['tu'],
+    /* Il pallone-maschera si fa in due: uno tiene la maschera aderente con
+       due mani, l'altro spreme. L'autista deve poter essere il secondo. */
+    id: 'pallone', cat: 'B', label: 'Ventila con pallone-maschera', durata: 45,
+    chi: ['tu', 'autista'], servono: 2,
     richiede: (p) => p.coscienza === 'U' || p.respiro.tipo === 'gasping' || p.respiro.tipo === 'assente',
     motivoBloccato: 'Il paziente respira da solo: ventilarlo adesso non serve.',
     applica: () => ({ tag: 'pallone' }),
@@ -336,26 +339,30 @@ const ELENCO = [
 
   /* =========================== IMMOBILIZZO ========================== */
   {
+    /* Le manovre che non esistono da soli. `servono` dice quante persone
+     occupa il gesto: senza, vale una. Fino a oggi `chi: ['tu','autista']`
+     significava «la può fare uno dei due», e la tavola spinale nel banco
+     la metteva una persona sola. */
     id: 'spinale', cat: 'immobilizzo', label: 'Tavola spinale', durata: 180,
-    chi: ['tu', 'autista'], unaVolta: true, applica: () => ({ tag: 'immobilizzato' }),
+    chi: ['tu', 'autista'], servono: 2, unaVolta: true, applica: () => ({ tag: 'immobilizzato' }),
     diario: 'Paziente immobilizzato su tavola spinale con fermacapo e cinghiaggi.',
     spiega: 'Serve la squadra intera e serve tempo: si decide se farlo, non si fa per abitudine.',
   },
   {
     id: 'ked', cat: 'immobilizzo', label: 'Estricatore KED', durata: 240,
-    chi: ['tu', 'autista'], unaVolta: true, applica: () => ({ tag: 'immobilizzato' }),
+    chi: ['tu', 'autista'], servono: 2, unaVolta: true, applica: () => ({ tag: 'immobilizzato' }),
     diario: 'KED posizionato, paziente estricato dall\'abitacolo.',
     spiega: 'Per l\'estricazione dal veicolo del paziente stabile. Se è instabile, estricazione rapida.',
   },
   {
     id: 'cucchiaio', cat: 'immobilizzo', label: 'Barella a cucchiaio', durata: 120,
-    chi: ['tu', 'autista'], unaVolta: true, applica: () => ({ tag: 'caricato' }),
+    chi: ['tu', 'autista'], servono: 2, unaVolta: true, applica: () => ({ tag: 'caricato' }),
     diario: 'Paziente sollevato con la barella a cucchiaio.',
     spiega: 'Solleva senza far rotolare il paziente: si aggancia sotto, da entrambi i lati.',
   },
   {
     id: 'materassino', cat: 'immobilizzo', label: 'Materassino a depressione', durata: 150,
-    chi: ['tu', 'autista'], unaVolta: true, applica: () => ({ tag: 'immobilizzato' }),
+    chi: ['tu', 'autista'], servono: 2, unaVolta: true, applica: () => ({ tag: 'immobilizzato' }),
     diario: 'Materassino a depressione modellato e aspirato.',
     spiega: 'Più confortevole della tavola per i trasporti lunghi e per gli anziani.',
   },
@@ -372,7 +379,7 @@ const ELENCO = [
   },
   {
     id: 'telo', cat: 'immobilizzo', label: 'Sposta col telo portaferiti', durata: 90,
-    chi: ['tu', 'autista'], unaVolta: true, applica: () => ({ tag: 'caricato' }),
+    chi: ['tu', 'autista'], servono: 2, unaVolta: true, applica: () => ({ tag: 'caricato' }),
     diario: 'Paziente spostato con il telo.',
     spiega: 'Per spazi stretti e scale, quando la barella non passa.',
   },
