@@ -220,7 +220,12 @@
     box-shadow: 0 10px 20px -14px rgba(0, 0, 0, .7);
   }
   .pmon canvas { height: 48px; }
-  .vit .ref { display: block; font-size: 8.5px; }
+  /* mobile.css nasconde `.vit .ref` per il monitor vecchio (a parità di
+     specificità vince perché carica dopo): qui la tessera non ancora
+     rilevata ci scrive il gesto da fare, e su un telefono è l'unico
+     punto dove si legge — il `title` al tocco non compare mai. Un
+     selettore più specifico rivince senza toccare quel file. */
+  .rilevazioni .vit .ref { display: block; font-size: 8.5px; }
 }
 
 @media (max-width: 900px) {

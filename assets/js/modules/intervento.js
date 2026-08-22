@@ -47,6 +47,25 @@ const AZIONE_PER_PARAMETRO = {
   pupille: 'pupille',
 };
 
+/* Il testo che invita al gesto sulla tessera non ancora rilevata: viene
+   dall'etichetta della sua azione (`AZIONI[id].label`), minuscola — non
+   si inventa. Quattro non ci stanno nella riga stretta sotto la tessera
+   e si accorciano qui a mano, tenendo il verbo e l'oggetto e buttando
+   il resto (temperatura, glicemia e pupille ci stanno già così come
+   sono nel catalogo). */
+const ACCORCIA_TESSERA = {
+  fr: 'conta il respiro',
+  refill: 'misura il refill',
+  cute: 'tocca la cute',
+  sete: 'chiedi se ha sete',
+};
+
+function gestoTessera(k) {
+  const azione = AZIONI[AZIONE_PER_PARAMETRO[k]];
+  if (!azione) return '';
+  return ACCORCIA_TESSERA[k] || azione.label.charAt(0).toLowerCase() + azione.label.slice(1);
+}
+
 /* --------------------------- valutazioni --------------------------- */
 function gravitaTessera(k, valore, stato) {
   if (valore === undefined || valore === null) return '';
@@ -104,12 +123,13 @@ function costruisciMonitor() {
   return { pannello, lp, griglia, cronometro, precedenti: {}, letturaVista: {} };
 }
 
-/* La riga piccola della tessera. Finché il numero non c'è dice quanto
-   dovrebbe valere — che è quello che serve a decidere se misurarlo; una
-   volta che ce l'hai dice anche da quanto, perché è da lì che si capisce
-   se va rifatto. */
+/* La riga piccola della tessera. Finché il numero non c'è dice il
+   gesto che lo farebbe comparire: è l'unico posto dove si legge anche
+   al tocco, perché il `title` del bottone su un telefono non compare
+   mai. Una volta che il numero c'è, la riga torna a dire da quanto,
+   perché è da lì che si capisce se va rifatto. */
 function rigaSotto(p, val, eta, scaduta) {
-  if (val === undefined || val === null) return p.rif;
+  if (val === undefined || val === null) return gestoTessera(p.k);
   if (scaduta) return `${formatSeconds(eta)} fa · rifai`;
   return eta === 0 ? `${p.rif} · ora` : `${p.rif} · ${formatSeconds(eta)} fa`;
 }
