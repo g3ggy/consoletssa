@@ -240,6 +240,15 @@ ricarica-e-svuota-cache, ma la cura è bumpare sempre tutti e tre i punti.
   il tag che la prima lascia (`cannula`, `ev-pronto`), letto da `richiede`.
   L'ossigeno è l'eccezione e tiene `unaVolta`: cambiare presidio strada
   facendo è lecito, ed è quello che si fa quando il paziente peggiora.
+- **`modules/intervento.js` è a 796 righe su 800.** Il prossimo pezzo che
+  entra lì dentro va preceduto da un'estrazione: il candidato naturale è la
+  palette — `rigaAzione`, `rigaFamiglia`, `righeDellaCategoria`,
+  `risultatiRicerca`, `pannelloAnamnesi` — che è coesa e parla col motore
+  solo attraverso `sim`.
+- **La ricerca della palette cerca fra le azioni DISPONIBILI**, non nel
+  catalogo intero: cercare «cannula» a paziente cosciente non dà niente,
+  perché la Guedel lì non si può mettere. È coerente con la palette, ma chi
+  cerca non distingue «ho sbagliato parola» da «adesso non si può».
 - **A un canvas non si dà mai l'altezza in percentuale.** `.lp-onda` aveva
   `height: 100%` dentro un contenitore con la sola `min-height`: una
   percentuale contro un'altezza indefinita vale `auto`, e `auto` per un
