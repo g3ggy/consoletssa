@@ -23,18 +23,78 @@
    in `tmp/testi/FONTI.md`.
    ===================================================================== */
 
+/* ------------------------- i presidi con la misura ------------------ */
+
+/* Il manuale dà la MISURAZIONE della cannula — incisivi/angolo della
+   mandibola (:5428), lobo/angolo della bocca (:5938) — e non dà la
+   tabella che lega il numero al paziente. La mappa qui sotto è nostra. */
+const GUEDEL_PER_CORPORATURA = { minuta: 2, media: 3, robusta: 4 };
+
+const guedel = (n) => ({
+  quando: (c) => GUEDEL_PER_CORPORATURA[c.caso.corporatura || 'media'] === n,
+  perche: 'Non è la misura di questo paziente. La cannula si sceglie sulla '
+    + 'corporatura e si controlla misurandola: corta non scavalca la lingua, '
+    + 'lunga la spinge in gola — e una cannula che spinge la lingua fa il '
+    + 'contrario di quello per cui l\'hai messa.',
+  fonte: 'Bolognin :5428 e :5938 per la misurazione — la mappa corporatura → numero è ASSUNZIONE NOSTRA',
+});
+
+/* Si aspira quando c'è qualcosa da togliere: è la regola che valeva per
+   l'unica `aspira` di prima, e vale identica per tutti e quattro i
+   calibri. Sopra ci sta il calibro. */
+const cEQualcosaDaAspirare = (c) => c.coscienza !== 'A'
+  || c.saputo.vomito || c.saputo.secrezioni || c.tag.includes('vomito');
+
+const sondino = (ch) => ({
+  quando: (c) => cEQualcosaDaAspirare(c) && (ch === 16 || ch === 18),
+  perche: (ch === 16 || ch === 18)
+    ? 'Su vie aeree pulite l\'aspirazione non serve, e stimola il riflesso faringeo.'
+    : 'Il calibro si sceglie sulle secrezioni e sulla corporatura: il 6 e il 10 sono '
+      + 'per il bambino. In un adulto si intasano al primo grumo, e mentre li lavi il '
+      + 'paziente continua ad avere roba in bocca.',
+  fonte: 'Bolognin :2852-2862',
+});
+
+/* «Dal calibro più grosso, che lascia passare cioè un flusso maggiore di
+   liquido al minuto, al più piccolo» (:10448). Da lì la regola: dove il
+   problema è il volume si prepara grosso. Quali quadri siano «di volume»
+   è nostro, e sta tutto in questa riga. */
+const serveVolume = (c) => c.caso.tipo === 'trauma'
+  || Boolean(c.saputo['emorragia-esterna'])
+  || (c.letture.pas !== undefined && c.letture.pas < 100)
+  || c.tag.includes('antishock') || c.tag.includes('laccio') || c.tag.includes('compressione');
+
+const ago = (g) => ({
+  quando: (c) => (serveVolume(c) ? (g === 14 || g === 16) : (g === 18 || g === 20)),
+  perche: (g === 14 || g === 16)
+    ? 'Il calibro grosso si prepara dove serve riempire in fretta: trauma, '
+      + 'emorragia, pressione bassa. Su un paziente stabile a cui basta una via '
+      + 'è più difficile da far entrare, e non serve a niente di più.'
+    : 'Qui il problema è il volume, e il calibro decide quanti millilitri al '
+      + 'minuto passano. Un 18 o un 20 in un paziente da riempire è una via '
+      + 'aperta che non travasa: prepara il 14 o il 16.',
+  fonte: 'Bolognin :10448 — quali quadri chiedano volume è ASSUNZIONE NOSTRA',
+});
+
 export const INDICAZIONI = {
 
   /* ---------------------------- A: vie aeree ---------------------- */
 
-  aspira: {
-    quando: (c) => c.coscienza !== 'A'
-      || c.saputo.vomito || c.saputo.secrezioni || c.tag.includes('vomito'),
-    perche: 'Si aspira quando c\'è qualcosa da togliere: vomito, sangue, '
-      + 'secrezioni. Su vie aeree pulite l\'aspirazione non serve e '
-      + 'stimola il riflesso faringeo.',
-    fonte: 'Bolognin :2835-2864',
-  },
+  /* --------------------- A: la cannula di Guedel ------------------- */
+
+  'cannula-0': guedel(0),
+  'cannula-1': guedel(1),
+  'cannula-2': guedel(2),
+  'cannula-3': guedel(3),
+  'cannula-4': guedel(4),
+  'cannula-5': guedel(5),
+
+  /* ------------------- A: il sondino di aspirazione ----------------- */
+
+  'sondino-6': sondino(6),
+  'sondino-10': sondino(10),
+  'sondino-16': sondino(16),
+  'sondino-18': sondino(18),
 
   collare: {
     quando: (c) => c.caso.tipo === 'trauma',
@@ -88,6 +148,28 @@ export const INDICAZIONI = {
       + 'cui la saturazione non l\'hai ancora presa. Metterlo a chi ha una '
       + 'desaturazione lieve consuma la bombola e non aggiunge nulla.',
     fonte: 'Bolognin :2786-2800 e :6424-6427 (il trauma)',
+  },
+
+  /* Il Venturi non è un presidio «più preciso» degli altri: è il
+     presidio di un problema, l'ipercapnia. Il Bolognin :3264-3270 lo dà
+     «indispensabile per l'erogazione a lungo termine dei pazienti con
+     BPCO, i quali possono andare incontro ad ipoventilazione nel caso
+     venga somministrato ossigeno ad alte concentrazioni». */
+  'o2-venturi': {
+    quando: (c) => Boolean(c.saputo.bpco || c.saputo['broncopneumopatia'] || c.saputo.ossigenoDomicilio),
+    perche: 'Il Venturi serve dove l\'alta concentrazione è pericolosa: il '
+      + 'bronchitico cronico che ipoventila se gli dai troppo ossigeno. Su '
+      + 'chiunque altro è un presidio più lento da montare che non aggiunge '
+      + 'niente al reservoir.',
+    fonte: 'Bolognin :3264-3270',
+  },
+
+  'o2-nebulizzatore': {
+    quando: (c) => Boolean(c.saputo.sibili || c.saputo.broncospasmo || c.saputo.bpco || c.saputo.asma),
+    perche: 'La maschera col nebulizzatore serve a vaporizzare un farmaco: '
+      + 'senza broncospasmo da trattare è una maschera semplice montata più '
+      + 'lentamente.',
+    fonte: 'Bolognin :3264 (i presidi) — l\'indicazione al farmaco inalato è del broncospasmo',
   },
 
   /* ---------------------------- C: circolo -------------------------- */
@@ -147,6 +229,13 @@ export const INDICAZIONI = {
       + 'paziente cosciente non c\'è niente da analizzare.',
     fonte: 'ERC 2025 cap. 4 — algoritmo BLS-D',
   },
+
+  /* -------------------- C: l'agocannula per l'accesso ---------------- */
+
+  'ago-14': ago(14),
+  'ago-16': ago(16),
+  'ago-18': ago(18),
+  'ago-20': ago(20),
 
   /* ------------------------- valutazione ---------------------------- */
 

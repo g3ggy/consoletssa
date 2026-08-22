@@ -540,7 +540,10 @@ export function creaIntervento(caso, opzioni = {}) {
         ...Object.fromEntries(Object.keys(saputo).map((k) => [k, true])),
       },
       tag: s.tag,
-      caso: { tipo: caso.tipo },
+      /* La corporatura si vede: è nel contesto per lo stesso motivo per
+         cui c'è la coscienza. Serve a scegliere la misura di un presidio,
+         e sceglierla è quello che fai guardando il paziente. */
+      caso: { tipo: caso.tipo, corporatura: caso.corporatura || 'media' },
     };
   }
 

@@ -157,3 +157,50 @@ test('si copre almeno la ventina di azioni su cui si sbaglia', () => {
   assert.ok(Object.keys(INDICAZIONI).length >= 20,
     `sono ${Object.keys(INDICAZIONI).length}`);
 });
+
+/* ==================== i presidi con la misura ======================== */
+
+import { VOCI_PRESIDI } from '../assets/js/data/presidi.js';
+
+/* Una misura senza regola scritta è una misura che il banco approva in
+   silenzio: il difetto peggiore, perché non si vede. */
+test('ogni presidio con la misura ha la sua regola, con la fonte', () => {
+  VOCI_PRESIDI.forEach((v) => {
+    const regola = INDICAZIONI[v.id];
+    assert.ok(regola, `${v.id}: nessuna indicazione scritta`);
+    assert.ok(regola.perche && regola.perche.length > 40, `${v.id}: il perché è troppo corto`);
+    assert.ok(regola.fonte, `${v.id}: la regola non dice da dove viene`);
+  });
+});
+
+test('la Guedel giusta dipende dalla corporatura, e da nient\'altro', () => {
+  const ctx = (corporatura) => ({
+    coscienza: 'U', letture: {}, saputo: {}, tag: [],
+    caso: { tipo: 'medico', corporatura },
+  });
+  assert.equal(indicata('cannula-3', ctx('media')).ok, true);
+  assert.equal(indicata('cannula-5', ctx('media')).ok, false);
+  assert.equal(indicata('cannula-4', ctx('robusta')).ok, true);
+  assert.equal(indicata('cannula-2', ctx('minuta')).ok, true);
+  /* Un caso che non la dichiara vale medio: i sette casi scritti prima
+     di questo pezzo non si toccano. */
+  assert.equal(indicata('cannula-3', ctx(undefined)).ok, true);
+});
+
+test('il calibro grosso è per chi ha bisogno di volume', () => {
+  const medico = { coscienza: 'A', letture: {}, saputo: {}, tag: [], caso: { tipo: 'medico' } };
+  const ipoteso = { ...medico, letture: { pas: 84 } };
+  assert.equal(indicata('ago-18', medico).ok, true);
+  assert.equal(indicata('ago-14', medico).ok, false);
+  assert.equal(indicata('ago-14', ipoteso).ok, true);
+  assert.equal(indicata('ago-20', ipoteso).ok, false);
+});
+
+test('sull\'adulto il sondino è il 16 o il 18', () => {
+  const conVomito = {
+    coscienza: 'V', letture: {}, saputo: { vomito: true }, tag: [],
+    caso: { tipo: 'medico' },
+  };
+  assert.equal(indicata('sondino-16', conVomito).ok, true);
+  assert.equal(indicata('sondino-6', conVomito).ok, false);
+});
