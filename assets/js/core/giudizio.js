@@ -106,6 +106,7 @@ export function tempoButtato(fatte = [], catalogo = {}) {
       secondi: catalogo[f.id]?.durata || 0,
       perche: f.giudizio.perche,
       fonte: f.giudizio.fonte,
+      invece: f.giudizio.invece || null,
       t: f.t,
       chi: f.chi,
     }));

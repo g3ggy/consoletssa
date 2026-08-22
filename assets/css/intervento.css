@@ -405,3 +405,11 @@
   border: 1px solid rgba(0, 0, 0, .35);
   flex: 0 0 auto;
 }
+
+/* L'alternativa dentro il tempo buttato: è la riga che insegna, quindi
+   si stacca dal perché invece di confondersi con lui. */
+.deb-invece {
+  display: block; margin-top: 4px; padding-left: 8px;
+  border-left: 2px solid var(--phos); color: var(--ink-2);
+}
+.deb-invece b { color: var(--phos); }

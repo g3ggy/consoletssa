@@ -183,8 +183,26 @@ function sezioneTempoButtato(p) {
     el('ul.deb-elenco', {}, b.voci.map((v) => el('li', {}, [
       el('b', { text: `${v.label} — ${v.secondi}s` }),
       el('span', { text: v.perche }),
+      v.invece ? el('span.deb-invece', {}, [
+        el('b', { text: `Andava ${v.invece.label}. ` }),
+        v.invece.perche,
+      ]) : null,
       v.fonte ? el('small.deb-fonte', { text: v.fonte }) : null,
     ].filter(Boolean)))),
+  ]);
+}
+
+/* Le inversioni di metodo. Non tolgono punti — non sono un voto — ma
+   vanno dette, perché riguardano la sicurezza di chi soccorre. */
+function sezioneInversioni(p) {
+  if (!p.inversioni || !p.inversioni.length) return null;
+  return el('section.dbox.deb-sez', {}, [
+    el('div.t', { text: 'quello che va fatto prima' }),
+    el('h3', { text: p.inversioni.length === 1 ? 'Un passo saltato' : `${p.inversioni.length} passi saltati` }),
+    el('ul.deb-elenco', {}, p.inversioni.map((x) => el('li', {}, [
+      el('span', { text: x.perche }),
+      el('small.deb-fonte', { text: x.fonte }),
+    ]))),
   ]);
 }
 
@@ -301,7 +319,7 @@ export function mostraDebriefing(sim, n) {
       ]),
     ]),
 
-    ...[sezioneSospetto(p), sezioneTempoButtato(p), sezioneBombola(p)].filter(Boolean),
+    ...[sezioneSospetto(p), sezioneInversioni(p), sezioneTempoButtato(p), sezioneBombola(p)].filter(Boolean),
 
     el('div.dbox', {}, [
       el('div.t', { text: 'come è andato il paziente' }),

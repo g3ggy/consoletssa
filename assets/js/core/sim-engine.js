@@ -428,7 +428,8 @@ export function creaIntervento(caso, opzioni = {}) {
        in modalità esame, perché è una scelta di presentazione e non del
        motore. */
     if (giudizio && giudizio.ok === false) {
-      scrivi('giudizio', `Non era indicata: ${giudizio.perche}`, id);
+      const alternativa = giudizio.invece ? ` Andava ${giudizio.invece.label}.` : '';
+      scrivi('giudizio', `Non era indicata: ${giudizio.perche}${alternativa}`, id);
     }
   }
 
