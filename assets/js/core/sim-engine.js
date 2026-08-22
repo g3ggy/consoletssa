@@ -28,6 +28,7 @@ import {
 import { applicaOffese, applicaTerapie, compensoBloccato } from '../data/offese.js';
 import {
   PAZIENTE, aChi, interlocutoriDi, puoRispondere, rispostaA, domandeDisponibili,
+  testoDomanda,
 } from './anamnesi.js';
 import { indicata } from './giudizio.js';
 import { creaBombola, conFlusso, consuma } from './bombola.js';
@@ -678,7 +679,7 @@ export function creaIntervento(caso, opzioni = {}) {
     if (!permesso.ok) return { ok: false, motivo: permesso.motivo };
 
     squadra = { ...squadra, tu: { liberoA: t + d.durata, azione: `domanda:${d.id}` } };
-    scrivi('azione', `Chiedi ${aChi(etichettaInterlocutore(interlocutore))}: ${d.testo}`, `domanda:${d.id}`);
+    scrivi('azione', `Chiedi ${aChi(etichettaInterlocutore(interlocutore))}: ${testoDomanda(d, interlocutore)}`, `domanda:${d.id}`);
     avanza(d.durata);
 
     const r = rispostaA({
@@ -764,7 +765,11 @@ export function creaIntervento(caso, opzioni = {}) {
     get sospetti() { return sospetti; },
     get primaImpressione() { return primaImpressionePendente; },
     get raccolte() { return raccolte; },
-    domandeDisponibili: () => domandeDisponibili(proietta()),
+    /* Le domande escono già nella voce giusta per chi hai davanti: chi le
+       disegna non deve sapere che esistono due formulazioni. Si creano
+       oggetti nuovi, il catalogo non si tocca. */
+    domandeDisponibili: () => domandeDisponibili(proietta())
+      .map((d) => ({ ...d, testo: testoDomanda(d, interlocutore) })),
     chiedi,
     rivolgitiA,
     avanza,

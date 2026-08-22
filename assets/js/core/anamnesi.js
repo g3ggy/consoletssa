@@ -43,6 +43,16 @@ function articolata(preposizione, label) {
 }
 
 /** «il paziente» → «al paziente». */
+/** La domanda come la fai a chi hai davanti.
+
+    Al paziente si parla a lui; a chi gli sta accanto si parla di lui, e
+    si chiede quello che quella persona può sapere. Una domanda che non
+    dichiara la seconda voce ripiega sulla prima, così un catalogo a metà
+    non rompe niente. */
+export const testoDomanda = (d, interlocutore) => (
+  interlocutore === PAZIENTE.id ? d.testo : (d.testoTerzi || d.testo)
+);
+
 export const aChi = (label) => articolata('a', label);
 
 /** «il paziente» → «dal paziente». */
