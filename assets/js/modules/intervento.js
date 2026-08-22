@@ -433,14 +433,18 @@ function rigaFamiglia(idFamiglia, voci) {
   /* Il capofamiglia si comporta come un'azione qualunque — stessi
      bottoni, stessa scelta di chi lo fa — solo che invece di partire
      apre le misure. */
-  const finto = { ...prima, label: meta.label, spiega: prima.spiega, durata: prima.durata };
+  const finto = { ...prima, label: meta.label, spiega: meta.spiega, durata: prima.durata };
   const riga = rigaAzione(finto, (_id, chi) => {
     famigliaAperta = aperta ? null : idFamiglia;
     membroFamiglia = chi;
     aggiornaPalette();
   });
   riga.classList.add('pal-fam');
-  riga.querySelector('.az-meta').append(el('span.pal-quante', { text: `${voci.length} misure` }));
+  /* Sul capofamiglia la durata non si scrive: le misure di una famiglia
+     non costano tutte uguale — montare un reservoir non è mettere due
+     occhialini — e il secondo giusto sta scritto sul bottone di ognuna. */
+  const meta2 = riga.querySelector('.az-meta');
+  meta2.replaceChildren(el('span.pal-quante', { text: `${voci.length} misure` }));
 
   if (!aperta) return riga;
 

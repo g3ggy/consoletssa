@@ -37,6 +37,10 @@ test('ogni famiglia dice come si misura, e da dove viene', () => {
   Object.values(FAMIGLIE_META).forEach((f) => {
     assert.ok(f.label, 'famiglia senza etichetta');
     assert.ok(f.comeSiMisura && f.comeSiMisura.length > 20, `${f.id}: manca il come si misura`);
+    /* La riga del capofamiglia nella palette ha bisogno di una sua
+       spiegazione: se manca finirebbe per descriversi con quella della
+       prima misura, e parlerebbe di un presidio solo. */
+    assert.ok(f.spiega && f.spiega.length > 20, `${f.id}: manca la spiegazione della famiglia`);
     assert.ok(f.fonteMisura, `${f.id}: il promemoria non porta la fonte`);
     assert.ok(f.ids.length >= 4, `${f.id}: famiglia troppo corta per essere una famiglia`);
   });

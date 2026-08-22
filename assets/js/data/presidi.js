@@ -45,6 +45,7 @@ const FAMIGLIE = [
   /* ---------------------- A: la cannula di Guedel ------------------- */
   {
     id: 'guedel',
+    spiega: 'Tiene la lingua staccata dalla parete posteriore. Sei misure: quella giusta si prende sul paziente, non a occhio.',
     cat: 'A',
     label: 'Cannula orofaringea',
     durata: 25,
@@ -92,6 +93,7 @@ const FAMIGLIE = [
   /* ------------------- A: il sondino di aspirazione ----------------- */
   {
     id: 'sondino',
+    spiega: 'Si aspira solo quello che si vede, in uscita, mai più di dieci secondi. Il calibro dipende dalle secrezioni e dalla corporatura.',
     cat: 'A',
     label: 'Aspira le secrezioni',
     durata: 40,
@@ -127,6 +129,7 @@ const FAMIGLIE = [
   /* ---------------------- B: i presidi dell'ossigeno ---------------- */
   {
     id: 'ossigeno',
+    spiega: 'Quanto ossigeno serve decide il presidio, e il presidio decide il flusso: dagli occhialini al reservoir cambia la percentuale che arriva.',
     cat: 'B',
     label: 'Ossigeno',
     durata: 30,
@@ -168,6 +171,7 @@ const FAMIGLIE = [
   /* ------------------ C: l'agocannula per l'infermiere -------------- */
   {
     id: 'ago',
+    spiega: 'Tu prepari, l\'infermiere punge. Il calibro decide quanti millilitri al minuto passano: si sceglie su quanto c\'è da riempire.',
     cat: 'C',
     label: 'Prepara il materiale per l\'accesso venoso',
     durata: 45,
@@ -214,6 +218,7 @@ export const FAMIGLIE_META = Object.fromEntries(FAMIGLIE.map((f) => [f.id, {
   id: f.id,
   cat: f.cat,
   label: f.label,
+  spiega: f.spiega,
   comeSiMisura: f.comeSiMisura,
   fonteMisura: f.fonteMisura,
   ids: f.misure.map((m) => m.id),
