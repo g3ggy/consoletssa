@@ -10,6 +10,13 @@
   align-items: start;
 }
 @media (max-width: 1100px) { .study { grid-template-columns: 1fr; } }
+/* A colonna singola su un tablet il testo si stirerebbe su ottocento
+   pixel: cento e passa caratteri per riga, che non si leggono. Si tiene
+   la stessa misura che ha su schermo largo, dove l'indice gli sta a
+   fianco. */
+@media (min-width: 700px) and (max-width: 1100px) {
+  .study { max-width: 66ch; margin-inline: auto; }
+}
 
 .toc {
   position: sticky; top: 68px; max-height: calc(100dvh - 92px);

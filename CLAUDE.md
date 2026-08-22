@@ -240,6 +240,18 @@ ricarica-e-svuota-cache, ma la cura è bumpare sempre tutti e tre i punti.
   il tag che la prima lascia (`cannula`, `ev-pronto`), letto da `richiede`.
   L'ossigeno è l'eccezione e tiene `unaVolta`: cambiare presidio strada
   facendo è lecito, ed è quello che si fa quando il paziente peggiora.
+- **Un iPad in verticale è largo 834 punti**, cioè sotto la soglia dei 900:
+  senza una fascia per i tablet prende il layout del telefono, e su undici
+  pollici si vede — tutto in colonna, pagine tre volte più lunghe. Le due
+  colonne dell'intervento partono da 820, e `tests/stili.test.mjs` controlla
+  che quella soglia non risalga.
+- **Il numero di versione non va mai nascosto per larghezza.** Stava in
+  `.rail-foot`, che sotto i 900 spariva insieme al resto: proprio da telefono,
+  dove serve, non si vedeva. È l'unico modo che ha un collega per capire se
+  ha la copia aggiornata o una vecchia rimasta in cache.
+- **Quando provi una modifica al CSS nel browser, ricordati del service
+  worker**: serve la copia in cache e ti fa misurare il foglio vecchio
+  credendo di misurare il nuovo.
 - **La riga del capofamiglia nella palette ha bisogno di una `spiega` sua.**
   Senza, si descrive con quella della prima misura: «Ossigeno» finiva per
   spiegare gli occhialini, e «Prepara il materiale» il 14 arancione.

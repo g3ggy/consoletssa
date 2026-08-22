@@ -265,7 +265,19 @@
     height: auto; flex-direction: row; border-right: 0; border-top: 1px solid var(--line);
     padding-bottom: env(safe-area-inset-bottom);
   }
-  .brand, .rail-sep, .rail-foot, .navlink small, .navlink .kbd { display: none; }
+  .brand, .rail-sep, .railstat, .navlink small, .navlink .kbd { display: none; }
+  /* La barra in basso resta una colonna: sopra la riga sottile del
+     numero di versione, sotto le icone. Il numero è il modo in cui un
+     collega capisce se ha la copia aggiornata o una vecchia rimasta in
+     cache — e i colleghi leggono quasi tutti da telefono, che è proprio
+     dove prima spariva. */
+  .rail { flex-direction: column; }
+  .rail-foot {
+    margin-top: 0; padding: 2px var(--sp-3) 0;
+    display: flex; justify-content: flex-end;
+  }
+  .rail-foot .versione { width: auto; padding: 2px 0; font-size: 9.5px; }
+  .rail-foot .versione span { display: none; }
   .rail-nav {
     flex-direction: row; width: 100%; padding: 6px;
     justify-content: space-around; gap: 2px;
@@ -275,7 +287,7 @@
     padding: 7px 4px; text-align: center;
   }
   .navlink svg { width: 21px; height: 21px; }
-  .outlet { padding: var(--sp-4) var(--sp-3) 96px; }
+  .outlet { padding: var(--sp-4) var(--sp-3) 112px; }
   .topbar-actions { padding-right: var(--sp-3); }
   .ribbon, .ribbon canvas { height: 44px; }
 }

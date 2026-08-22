@@ -30,9 +30,17 @@
 
 /* ------------------------------ colonne ---------------------------- */
 .int-corpo { display: grid; gap: var(--sp-4); align-items: start; }
+/* Un iPad da 11 pollici in verticale è largo 834 punti: sotto la vecchia
+   soglia di 1080 prendeva il layout del telefono e impilava tutto, col
+   monitor largo quanto lo schermo e il diario sotto la piega. Da 820 in su
+   ci stanno due colonne: la colonna del monitor è più stretta, ma i
+   parametri restano sott'occhio, che è il punto del banco. */
+@media (min-width: 820px) {
+  .int-corpo { grid-template-columns: minmax(0, 1fr) 300px; }
+  .int-lato { position: sticky; top: 68px; display: grid; gap: var(--sp-3); }
+}
 @media (min-width: 1080px) {
   .int-corpo { grid-template-columns: minmax(0, 1fr) 348px; }
-  .int-lato { position: sticky; top: 68px; display: grid; gap: var(--sp-3); }
 }
 .int-scena {
   background: var(--surface); border: 1px solid var(--line);
@@ -183,7 +191,7 @@
 .gtabella th { font-family: var(--mono); font-size: var(--fs-xs); text-transform: uppercase; color: var(--ink-3); }
 
 /* ------------------------------ telefono --------------------------- */
-@media (max-width: 1079px) {
+@media (max-width: 819px) {
   .int-corpo { display: flex; flex-direction: column; align-items: stretch; }
   .int-lato { display: contents; }
   .int-scena { order: 1; }

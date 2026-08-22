@@ -13,11 +13,12 @@
    (e la stessa stringa in cima a sw.js).
    ===================================================================== */
 
-export const VERSIONE = '1.13.1';
+export const VERSIONE = '1.13.2';
 export const DATA_VERSIONE = '22 agosto 2026';
 
 /** Cosa è cambiato, dalla più recente. Le prime tre finiscono nel pannello. */
 export const NOVITA = [
+  { v: '1.13.2', t: 'Il tablet smette di essere un telefono gigante. Su un iPad in verticale la console prendeva il layout del telefono — tutto in colonna, il monitor largo quanto lo schermo, il diario sotto la piega e una pagina lunga il triplo — perché il confine fra telefono e scrivania era uno solo. Adesso da 820 punti in su il monitor sta a fianco, e il manuale tiene la stessa misura di riga che ha su schermo largo invece di stirarsi. E il numero di versione, che serve proprio a chi legge da telefono per sapere se ha la copia aggiornata, sotto i 900 punti era nascosto: adesso si vede in fondo alla barra, dappertutto.' },
   { v: '1.13.1', t: 'Nel dolore toracico l\'ossigeno torna fra le cose da fare, non fra quelle che puoi fare: sta nella lista dei compiti del soccorritore del manuale, e gli occhialini sono nominati proprio lì. Quale presidio resta però una scelta tua — il reservoir a chi satura 95 è alto flusso per niente, e il banco continua a dirtelo.' },
   { v: '1.13.0', t: 'I presidi diventano quelli veri dello zaino. La cannula orofaringea non è più una: sono sei, dalla nera alla arancione, e la misura si prende dagli incisivi all\'angolo della mandibola — quella sbagliata non tiene la lingua, la spinge. Stessa cosa per il sondino di aspirazione, per l\'agocannula che prepari all\'infermiere — 14 arancione, 16 grigio, 18 verde, 20 rosa — e per l\'ossigeno, che adesso ha anche il Venturi del bronchitico e la maschera col nebulizzatore. Ogni misura ha la sua regola con la fonte del manuale accanto, e quella sbagliata la paghi in secondi come ogni gesto che non serviva. E il flusso finalmente pesa: la bombola si svuota davvero, il conto è quello del manuale, e alla fine il banco ti dice quanti litri hai dato e per quanti minuti di trasporto ne restano.' },
   { v: '1.12.1', t: 'Solo riordino: la pagella esce dal motore e va in un file suo, cos\u00ec `sim-engine.js` torna sotto le ottocento righe che il progetto si \u00e8 dato come massimo. Niente cambia per chi la usa.' },
