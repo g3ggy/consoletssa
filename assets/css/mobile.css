@@ -13,6 +13,14 @@ button, a, input, select, textarea, .chip, .opt, .vit, .sq, summary {
 }
 
 @media (pointer: coarse) {
+  /* Sotto i 16px Safari su iPhone e iPad ingrandisce la pagina appena
+     tocchi un campo di testo — e non la rimpicciolisce più da sola: resti
+     con l'interfaccia sformata finché non pizzichi per tornare indietro.
+     I campi del progetto stavano a 13 e 15px, quindi capitava con la
+     ricerca del manuale, quella delle azioni e il selettore del sospetto.
+     Il `max` tiene il disegno dove il font è già più grande. */
+  input, textarea, select { font-size: max(16px, 1em); }
+
   .btn { min-height: 42px; }
   .btn.sm { min-height: 36px; }
   .chip { min-height: 36px; padding: 8px 14px; }

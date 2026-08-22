@@ -124,18 +124,26 @@
    ha lo scroll suo), quindi restano visibili da sole, senza bisogno di
    un `position: sticky` in più. */
 .pal-ricerca-box {
-  display: flex; align-items: center; gap: 8px;
-  margin: var(--sp-3) var(--sp-4) 0;
-  padding: 8px 12px;
+  display: flex; align-items: center; gap: 6px;
+  margin: var(--sp-2) var(--sp-4) 0;
+  padding: 3px 10px;
   border: 1px solid var(--line); border-radius: var(--r-full);
   background: var(--surface-2); color: var(--ink-3);
 }
-.pal-ricerca-box svg { width: 16px; height: 16px; flex: 0 0 auto; }
-.pal-ricerca {
+.pal-ricerca-box svg { width: 14px; height: 14px; flex: 0 0 auto; }
+/* Scopata dentro la sua scatola per specificità: `app.css` ha una regola
+   generica `.palette input` — è della palette dei comandi, quella che si
+   apre da tastiera — con quindici pixel di imbottitura, e a parità di peso
+   vinceva lei. Era il motivo per cui questa casella veniva alta il doppio
+   del necessario.
+
+   I sedici pixel di corpo non sono un vezzo: sotto quella soglia Safari su
+   iPhone e iPad ingrandisce la pagina appena tocchi il campo. */
+.pal-ricerca-box .pal-ricerca {
   flex: 1; min-width: 0; border: 0; background: transparent; color: var(--ink);
-  font: inherit; font-size: var(--fs-base);
+  font-family: var(--body); font-size: 16px; padding: 4px 0;
 }
-.pal-ricerca:focus { outline: none; }
+.pal-ricerca-box .pal-ricerca:focus { outline: none; }
 .pal-ricerca::placeholder { color: var(--ink-3); }
 
 .palette-tabs {

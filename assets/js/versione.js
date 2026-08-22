@@ -13,11 +13,12 @@
    (e la stessa stringa in cima a sw.js).
    ===================================================================== */
 
-export const VERSIONE = '1.14.0';
+export const VERSIONE = '1.14.1';
 export const DATA_VERSIONE = '22 agosto 2026';
 
 /** Cosa è cambiato, dalla più recente. Le prime tre finiscono nel pannello. */
 export const NOVITA = [
+  { v: '1.14.1', t: 'La casella di ricerca delle azioni era alta il doppio del necessario — una regola generica della palette dei comandi le imponeva quindici pixel di imbottitura — ed è scesa da sessantasei a trentasei. Già che c\'eravamo: tutti i campi di testo adesso hanno il corpo a sedici pixel sui dispositivi tattili, perché sotto quella soglia Safari ingrandisce la pagina appena li tocchi e non torna più indietro. Capitava con la ricerca del manuale, quella delle azioni e il selettore del sospetto.' },
   { v: '1.14.0', t: 'Tre cose nate usando la console sul mezzo. La palette ha una ricerca: scrivi una parola e trovi il gesto in qualunque categoria stia, col nome della categoria accanto perché la prossima volta tu sappia dove cercarlo. Le tessere del monitor non ancora rilevate dicono il gesto che le riempie — «tocca la cute», «chiedi se ha sete» — invece di due trattini: sono le stesse azioni della palette, e adesso si vede. E le domande dell\'anamnesi hanno due voci: al paziente chiedi «quanto le fa male», a chi gli sta accanto «le ha detto quanto le fa male», perché a un terzo si chiede quello che quel terzo può sapere.' },
   { v: '1.13.4', t: 'La barra delle categorie nella palette sta ferma: resta incollata in cima al pannello, un trascinamento verticale non se la porta più dietro, e il contatore delle azioni rimaste ha una larghezza fissa — prima passando da otto a sette il tab si accorciava e tutti quelli dopo si spostavano sotto il dito mentre stavi cercando un gesto.' },
   { v: '1.13.3', t: 'Il monitor non cresce più all\'infinito su iPad. Il canvas del tracciato prendeva l\'altezza in percentuale da un contenitore che un\'altezza non ce l\'aveva: Safari ripiegava sull\'altezza interna del canvas, che raddoppia a ogni fotogramma su uno schermo Retina — e il pannello diventava un rettangolo nero lungo quanto la pagina, senza tracciato né parametri. Adesso l\'altezza è in pixel, come per gli altri tracciati che non hanno mai dato problemi.' },

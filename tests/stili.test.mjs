@@ -105,6 +105,18 @@ test('la barra delle categorie sta ferma sotto il dito', () => {
   assert.match(pasticca, /min-width/, 'il contatore non ha larghezza minima: il tab si accorcia e i vicini si spostano');
 });
 
+test('sui dispositivi tattili i campi di testo non scendono sotto i 16px', () => {
+  /* Sotto quella soglia Safari su iPhone e iPad ingrandisce la pagina
+     appena tocchi il campo, e non torna indietro da solo. I campi del
+     progetto stavano a 13 e 15px: capitava con la ricerca del manuale,
+     quella delle azioni e il selettore del sospetto. */
+  const testo = css('mobile.css');
+  const tattile = blocchiMedia(testo).find((b) => /pointer:\s*coarse/.test(b.condizione));
+  assert.ok(tattile, 'manca il blocco per i dispositivi tattili');
+  assert.match(tattile.corpo, /input[^{]*\{[^}]*font-size:\s*max\(\s*16px/,
+    'i campi di testo possono ancora far ingrandire la pagina su iOS');
+});
+
 test('il tablet in verticale non prende il layout del telefono', () => {
   /* Un iPad da 11 pollici in verticale è largo 834 punti. Finché le due
      colonne dell'intervento partivano da 1080, lì dentro finiva tutto in

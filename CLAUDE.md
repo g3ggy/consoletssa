@@ -240,6 +240,15 @@ ricarica-e-svuota-cache, ma la cura è bumpare sempre tutti e tre i punti.
   il tag che la prima lascia (`cannula`, `ev-pronto`), letto da `richiede`.
   L'ossigeno è l'eccezione e tiene `unaVolta`: cambiare presidio strada
   facendo è lecito, ed è quello che si fa quando il paziente peggiora.
+- **Sui dispositivi tattili nessun campo di testo va sotto i 16px.** Sotto
+  quella soglia Safari su iPhone e iPad ingrandisce la pagina appena tocchi
+  il campo, e non torna indietro da solo. La regola sta in `mobile.css`
+  dentro `@media (pointer: coarse)`, e `tests/stili.test.mjs` la presidia.
+- **`app.css` ha una regola generica `.palette input`** — è della palette dei
+  comandi — con quindici pixel di imbottitura: qualunque `input` dentro un
+  `.palette` la eredita, e a parità di specificità vince lei. La casella di
+  ricerca delle azioni veniva alta il doppio per questo. Chi mette un campo
+  dentro la palette lo scopi dentro il suo contenitore.
 - **`modules/intervento.js` è a 796 righe su 800.** Il prossimo pezzo che
   entra lì dentro va preceduto da un'estrazione: il candidato naturale è la
   palette — `rigaAzione`, `rigaFamiglia`, `righeDellaCategoria`,
