@@ -357,6 +357,13 @@ export const CASI = [
         { id: 'monitor', entro: 240, peso: 2 },
         { id: 'misura-pa', entro: 300, peso: 2 },
         { id: 'domanda:durata-dolore', entro: 300, peso: 2 },
+        /* L'ossigeno sta fra i compiti del soccorritore nel dolore toracico
+           (Bolognin :3761), e il manuale nomina gli occhialini proprio qui
+           (:3254). Quale presidio resta una scelta: il reservoir a chi satura
+           95 è alto flusso per niente, e il giudizio glielo dice lo stesso.
+           Sta dopo la domanda sul dolore perché è quella che te lo fa sapere:
+           prima chiedi, poi tratti. */
+        { id: ['o2-occhialini', 'o2-maschera', 'o2-reservoir'], entro: 360, peso: 2, label: 'Ossigeno' },
         { id: 'domanda:terapia', entro: 420, peso: 1 },
         { id: 'ecg-elettrodi', entro: 420, peso: 2 },
         { id: 'ecg-esegui', entro: 480, peso: 2 },
@@ -369,7 +376,7 @@ export const CASI = [
          copione lo faceva dare PRIMA di attaccare il monitor, cioè senza
          sapere il numero. Resta utile — se scende, serve — ma non toglie
          punti a chi prima misura. */
-      utili: ['o2-maschera', 'o2-reservoir', 'rassicura', ...IDS.ago, 'allerta-co', 'conta-fr', 'misura-glicemia'],
+      utili: ['rassicura', ...IDS.ago, 'allerta-co', 'conta-fr', 'misura-glicemia'],
       dannose: [
         { id: 'antishock', penalita: 3, perche: 'Sdraiarlo aumenta il ritorno venoso al cuore e peggiora il respiro: nel dolore toracico si trasporta seduto, salvo che sia pallido e ipoteso.' },
         { id: 'spinale', perche: 'Non è un trauma: tre minuti buttati mentre il miocardio soffre.' },

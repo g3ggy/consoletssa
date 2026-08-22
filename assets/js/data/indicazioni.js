@@ -76,6 +76,20 @@ const ago = (g) => ({
   fonte: 'Bolognin :10448 — quali quadri chiedano volume è ASSUNZIONE NOSTRA',
 });
 
+/* Nel dolore toracico l'ossigeno è nella lista dei compiti del soccorritore —
+   «somministrare O2 secondo i protocolli locali» (Bolognin :3761) — e il
+   manuale mette gli occhialini proprio lì, «supporto terapeutico (es. dolore
+   toracico, episodio sincopale...)» (:3254). Vale anche col saturimetro a
+   posto, ed è il motivo per cui questa clausola sta accanto alle soglie e non
+   dentro.
+
+   ATTENZIONE, le due fonti non dicono la stessa cosa: le ERC 2025 cap. 12 :154
+   dicono di titolare l'ossigeno per stare fra 94 e 98%, e a quel paziente lì
+   non ne servirebbe. Il corso è sul Bolognin e il protocollo è quello locale,
+   quindi il banco segue il manuale — ma il presidio resta una scelta, e il
+   reservoir a chi satura 95 continua a essere alto flusso per niente. */
+const doloreToracico = (c) => Boolean(c.saputo['dolore-toracico'] || c.saputo['oppressione-toracica']);
+
 export const INDICAZIONI = {
 
   /* ---------------------------- A: vie aeree ---------------------- */
@@ -117,20 +131,24 @@ export const INDICAZIONI = {
 
   'o2-occhialini': {
     quando: (c) => (c.letture.spo2 !== undefined && c.letture.spo2 < 94 && c.letture.spo2 >= 90)
-      || (c.letture.spo2 === undefined && c.saputo.dispnea),
+      || (c.letture.spo2 === undefined && c.saputo.dispnea)
+      || doloreToracico(c),
     perche: 'Gli occhialini danno pochi litri: vanno bene per una '
-      + 'desaturazione lieve. Se la saturazione è sotto 90 non bastano, e '
-      + 'se sta sopra 94 non serviva niente.',
-    fonte: 'Bolognin :2786-2800',
+      + 'desaturazione lieve, o come supporto in un dolore toracico. Se la '
+      + 'saturazione è sotto 90 non bastano, e su un paziente che respira '
+      + 'bene e non ha dolore al petto non serviva niente.',
+    fonte: 'Bolognin :2786-2800, e :3254 per il dolore toracico',
   },
 
   'o2-maschera': {
     quando: (c) => (c.letture.spo2 !== undefined && c.letture.spo2 < 94)
-      || (c.letture.spo2 === undefined && c.saputo.dispnea),
-    perche: 'La maschera si mette a chi ha la saturazione sotto 94, o a chi '
-      + 'lo vedi respirare male prima ancora di misurarla. Su un paziente '
-      + 'che parla a frasi complete con 98 di saturazione non cambia niente.',
-    fonte: 'Bolognin :2786-2800',
+      || (c.letture.spo2 === undefined && c.saputo.dispnea)
+      || doloreToracico(c),
+    perche: 'La maschera si mette a chi ha la saturazione sotto 94, a chi lo '
+      + 'vedi respirare male prima ancora di misurarla, o a un dolore '
+      + 'toracico. Su un paziente che parla a frasi complete con 98 di '
+      + 'saturazione e nessun dolore al petto non cambia niente.',
+    fonte: 'Bolognin :2786-2800, e :3761 per il dolore toracico',
   },
 
   /* Il trauma è l'eccezione, e ha una fonte sua: il Bolognin :6424-6427
